@@ -1,0 +1,62 @@
+package msgpack
+
+const (
+	positiveFixInt = 0x00
+	fixMap         = 0x80
+	fixArray       = 0x90
+	fixStr         = 0xa0
+
+	nil = 0xc0
+
+	false = 0xc2
+	true  = 0xc3
+
+	bin8  = 0xc4
+	bin16 = 0xc5
+	bin32 = 0xc6
+
+	ext8  = 0xc7
+	ext16 = 0xc8
+	ext32 = 0xc9
+
+	float32 = 0xca
+	float64 = 0xcb
+
+	uint8  = 0xcc
+	uint16 = 0xcd
+	uint32 = 0xce
+	uint64 = 0xcf
+
+	int8  = 0xd0
+	int16 = 0xd1
+	int32 = 0xd2
+	int64 = 0xd3
+
+	fixext1  = 0xd4
+	fixext2  = 0xd5
+	fixext4  = 0xd6
+	fixext8  = 0xd7
+	fixext16 = 0xd8
+
+	str8  = 0xd9
+	str16 = 0xda
+	str32 = 0xdb
+
+	array16 = 0xdc
+	array32 = 0xdd
+
+	map16 = 0xde
+	map32 = 0xdf
+
+	negativeFixintBegin = 0xe0
+	negativeFixintEnd   = 0xff
+)
+
+const (
+	byte1 = 1 << iota
+	byte2
+	byte4
+	byte8
+	byte16
+	byte32
+)
