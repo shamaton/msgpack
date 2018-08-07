@@ -1,10 +1,12 @@
 package msgpack
 
 const (
-	positiveFixInt = 0x00
-	fixMap         = 0x80
-	fixArray       = 0x90
-	fixStr         = 0xa0
+	positiveFixIntMin = 0x00
+	positiveFixIntMax = 0x7f
+
+	fixMap   = 0x80
+	fixArray = 0x90
+	fixStr   = 0xa0
 
 	nil = 0xc0
 
@@ -48,8 +50,8 @@ const (
 	map16 = 0xde
 	map32 = 0xdf
 
-	negativeFixintBegin = 0xe0
-	negativeFixintEnd   = 0xff
+	negativeFixintMin = -32 // 0xe0
+	negativeFixintMax = -1  // 0xff
 )
 
 const (
