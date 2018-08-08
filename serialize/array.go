@@ -10,7 +10,6 @@ import (
 
 type serializer struct {
 	common
-	d []byte
 }
 
 func AsArray(v interface{}) /*([]byte, error)*/ {
@@ -26,8 +25,8 @@ func AsArray(v interface{}) /*([]byte, error)*/ {
 
 	size := s.calcSize(rv)
 	s.d = make([]byte, size)
-	s.create(rv)
-	fmt.Println(def.Byte1, size, s)
+	s.create(rv, 0)
+	fmt.Println(def.Byte4, size, s)
 	fmt.Println(hex.Dump(s.d))
 }
 
@@ -83,21 +82,57 @@ func (s *serializer) calcSize(rv reflect.Value) int {
 	return ret
 }
 
-func (s *serializer) create(rv reflect.Value) {
+func (s *serializer) create(rv reflect.Value, offset int) {
 
 	switch rv.Kind() {
 	case reflect.Int8:
 		val := rv.Int()
 		if s.isPositiveFixInt64(val) || s.isNegativeFixInt64(val) {
-			s.d[0] = byte(val)
+			offset = s.writeSize1Int64(val, offset)
 		} else {
-			s.d[0] = def.Int8
-			s.d[1] = byte(val)
+			offset = s.writeSize1Int(def.Int8, offset)
+			offset = s.writeSize1Int64(val, offset)
 		}
 
 	case reflect.Int16:
+		val := rv.Int()
+		if s.isPositiveFixInt64(val) || s.isNegativeFixInt64(val) {
+			offset = s.writeSize1Int64(val, offset)
+		} else {
+			offset = s.writeSize1Int(def.Int16, offset)
+			offset = s.writeSize2Int64(val, offset)
+		}
+
 	case reflect.Int32:
+		val := rv.Int()
+		if s.isPositiveFixInt64(val) || s.isNegativeFixInt64(val) {
+			offset = s.writeSize1Int64(val, offset)
+		} else {
+			offset = s.writeSize1Int(def.Int32, offset)
+			offset = s.writeSize4Int64(val, offset)
+		}
+
 	case reflect.Int64:
+		val := rv.Int()
+		if s.isPositiveFixInt64(val) || s.isNegativeFixInt64(val) {
+			offset = s.writeSize1Int64(val, offset)
+		} else {
+			offset = s.writeSize1Int(def.Int64, offset)
+			offset = s.writeSize8Int64(val, offset)
+		}
+
 	case reflect.Int:
+		val := rv.Int()
+		if s.isPositiveFixInt64(val) || s.isNegativeFixInt64(val) {
+			offset = s.writeSize1Int64(val, offset)
+		} else {
+			if def.IntSize == 32 {
+				offset = s.writeSize1Int(def.Int32, offset)
+				offset = s.writeSize4Int64(val, offset)
+			} else {
+				offset = s.writeSize1Int(def.Int64, offset)
+				offset = s.writeSize8Int64(val, offset)
+			}
+		}
 	}
 }
