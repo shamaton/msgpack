@@ -13,8 +13,7 @@ func Serialize(v interface{}) ([]byte, error) {
 }
 
 func SerializeAsArray(v interface{}) ([]byte, error) {
-	serialize.AsArray(v)
-	return []byte{}, errors.New("not implement")
+	return serialize.AsArray(v)
 }
 
 func SerializeAsMap(v interface{}) ([]byte, error) {
