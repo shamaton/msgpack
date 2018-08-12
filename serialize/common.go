@@ -85,6 +85,12 @@ func (c *common) writeSize1Int(code, offset int) int {
 	return offset + 1
 }
 
+func (c *common) writeSize2Int(value int, offset int) int {
+	c.d[offset] = byte(value >> 8)
+	c.d[offset+1] = byte(value)
+	return offset + 2
+}
+
 func (c *common) writeSize4Int(value int, offset int) int {
 	c.d[offset] = byte(value >> 24)
 	c.d[offset+1] = byte(value >> 16)
