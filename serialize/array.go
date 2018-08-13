@@ -142,8 +142,16 @@ func (s *serializer) calcSize(rv reflect.Value) (int, error) {
 		if rv.IsNil() {
 			return ret, nil
 		}
-		// TODO : isNil
 		l := rv.Len()
+		// bin format
+		if s.isByteSlice(rv) {
+			r, err := s.calcByteSlice(l)
+			if err != nil {
+				return 0, err
+			}
+			ret += r
+			return ret, nil
+		}
 
 		// format size
 		if l <= 0x0f {
@@ -243,6 +251,12 @@ func (s *serializer) create(rv reflect.Value, offset int) (int, error) {
 			return offset, nil
 		}
 		l := rv.Len()
+		// bin format
+		if s.isByteSlice(rv) {
+			offset = s.writeByteSliceLength(l, offset)
+			offset = s.writeBytes(rv.Bytes(), offset)
+			return offset, nil
+		}
 
 		// format
 		if l <= 0x0f {
@@ -319,6 +333,40 @@ func (s *serializer) writeSliceLength(l int, offset int) int {
 		offset = s.writeSize2Int(l, offset)
 	} else if l <= math.MaxUint32 {
 		offset = s.writeSize1Int(def.Array16, offset)
+		offset = s.writeSize4Int(l, offset)
+	}
+	return offset
+}
+
+func (s *serializer) isByteSlice(rv reflect.Value) bool {
+	switch rv.Interface().(type) {
+	case []byte:
+		return true
+	}
+	return false
+}
+
+func (s *serializer) calcByteSlice(l int) (int, error) {
+	if l <= math.MaxUint8 {
+		return def.Byte1 + l, nil
+	} else if l <= math.MaxUint16 {
+		return def.Byte2 + l, nil
+	} else if l <= math.MaxUint32 {
+		return def.Byte4 + l, nil
+	}
+	// not supported error
+	return 0, fmt.Errorf("not support this array length : %d", l)
+}
+
+func (s *serializer) writeByteSliceLength(l int, offset int) int {
+	if l <= math.MaxUint8 {
+		offset = s.writeSize1Int(def.Bin8, offset)
+		offset = s.writeSize1Int(l, offset)
+	} else if l <= math.MaxUint16 {
+		offset = s.writeSize1Int(def.Bin16, offset)
+		offset = s.writeSize2Int(l, offset)
+	} else if l <= math.MaxUint32 {
+		offset = s.writeSize1Int(def.Bin32, offset)
 		offset = s.writeSize4Int(l, offset)
 	}
 	return offset
