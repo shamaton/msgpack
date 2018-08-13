@@ -6,15 +6,15 @@ type common struct {
 	d []byte
 }
 
-func (c common) isPositiveFixInt64(v int64) bool {
+func isPositiveFixInt64(v int64) bool {
 	return def.PositiveFixIntMin <= v && v <= def.PositiveFixIntMax
 }
 
-func (c common) isPositiveFixUint64(v uint64) bool {
+func isPositiveFixUint64(v uint64) bool {
 	return def.PositiveFixIntMin <= v && v <= def.PositiveFixIntMax
 }
 
-func (c common) isNegativeFixInt64(v int64) bool {
+func isNegativeFixInt64(v int64) bool {
 	return def.NegativeFixintMin <= v && v <= def.NegativeFixintMax
 }
 
@@ -105,4 +105,11 @@ func (c *common) writeSize4Uint32(value uint32, offset int) int {
 	c.d[offset+2] = byte(value >> 8)
 	c.d[offset+3] = byte(value)
 	return offset + 4
+}
+
+func (c *common) writeBytes(bs []byte, offset int) int {
+	for i := range bs {
+		c.d[offset+i] = bs[i]
+	}
+	return offset + len(bs)
 }
