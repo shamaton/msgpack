@@ -6,15 +6,15 @@ type common struct {
 	d []byte
 }
 
-func isPositiveFixInt64(v int64) bool {
+func (s *serializer) isPositiveFixInt64(v int64) bool {
 	return def.PositiveFixIntMin <= v && v <= def.PositiveFixIntMax
 }
 
-func isPositiveFixUint64(v uint64) bool {
+func (s *serializer) isPositiveFixUint64(v uint64) bool {
 	return def.PositiveFixIntMin <= v && v <= def.PositiveFixIntMax
 }
 
-func isNegativeFixInt64(v int64) bool {
+func (s *serializer) isNegativeFixInt64(v int64) bool {
 	return def.NegativeFixintMin <= v && v <= def.NegativeFixintMax
 }
 

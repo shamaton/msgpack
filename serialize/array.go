@@ -16,37 +16,22 @@ type serializer struct {
 func AsArray(v interface{}) ([]byte, error) {
 	s := serializer{}
 
-	/*
-		rv := reflect.ValueOf(v)
+	// TODO : recover
+
+	rv := reflect.ValueOf(v)
+	if rv.Kind() == reflect.Ptr {
+		rv = rv.Elem()
 		if rv.Kind() == reflect.Ptr {
 			rv = rv.Elem()
-			if rv.Kind() == reflect.Ptr {
-				rv = rv.Elem()
-			}
 		}
-			size, err := s.calcSize(rv)
-			if err != nil {
-				return nil, err
-			}
-
-			s.d = make([]byte, size)
-			last, err := s.create(rv, 0)
-			if err != nil {
-				return nil, err
-			}
-			if size != last {
-				return nil, fmt.Errorf("failed serialization size=%d, lastIdx=%d", size, last)
-			}
-			return s.d, err
-	*/
-
-	size, err := s.calcSize2(v)
+	}
+	size, err := s.calcSize(rv)
 	if err != nil {
 		return nil, err
 	}
 
 	s.d = make([]byte, size)
-	last, err := s.create2(v, 0)
+	last, err := s.create(rv, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -56,156 +41,10 @@ func AsArray(v interface{}) ([]byte, error) {
 	return s.d, err
 }
 
-func (s *serializer) calcSize2(v interface{}) (int, error) {
-	ret := def.Byte1
-
-	switch v := v.(type) {
-	case int:
-		ret += calcInt(int64(v))
-	case uint:
-		ret += calcUint(uint64(v))
-
-	case string:
-		ret += calcString(v)
-
-	case bool, nil:
-		// do nothing
-
-	case []int:
-		lSize, err := calcSliceLength(len(v))
-		if err != nil {
-			return 0, err
-		}
-		ret += lSize
-
-		// objects size
-		for _, vv := range v {
-			size, err := s.calcSize2(vv)
-			if err != nil {
-				return 0, err
-			}
-			ret += size
-		}
-
-	case []uint:
-		lSize, err := calcSliceLength(len(v))
-		if err != nil {
-			return 0, err
-		}
-		ret += lSize
-
-		// objects size
-		for _, vv := range v {
-			size, err := s.calcSize2(vv)
-			if err != nil {
-				return 0, err
-			}
-			ret += size
-		}
-
-	case int8:
-		ret += calcInt(int64(v))
-	case int16:
-		ret += calcInt(int64(v))
-	case int32:
-		ret += calcInt(int64(v))
-	case int64:
-		ret += calcInt(v)
-
-	case uint8:
-		ret += calcUint(uint64(v))
-	case uint16:
-		ret += calcUint(uint64(v))
-	case uint32:
-		ret += calcUint(uint64(v))
-	case uint64:
-		ret += calcUint(v)
-
-	}
-
-	// analyze value
-
-	return ret, nil
-}
-
-func (s *serializer) create2(v interface{}, offset int) (int, error) {
-
-	switch v := v.(type) {
-	case int:
-		offset = s.writeInt(int64(v), offset)
-	case uint:
-		offset = s.writeUint(uint64(v), offset)
-
-	case string:
-		// NOTE : unsafe
-		strBytes := *(*[]byte)(unsafe.Pointer(&v))
-		l := len(strBytes)
-		if l < 32 {
-			offset = s.writeSize1Int(def.FixStr+l, offset)
-			offset = s.writeBytes(strBytes, offset)
-		} else if l <= math.MaxUint8 {
-			offset = s.writeSize1Int(def.Str8, offset)
-			offset = s.writeSize1Int(l, offset)
-			offset = s.writeBytes(strBytes, offset)
-		} else if l <= math.MaxUint16 {
-			offset = s.writeSize1Int(def.Str16, offset)
-			offset = s.writeSize2Int(l, offset)
-			offset = s.writeBytes(strBytes, offset)
-		} else {
-			offset = s.writeSize1Int(def.Str32, offset)
-			offset = s.writeSize4Int(l, offset)
-			offset = s.writeBytes(strBytes, offset)
-		}
-
-	case bool:
-		if v {
-			offset = s.writeSize1Int(def.True, offset)
-		} else {
-			offset = s.writeSize1Int(def.False, offset)
-		}
-
-	case []int:
-		offset = s.writeSliceLength(len(v), offset)
-
-		// objects
-		for _, vv := range v {
-			o, err := s.create2(vv, offset)
-			if err != nil {
-				return 0, err
-			}
-			offset = o
-		}
-
-	case []uint:
-
-	case nil:
-		offset = s.writeSize1Int(def.Nil, offset)
-
-	case int8:
-		offset = s.writeInt(int64(v), offset)
-	case int16:
-		offset = s.writeInt(int64(v), offset)
-	case int32:
-		offset = s.writeInt(int64(v), offset)
-	case int64:
-		offset = s.writeInt(v, offset)
-
-	case uint8:
-		offset = s.writeUint(uint64(v), offset)
-	case uint16:
-		offset = s.writeUint(uint64(v), offset)
-	case uint32:
-		offset = s.writeUint(uint64(v), offset)
-	case uint64:
-		offset = s.writeUint(uint64(v), offset)
-	}
-	return offset, nil
-}
-
-func calcUint(v uint64) int {
+func (s *serializer) calcUint(v uint64) int {
 	if v <= math.MaxInt8 {
-		return 0
 		// format code only
+		return 0
 	} else if v <= math.MaxUint8 {
 		return def.Byte1
 	} else if v <= math.MaxUint16 {
@@ -216,10 +55,10 @@ func calcUint(v uint64) int {
 	return def.Byte8
 }
 
-func calcInt(v int64) int {
+func (s *serializer) calcInt(v int64) int {
 	if v >= 0 {
-		return calcUint(uint64(v))
-	} else if isNegativeFixInt64(v) {
+		return s.calcUint(uint64(v))
+	} else if s.isNegativeFixInt64(v) {
 		// format code only
 		return 0
 	} else if v >= math.MinInt8 {
@@ -232,7 +71,7 @@ func calcInt(v int64) int {
 	return def.Byte8
 }
 
-func calcSliceLength(l int) (int, error) {
+func (s *serializer) calcSliceLength(l int) (int, error) {
 	// format size
 	if l <= 0x0f {
 		// format code only
@@ -246,7 +85,7 @@ func calcSliceLength(l int) (int, error) {
 	return 0, fmt.Errorf("not support this array length : %d", l)
 }
 
-func calcString(v string) int {
+func (s *serializer) calcString(v string) int {
 	// NOTE : unsafe
 	strBytes := *(*[]byte)(unsafe.Pointer(&v))
 	l := len(strBytes)
@@ -264,8 +103,6 @@ func calcString(v string) int {
 func (s *serializer) calcSize(rv reflect.Value) (int, error) {
 	ret := def.Byte1
 
-	// TODO : interface direct check
-
 	switch rv.Kind() {
 	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
 		v := rv.Uint()
@@ -275,7 +112,7 @@ func (s *serializer) calcSize(rv reflect.Value) (int, error) {
 		v := rv.Int()
 		if v >= 0 {
 			ret += s.calcUint(uint64(v))
-		} else if isNegativeFixInt64(v) {
+		} else if s.isNegativeFixInt64(v) {
 			// format code only
 		} else if v >= math.MinInt8 {
 			ret += +def.Byte1
@@ -287,7 +124,25 @@ func (s *serializer) calcSize(rv reflect.Value) (int, error) {
 			ret += def.Byte8
 		}
 
+	case reflect.Float32, reflect.Float64:
+		v := rv.Float()
+		if math.SmallestNonzeroFloat32 <= v && v <= math.MaxFloat32 {
+			ret += def.Byte4
+		} else {
+			ret += def.Byte8
+		}
+
+	case reflect.String:
+		ret += s.calcString(rv.String())
+
+	case reflect.Bool:
+		// do nothing
+
 	case reflect.Array, reflect.Slice:
+		if rv.IsNil() {
+			return ret, nil
+		}
+		// TODO : isNil
 		l := rv.Len()
 
 		// format size
@@ -326,7 +181,7 @@ func (s *serializer) create(rv reflect.Value, offset int) (int, error) {
 		v := rv.Int()
 		if v >= 0 {
 			offset = s.writeUint(uint64(v), offset)
-		} else if isNegativeFixInt64(v) {
+		} else if s.isNegativeFixInt64(v) {
 			offset = s.writeSize1Int64(v, offset)
 		} else if v >= math.MinInt8 {
 			offset = s.writeSize1Int(def.Int8, offset)
@@ -342,7 +197,51 @@ func (s *serializer) create(rv reflect.Value, offset int) (int, error) {
 			offset = s.writeSize8Int64(v, offset)
 		}
 
+	case reflect.Float32, reflect.Float64:
+		v := rv.Float()
+		if math.SmallestNonzeroFloat32 <= v && v <= math.MaxFloat32 {
+			offset = s.writeSize1Int(def.Float32, offset)
+			offset = s.writeSize4Uint64(uint64(math.Float32bits(float32(v))), offset)
+		} else {
+			offset = s.writeSize1Int(def.Float64, offset)
+			offset = s.writeSize8Uint64(math.Float64bits(v), offset)
+		}
+
+	case reflect.Bool:
+		if rv.Bool() {
+			offset = s.writeSize1Int(def.True, offset)
+		} else {
+			offset = s.writeSize1Int(def.False, offset)
+		}
+
+	case reflect.String:
+		str := rv.String()
+
+		// NOTE : unsafe
+		strBytes := *(*[]byte)(unsafe.Pointer(&str))
+		l := len(strBytes)
+		if l < 32 {
+			offset = s.writeSize1Int(def.FixStr+l, offset)
+			offset = s.writeBytes(strBytes, offset)
+		} else if l <= math.MaxUint8 {
+			offset = s.writeSize1Int(def.Str8, offset)
+			offset = s.writeSize1Int(l, offset)
+			offset = s.writeBytes(strBytes, offset)
+		} else if l <= math.MaxUint16 {
+			offset = s.writeSize1Int(def.Str16, offset)
+			offset = s.writeSize2Int(l, offset)
+			offset = s.writeBytes(strBytes, offset)
+		} else {
+			offset = s.writeSize1Int(def.Str32, offset)
+			offset = s.writeSize4Int(l, offset)
+			offset = s.writeBytes(strBytes, offset)
+		}
+
 	case reflect.Array, reflect.Slice:
+		if rv.IsNil() {
+			offset = s.writeSize1Int(def.Nil, offset)
+			return offset, nil
+		}
 		l := rv.Len()
 
 		// format
@@ -371,22 +270,6 @@ func (s *serializer) create(rv reflect.Value, offset int) (int, error) {
 	return offset, nil
 }
 
-func (s *serializer) calcUint(v uint64) int {
-	size := 0
-	if v <= math.MaxInt8 {
-		// format code only
-	} else if v <= math.MaxUint8 {
-		size = def.Byte1
-	} else if v <= math.MaxUint16 {
-		size = def.Byte2
-	} else if v <= math.MaxUint32 {
-		size = def.Byte4
-	} else {
-		size = def.Byte8
-	}
-	return size
-}
-
 func (s *serializer) writeUint(v uint64, offset int) int {
 	if v <= math.MaxInt8 {
 		offset = s.writeSize1Uint64(v, offset)
@@ -409,7 +292,7 @@ func (s *serializer) writeUint(v uint64, offset int) int {
 func (s *serializer) writeInt(v int64, offset int) int {
 	if v >= 0 {
 		offset = s.writeUint(uint64(v), offset)
-	} else if isNegativeFixInt64(v) {
+	} else if s.isNegativeFixInt64(v) {
 		offset = s.writeSize1Int64(v, offset)
 	} else if v >= math.MinInt8 {
 		offset = s.writeSize1Int(def.Int8, offset)
