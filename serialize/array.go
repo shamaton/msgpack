@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"time"
 	"unsafe"
 
 	"github.com/shamaton/msgpack/def"
@@ -12,6 +13,8 @@ import (
 type serializer struct {
 	common
 }
+
+var now = time.Now()
 
 func AsArray(v interface{}) ([]byte, error) {
 	s := serializer{}
@@ -205,7 +208,12 @@ func (s *serializer) calcSize(rv reflect.Value) (int, error) {
 		}
 
 	case reflect.Struct:
-		// TODO : time
+		if isTime, tm := s.isDateTime(rv); isTime {
+			size := s.calcTime(tm)
+			ret += size
+			return ret, nil
+		}
+
 		l := rv.NumField()
 		// format size
 		if l <= 0x0f {
@@ -370,6 +378,10 @@ func (s *serializer) create(rv reflect.Value, offset int) (int, error) {
 		}
 
 	case reflect.Struct:
+		if isTime, tm := s.isDateTime(rv); isTime {
+			return s.writeTime(tm, offset)
+		}
+
 		l := rv.NumField()
 		// format
 		if l <= 0x0f {
@@ -502,6 +514,53 @@ func (s *serializer) writeByteSliceLength(l int, offset int) int {
 		offset = s.writeSize4Int(l, offset)
 	}
 	return offset
+}
+
+func (s *serializer) isDateTime(value reflect.Value) (bool, time.Time) {
+	i := value.Interface()
+	switch t := i.(type) {
+	case time.Time:
+		return true, t
+	}
+	return false, now
+}
+
+func (s *serializer) calcTime(t time.Time) int {
+	secs := uint64(t.Unix())
+	if secs>>34 == 0 {
+		data := uint64(t.Nanosecond())<<34 | secs
+		if data&0xffffffff00000000 == 0 {
+			return def.Byte1 + def.Byte4
+		}
+		return def.Byte1 + def.Byte8
+	}
+
+	return def.Byte1 + def.Byte1 + def.Byte4 + def.Byte8
+}
+
+func (s *serializer) writeTime(t time.Time, offset int) (int, error) {
+	secs := uint64(t.Unix())
+	if secs>>34 == 0 {
+		data := uint64(t.Nanosecond())<<34 | secs
+		if data&0xffffffff00000000 == 0 {
+			offset = s.writeSize1Int(def.Fixext4, offset)
+			offset = s.writeSize1Int(-1, offset)
+			offset = s.writeSize4Uint64(data, offset)
+			return offset, nil
+		}
+
+		offset = s.writeSize1Int(def.Fixext8, offset)
+		offset = s.writeSize1Int(-1, offset)
+		offset = s.writeSize8Uint64(data, offset)
+		return offset, nil
+	}
+
+	offset = s.writeSize1Int(def.Ext8, offset)
+	offset = s.writeSize1Int(12, offset)
+	offset = s.writeSize1Int(-1, offset)
+	offset = s.writeSize4Int(t.Nanosecond(), offset)
+	offset = s.writeSize8Uint64(secs, offset)
+	return offset, nil
 }
 
 func (s *serializer) calcFixedMap(rv reflect.Value) (int, bool) {
