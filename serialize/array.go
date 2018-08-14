@@ -205,6 +205,28 @@ func (s *serializer) calcSize(rv reflect.Value) (int, error) {
 		}
 
 	case reflect.Struct:
+		// TODO : time
+		l := rv.NumField()
+		// format size
+		if l <= 0x0f {
+			// format code only
+		} else if l <= math.MaxUint16 {
+			ret += def.Byte2
+		} else if l <= math.MaxUint32 {
+			ret += def.Byte4
+		} else {
+			// not supported error
+			return 0, fmt.Errorf("not support this array length : %d", l)
+		}
+
+		for i := 0; i < l; i++ {
+			size, err := s.calcSize(rv.Field(i))
+			if err != nil {
+				return 0, err
+			}
+			ret += size
+		}
+
 	case reflect.Ptr:
 
 	}
@@ -340,6 +362,29 @@ func (s *serializer) create(rv reflect.Value, offset int) (int, error) {
 		}
 
 	case reflect.Struct:
+		l := rv.NumField()
+		// format
+		if l <= 0x0f {
+			offset = s.writeSize1Int(def.FixArray+l, offset)
+		} else if l <= math.MaxUint16 {
+			offset = s.writeSize1Int(def.Array16, offset)
+			offset = s.writeSize2Int(l, offset)
+		} else if l <= math.MaxUint32 {
+			offset = s.writeSize1Int(def.Array32, offset)
+			offset = s.writeSize4Int(l, offset)
+		} else {
+			// not supported error
+			return 0, fmt.Errorf("not support this array length : %d", l)
+		}
+
+		for i := 0; i < l; i++ {
+			o, err := s.create(rv.Field(i), offset)
+			if err != nil {
+				return 0, err
+			}
+			offset = o
+		}
+
 	case reflect.Ptr:
 
 	}
