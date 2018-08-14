@@ -478,6 +478,17 @@ func (s *serializer) writeFixedSlice(rv reflect.Value, offset int) (int, bool) {
 			offset = s.writeInt(int64(v), offset)
 		}
 		return offset, true
+	case []uint:
+	case []int8:
+	case []int16:
+	case []int32:
+	case []int64:
+	case []uint8:
+	case []uint16:
+	case []uint32:
+	case []uint64:
+	case []string:
 	}
+
 	return offset, false
 }
