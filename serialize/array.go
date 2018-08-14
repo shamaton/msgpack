@@ -110,19 +110,7 @@ func (s *serializer) calcSize(rv reflect.Value) (int, error) {
 
 	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
 		v := rv.Int()
-		if v >= 0 {
-			ret += s.calcUint(uint64(v))
-		} else if s.isNegativeFixInt64(v) {
-			// format code only
-		} else if v >= math.MinInt8 {
-			ret += +def.Byte1
-		} else if v >= math.MinInt16 {
-			ret += +def.Byte2
-		} else if v >= math.MinInt32 {
-			ret += +def.Byte4
-		} else {
-			ret += def.Byte8
-		}
+		ret += s.calcInt(int64(v))
 
 	case reflect.Float32, reflect.Float64:
 		v := rv.Float()
@@ -192,6 +180,11 @@ func (s *serializer) calcSize(rv reflect.Value) (int, error) {
 			return 0, fmt.Errorf("not support this map length : %d", l)
 		}
 
+		if size, find := s.calcFixedMap(rv); find {
+			ret += size
+			return ret, nil
+		}
+
 		// key-value
 		keys := rv.MapKeys()
 		for _, k := range keys {
@@ -223,23 +216,7 @@ func (s *serializer) create(rv reflect.Value, offset int) (int, error) {
 
 	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
 		v := rv.Int()
-		if v >= 0 {
-			offset = s.writeUint(uint64(v), offset)
-		} else if s.isNegativeFixInt64(v) {
-			offset = s.writeSize1Int64(v, offset)
-		} else if v >= math.MinInt8 {
-			offset = s.writeSize1Int(def.Int8, offset)
-			offset = s.writeSize1Int64(v, offset)
-		} else if v >= math.MinInt16 {
-			offset = s.writeSize1Int(def.Int16, offset)
-			offset = s.writeSize2Int64(v, offset)
-		} else if v >= math.MinInt32 {
-			offset = s.writeSize1Int(def.Int32, offset)
-			offset = s.writeSize4Int64(v, offset)
-		} else {
-			offset = s.writeSize1Int(def.Int64, offset)
-			offset = s.writeSize8Int64(v, offset)
-		}
+		offset = s.writeInt(v, offset)
 
 	case reflect.Float32, reflect.Float64:
 		v := rv.Float()
@@ -333,6 +310,10 @@ func (s *serializer) create(rv reflect.Value, offset int) (int, error) {
 		} else if l <= math.MaxUint32 {
 			offset = s.writeSize1Int(def.Map32, offset)
 			offset = s.writeSize4Int(l, offset)
+		}
+
+		if offset, find := s.writeFixedMap(rv, offset); find {
+			return offset, nil
 		}
 
 		// key-value
@@ -442,4 +423,29 @@ func (s *serializer) writeByteSliceLength(l int, offset int) int {
 		offset = s.writeSize4Int(l, offset)
 	}
 	return offset
+}
+
+func (s *serializer) calcFixedMap(rv reflect.Value) (int, bool) {
+	size := 0
+	switch m := rv.Interface().(type) {
+	case map[int]int:
+		for k, v := range m {
+			size += def.Byte1 + s.calcInt(int64(k))
+			size += def.Byte1 + s.calcInt(int64(v))
+		}
+		return size, true
+	}
+	return size, false
+}
+
+func (s *serializer) writeFixedMap(rv reflect.Value, offset int) (int, bool) {
+	switch m := rv.Interface().(type) {
+	case map[int]int:
+		for k, v := range m {
+			offset = s.writeInt(int64(k), offset)
+			offset = s.writeInt(int64(v), offset)
+		}
+		return offset, true
+	}
+	return offset, false
 }
