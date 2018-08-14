@@ -173,6 +173,42 @@ func (s *serializer) calcSize(rv reflect.Value) (int, error) {
 			}
 			ret += s
 		}
+
+	case reflect.Map:
+		if rv.IsNil() {
+			return ret, nil
+		}
+
+		l := rv.Len()
+		// format
+		if l <= 0x0f {
+			// do nothing
+		} else if l <= math.MaxUint16 {
+			ret += def.Byte2
+		} else if l <= math.MaxUint32 {
+			ret += def.Byte4
+		} else {
+			// not supported error
+			return 0, fmt.Errorf("not support this map length : %d", l)
+		}
+
+		// key-value
+		keys := rv.MapKeys()
+		for _, k := range keys {
+			keySize, err := s.calcSize(k)
+			if err != nil {
+				return 0, err
+			}
+			valueSize, err := s.calcSize(rv.MapIndex(k))
+			if err != nil {
+				return 0, err
+			}
+			ret += keySize + valueSize
+		}
+
+	case reflect.Struct:
+	case reflect.Ptr:
+
 	}
 
 	return ret, nil
@@ -280,6 +316,42 @@ func (s *serializer) create(rv reflect.Value, offset int) (int, error) {
 				return 0, err
 			}
 		}
+
+	case reflect.Map:
+		if rv.IsNil() {
+			offset = s.writeSize1Int(def.Nil, offset)
+			return offset, nil
+		}
+
+		l := rv.Len()
+		// format
+		if l <= 0x0f {
+			offset = s.writeSize1Int(def.FixMap+l, offset)
+		} else if l <= math.MaxUint16 {
+			offset = s.writeSize1Int(def.Map16, offset)
+			offset = s.writeSize2Int(l, offset)
+		} else if l <= math.MaxUint32 {
+			offset = s.writeSize1Int(def.Map32, offset)
+			offset = s.writeSize4Int(l, offset)
+		}
+
+		// key-value
+		keys := rv.MapKeys()
+		for _, k := range keys {
+			o, err := s.create(k, offset)
+			if err != nil {
+				return 0, err
+			}
+			o, err = s.create(rv.MapIndex(k), o)
+			if err != nil {
+				return 0, err
+			}
+			offset = o
+		}
+
+	case reflect.Struct:
+	case reflect.Ptr:
+
 	}
 	return offset, nil
 }
