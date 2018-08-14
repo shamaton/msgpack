@@ -153,6 +153,11 @@ func (s *serializer) calcSize(rv reflect.Value) (int, error) {
 			return 0, fmt.Errorf("not support this array length : %d", l)
 		}
 
+		if size, find := s.calcFixedSlice(rv); find {
+			ret += size
+			return ret, nil
+		}
+
 		// objects size
 		for i := 0; i < l; i++ {
 			s, err := s.calcSize(rv.Index(i))
@@ -283,6 +288,10 @@ func (s *serializer) create(rv reflect.Value, offset int) (int, error) {
 		} else {
 			// not supported error
 			return 0, fmt.Errorf("not support this array length : %d", l)
+		}
+
+		if offset, find := s.writeFixedSlice(rv, offset); find {
+			return offset, nil
 		}
 
 		// objects
@@ -443,6 +452,29 @@ func (s *serializer) writeFixedMap(rv reflect.Value, offset int) (int, bool) {
 	case map[int]int:
 		for k, v := range m {
 			offset = s.writeInt(int64(k), offset)
+			offset = s.writeInt(int64(v), offset)
+		}
+		return offset, true
+	}
+	return offset, false
+}
+
+func (s *serializer) calcFixedSlice(rv reflect.Value) (int, bool) {
+	size := 0
+	switch sli := rv.Interface().(type) {
+	case []int:
+		for _, v := range sli {
+			size += def.Byte1 + s.calcInt(int64(v))
+		}
+		return size, true
+	}
+	return size, false
+}
+
+func (s *serializer) writeFixedSlice(rv reflect.Value, offset int) (int, bool) {
+	switch sli := rv.Interface().(type) {
+	case []int:
+		for _, v := range sli {
 			offset = s.writeInt(int64(v), offset)
 		}
 		return offset, true
