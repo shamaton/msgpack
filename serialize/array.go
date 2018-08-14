@@ -228,7 +228,17 @@ func (s *serializer) calcSize(rv reflect.Value) (int, error) {
 		}
 
 	case reflect.Ptr:
+		if rv.IsNil() {
+			return ret, nil
+		}
+		size, err := s.calcSize(rv.Elem())
+		if err != nil {
+			return 0, err
+		}
+		ret += size
 
+	case reflect.Invalid:
+		// do nothing (return nil)
 	}
 
 	return ret, nil
@@ -287,8 +297,7 @@ func (s *serializer) create(rv reflect.Value, offset int) (int, error) {
 
 	case reflect.Array, reflect.Slice:
 		if rv.IsNil() {
-			offset = s.writeSize1Int(def.Nil, offset)
-			return offset, nil
+			return s.writeNil(offset)
 		}
 		l := rv.Len()
 		// bin format
@@ -327,8 +336,7 @@ func (s *serializer) create(rv reflect.Value, offset int) (int, error) {
 
 	case reflect.Map:
 		if rv.IsNil() {
-			offset = s.writeSize1Int(def.Nil, offset)
-			return offset, nil
+			return s.writeNil(offset)
 		}
 
 		l := rv.Len()
@@ -386,6 +394,18 @@ func (s *serializer) create(rv reflect.Value, offset int) (int, error) {
 		}
 
 	case reflect.Ptr:
+		if rv.IsNil() {
+			return s.writeNil(offset)
+		}
+
+		o, err := s.create(rv.Elem(), offset)
+		if err != nil {
+			return 0, err
+		}
+		offset = o
+
+	case reflect.Invalid:
+		return s.writeNil(offset)
 
 	}
 	return offset, nil
@@ -429,6 +449,11 @@ func (s *serializer) writeInt(v int64, offset int) int {
 		offset = s.writeSize8Int64(v, offset)
 	}
 	return offset
+}
+
+func (s *serializer) writeNil(offset int) (int, error) {
+	offset = s.writeSize1Int(def.Nil, offset)
+	return offset, nil
 }
 
 func (s *serializer) writeSliceLength(l int, offset int) int {
