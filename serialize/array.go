@@ -16,6 +16,9 @@ type serializer struct {
 
 var now = time.Now()
 
+// tmp
+var IsArray = false
+
 func AsArray(v interface{}) ([]byte, error) {
 	s := serializer{}
 
@@ -208,31 +211,45 @@ func (s *serializer) calcSize(rv reflect.Value) (int, error) {
 		}
 
 	case reflect.Struct:
+		// test
+		if !IsArray {
+			size, err := s.maptestcalc(rv)
+			if err != nil {
+				return 0, err
+			}
+			ret += size
+			return ret, nil
+		}
+
 		if isTime, tm := s.isDateTime(rv); isTime {
 			size := s.calcTime(tm)
 			ret += size
 			return ret, nil
 		}
 
-		l := rv.NumField()
+		num := 0
+		for i := 0; i < rv.NumField(); i++ {
+			field := rv.Field(i)
+			if field.CanSet() {
+				size, err := s.calcSize(rv.Field(i))
+				if err != nil {
+					return 0, err
+				}
+				ret += size
+				num++
+			}
+		}
+
 		// format size
-		if l <= 0x0f {
+		if num <= 0x0f {
 			// format code only
-		} else if l <= math.MaxUint16 {
+		} else if num <= math.MaxUint16 {
 			ret += def.Byte2
-		} else if l <= math.MaxUint32 {
+		} else if num <= math.MaxUint32 {
 			ret += def.Byte4
 		} else {
 			// not supported error
-			return 0, fmt.Errorf("not support this array length : %d", l)
-		}
-
-		for i := 0; i < l; i++ {
-			size, err := s.calcSize(rv.Field(i))
-			if err != nil {
-				return 0, err
-			}
-			ret += size
+			return 0, fmt.Errorf("not support this array length : %d", num)
 		}
 
 	case reflect.Ptr:
@@ -250,6 +267,73 @@ func (s *serializer) calcSize(rv reflect.Value) (int, error) {
 	}
 
 	return ret, nil
+}
+
+func (s *serializer) maptestcalc(rv reflect.Value) (int, error) {
+	ret := 0
+	l := rv.NumField()
+	num := 0
+	for i := 0; i < l; i++ {
+		field := rv.Field(i)
+		if field.CanSet() {
+			// TODO : tag check
+			keySize := def.Byte1 + s.calcString(rv.Type().Field(i).Name)
+			valueSize, err := s.calcSize(field)
+			if err != nil {
+				return 0, err
+			}
+			ret += keySize + valueSize
+			num++
+		}
+	}
+
+	// format size
+	if num <= 0x0f {
+		// format code only
+	} else if num <= math.MaxUint16 {
+		ret += def.Byte2
+	} else if num <= math.MaxUint32 {
+		ret += def.Byte4
+	} else {
+		// not supported error
+		return 0, fmt.Errorf("not support this array length : %d", l)
+	}
+	return ret, nil
+}
+
+func (s *serializer) maptestcreate(rv reflect.Value, offset int) (int, error) {
+	l := rv.NumField()
+	num := 0
+	for i := 0; i < l; i++ {
+		field := rv.Field(i)
+		if field.CanSet() {
+			num++
+		}
+	}
+	// format size
+	if num <= 0x0f {
+		offset = s.writeSize1Int(def.FixMap+num, offset)
+	} else if num <= math.MaxUint16 {
+		offset = s.writeSize1Int(def.Map16, offset)
+		offset = s.writeSize2Int(num, offset)
+	} else if num <= math.MaxUint32 {
+		offset = s.writeSize1Int(def.Map32, offset)
+		offset = s.writeSize4Int(num, offset)
+	}
+
+	for i := 0; i < l; i++ {
+		field := rv.Field(i)
+		if field.CanSet() {
+			// TODO : tag check
+			o := s.writeString(rv.Type().Field(i).Name, offset)
+			o, err := s.create(field, o)
+			if err != nil {
+				return 0, err
+			}
+			offset = o
+		}
+	}
+	return offset, nil
 }
 
 func (s *serializer) create(rv reflect.Value, offset int) (int, error) {
@@ -281,27 +365,7 @@ func (s *serializer) create(rv reflect.Value, offset int) (int, error) {
 		}
 
 	case reflect.String:
-		str := rv.String()
-
-		// NOTE : unsafe
-		strBytes := *(*[]byte)(unsafe.Pointer(&str))
-		l := len(strBytes)
-		if l < 32 {
-			offset = s.writeSize1Int(def.FixStr+l, offset)
-			offset = s.writeBytes(strBytes, offset)
-		} else if l <= math.MaxUint8 {
-			offset = s.writeSize1Int(def.Str8, offset)
-			offset = s.writeSize1Int(l, offset)
-			offset = s.writeBytes(strBytes, offset)
-		} else if l <= math.MaxUint16 {
-			offset = s.writeSize1Int(def.Str16, offset)
-			offset = s.writeSize2Int(l, offset)
-			offset = s.writeBytes(strBytes, offset)
-		} else {
-			offset = s.writeSize1Int(def.Str32, offset)
-			offset = s.writeSize4Int(l, offset)
-			offset = s.writeBytes(strBytes, offset)
-		}
+		offset = s.writeString(rv.String(), offset)
 
 	case reflect.Array, reflect.Slice:
 		if rv.IsNil() {
@@ -378,31 +442,41 @@ func (s *serializer) create(rv reflect.Value, offset int) (int, error) {
 		}
 
 	case reflect.Struct:
+		if !IsArray {
+			return s.maptestcreate(rv, offset)
+		}
 		if isTime, tm := s.isDateTime(rv); isTime {
 			return s.writeTime(tm, offset)
 		}
 
+		num := 0
 		l := rv.NumField()
-		// format
-		if l <= 0x0f {
-			offset = s.writeSize1Int(def.FixArray+l, offset)
-		} else if l <= math.MaxUint16 {
+		for i := 0; i < l; i++ {
+			field := rv.Field(i)
+			if field.CanSet() {
+				num++
+			}
+		}
+		// write format
+		if num <= 0x0f {
+			offset = s.writeSize1Int(def.FixArray+num, offset)
+		} else if num <= math.MaxUint16 {
 			offset = s.writeSize1Int(def.Array16, offset)
-			offset = s.writeSize2Int(l, offset)
-		} else if l <= math.MaxUint32 {
+			offset = s.writeSize2Int(num, offset)
+		} else if num <= math.MaxUint32 {
 			offset = s.writeSize1Int(def.Array32, offset)
-			offset = s.writeSize4Int(l, offset)
-		} else {
-			// not supported error
-			return 0, fmt.Errorf("not support this array length : %d", l)
+			offset = s.writeSize4Int(num, offset)
 		}
 
 		for i := 0; i < l; i++ {
-			o, err := s.create(rv.Field(i), offset)
-			if err != nil {
-				return 0, err
+			field := rv.Field(i)
+			if field.CanSet() {
+				o, err := s.create(rv.Field(i), offset)
+				if err != nil {
+					return 0, err
+				}
+				offset = o
 			}
-			offset = o
 		}
 
 	case reflect.Ptr:
@@ -459,6 +533,29 @@ func (s *serializer) writeInt(v int64, offset int) int {
 	} else {
 		offset = s.writeSize1Int(def.Int64, offset)
 		offset = s.writeSize8Int64(v, offset)
+	}
+	return offset
+}
+
+func (s *serializer) writeString(str string, offset int) int {
+	// NOTE : unsafe
+	strBytes := *(*[]byte)(unsafe.Pointer(&str))
+	l := len(strBytes)
+	if l < 32 {
+		offset = s.writeSize1Int(def.FixStr+l, offset)
+		offset = s.writeBytes(strBytes, offset)
+	} else if l <= math.MaxUint8 {
+		offset = s.writeSize1Int(def.Str8, offset)
+		offset = s.writeSize1Int(l, offset)
+		offset = s.writeBytes(strBytes, offset)
+	} else if l <= math.MaxUint16 {
+		offset = s.writeSize1Int(def.Str16, offset)
+		offset = s.writeSize2Int(l, offset)
+		offset = s.writeBytes(strBytes, offset)
+	} else {
+		offset = s.writeSize1Int(def.Str32, offset)
+		offset = s.writeSize4Int(l, offset)
+		offset = s.writeBytes(strBytes, offset)
 	}
 	return offset
 }
@@ -544,20 +641,20 @@ func (s *serializer) writeTime(t time.Time, offset int) (int, error) {
 		data := uint64(t.Nanosecond())<<34 | secs
 		if data&0xffffffff00000000 == 0 {
 			offset = s.writeSize1Int(def.Fixext4, offset)
-			offset = s.writeSize1Int(-1, offset)
+			offset = s.writeSize1Int(def.TimeStamp, offset)
 			offset = s.writeSize4Uint64(data, offset)
 			return offset, nil
 		}
 
 		offset = s.writeSize1Int(def.Fixext8, offset)
-		offset = s.writeSize1Int(-1, offset)
+		offset = s.writeSize1Int(def.TimeStamp, offset)
 		offset = s.writeSize8Uint64(data, offset)
 		return offset, nil
 	}
 
 	offset = s.writeSize1Int(def.Ext8, offset)
 	offset = s.writeSize1Int(12, offset)
-	offset = s.writeSize1Int(-1, offset)
+	offset = s.writeSize1Int(def.TimeStamp, offset)
 	offset = s.writeSize4Int(t.Nanosecond(), offset)
 	offset = s.writeSize8Uint64(secs, offset)
 	return offset, nil
