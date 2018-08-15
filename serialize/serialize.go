@@ -2,8 +2,10 @@ package serialize
 
 import (
 	"fmt"
+	"log"
 	"math"
 	"reflect"
+	"runtime"
 	"time"
 	"unsafe"
 
@@ -19,8 +21,7 @@ var now = time.Now()
 
 func AsArray(v interface{}, asArray bool) ([]byte, error) {
 	s := serializer{asArray: asArray}
-
-	// TODO : recover
+	defer s.recover()
 
 	rv := reflect.ValueOf(v)
 	if rv.Kind() == reflect.Ptr {
@@ -43,6 +44,19 @@ func AsArray(v interface{}, asArray bool) ([]byte, error) {
 		return nil, fmt.Errorf("failed serialization size=%d, lastIdx=%d", size, last)
 	}
 	return s.d, err
+}
+
+func (s *serializer) recover() {
+	err := recover()
+	if err != nil {
+		for depth := 0; ; depth++ {
+			_, file, line, ok := runtime.Caller(depth)
+			if !ok {
+				break
+			}
+			log.Printf("======> %d: %v:%d", depth, file, line)
+		}
+	}
 }
 
 func (s *serializer) calcUint(v uint64) int {
