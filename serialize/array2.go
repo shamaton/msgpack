@@ -112,27 +112,27 @@ func (s *serializer) create2(v interface{}, offset int) (int, error) {
 		strBytes := *(*[]byte)(unsafe.Pointer(&v))
 		l := len(strBytes)
 		if l < 32 {
-			offset = s.writeSize1Int(def.FixStr+l, offset)
-			offset = s.writeBytes(strBytes, offset)
+			offset = s.setByte1Int(def.FixStr+l, offset)
+			offset = s.setBytes(strBytes, offset)
 		} else if l <= math.MaxUint8 {
-			offset = s.writeSize1Int(def.Str8, offset)
-			offset = s.writeSize1Int(l, offset)
-			offset = s.writeBytes(strBytes, offset)
+			offset = s.setByte1Int(def.Str8, offset)
+			offset = s.setByte1Int(l, offset)
+			offset = s.setBytes(strBytes, offset)
 		} else if l <= math.MaxUint16 {
-			offset = s.writeSize1Int(def.Str16, offset)
-			offset = s.writeSize2Int(l, offset)
-			offset = s.writeBytes(strBytes, offset)
+			offset = s.setByte1Int(def.Str16, offset)
+			offset = s.setByte2Int(l, offset)
+			offset = s.setBytes(strBytes, offset)
 		} else {
-			offset = s.writeSize1Int(def.Str32, offset)
-			offset = s.writeSize4Int(l, offset)
-			offset = s.writeBytes(strBytes, offset)
+			offset = s.setByte1Int(def.Str32, offset)
+			offset = s.setByte4Int(l, offset)
+			offset = s.setBytes(strBytes, offset)
 		}
 
 	case bool:
 		if v {
-			offset = s.writeSize1Int(def.True, offset)
+			offset = s.setByte1Int(def.True, offset)
 		} else {
-			offset = s.writeSize1Int(def.False, offset)
+			offset = s.setByte1Int(def.False, offset)
 		}
 
 	case []int:
@@ -150,7 +150,7 @@ func (s *serializer) create2(v interface{}, offset int) (int, error) {
 	case []uint:
 
 	case nil:
-		offset = s.writeSize1Int(def.Nil, offset)
+		offset = s.setByte1Int(def.Nil, offset)
 
 	case int8:
 		offset = s.writeInt(int64(v), offset)

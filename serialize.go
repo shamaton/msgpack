@@ -16,6 +16,7 @@ func SerializeAsArray(v interface{}) ([]byte, error) {
 }
 
 func SerializeAsArray2(v interface{}) ([]byte, error) {
+	// TODO : delete
 	return serialize.AsArray2(v)
 }
 
