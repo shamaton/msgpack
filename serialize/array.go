@@ -312,13 +312,13 @@ func (s *serializer) maptestcreate(rv reflect.Value, offset int) (int, error) {
 	}
 	// format size
 	if num <= 0x0f {
-		offset = s.writeSize1Int(def.FixMap+num, offset)
+		offset = s.setByte1Int(def.FixMap+num, offset)
 	} else if num <= math.MaxUint16 {
-		offset = s.writeSize1Int(def.Map16, offset)
-		offset = s.writeSize2Int(num, offset)
+		offset = s.setByte1Int(def.Map16, offset)
+		offset = s.setByte2Int(num, offset)
 	} else if num <= math.MaxUint32 {
-		offset = s.writeSize1Int(def.Map32, offset)
-		offset = s.writeSize4Int(num, offset)
+		offset = s.setByte1Int(def.Map32, offset)
+		offset = s.setByte4Int(num, offset)
 	}
 
 	for i := 0; i < l; i++ {
@@ -350,18 +350,18 @@ func (s *serializer) create(rv reflect.Value, offset int) (int, error) {
 	case reflect.Float32, reflect.Float64:
 		v := rv.Float()
 		if math.SmallestNonzeroFloat32 <= v && v <= math.MaxFloat32 {
-			offset = s.writeSize1Int(def.Float32, offset)
-			offset = s.writeSize4Uint64(uint64(math.Float32bits(float32(v))), offset)
+			offset = s.setByte1Int(def.Float32, offset)
+			offset = s.setByte4Uint64(uint64(math.Float32bits(float32(v))), offset)
 		} else {
-			offset = s.writeSize1Int(def.Float64, offset)
-			offset = s.writeSize8Uint64(math.Float64bits(v), offset)
+			offset = s.setByte1Int(def.Float64, offset)
+			offset = s.setByte8Uint64(math.Float64bits(v), offset)
 		}
 
 	case reflect.Bool:
 		if rv.Bool() {
-			offset = s.writeSize1Int(def.True, offset)
+			offset = s.setByte1Int(def.True, offset)
 		} else {
-			offset = s.writeSize1Int(def.False, offset)
+			offset = s.setByte1Int(def.False, offset)
 		}
 
 	case reflect.String:
@@ -375,19 +375,19 @@ func (s *serializer) create(rv reflect.Value, offset int) (int, error) {
 		// bin format
 		if s.isByteSlice(rv) {
 			offset = s.writeByteSliceLength(l, offset)
-			offset = s.writeBytes(rv.Bytes(), offset)
+			offset = s.setBytes(rv.Bytes(), offset)
 			return offset, nil
 		}
 
 		// format
 		if l <= 0x0f {
-			offset = s.writeSize1Int(def.FixArray+l, offset)
+			offset = s.setByte1Int(def.FixArray+l, offset)
 		} else if l <= math.MaxUint16 {
-			offset = s.writeSize1Int(def.Array16, offset)
-			offset = s.writeSize2Int(l, offset)
+			offset = s.setByte1Int(def.Array16, offset)
+			offset = s.setByte2Int(l, offset)
 		} else if l <= math.MaxUint32 {
-			offset = s.writeSize1Int(def.Array32, offset)
-			offset = s.writeSize4Int(l, offset)
+			offset = s.setByte1Int(def.Array32, offset)
+			offset = s.setByte4Int(l, offset)
 		} else {
 			// not supported error
 			return 0, fmt.Errorf("not support this array length : %d", l)
@@ -414,13 +414,13 @@ func (s *serializer) create(rv reflect.Value, offset int) (int, error) {
 		l := rv.Len()
 		// format
 		if l <= 0x0f {
-			offset = s.writeSize1Int(def.FixMap+l, offset)
+			offset = s.setByte1Int(def.FixMap+l, offset)
 		} else if l <= math.MaxUint16 {
-			offset = s.writeSize1Int(def.Map16, offset)
-			offset = s.writeSize2Int(l, offset)
+			offset = s.setByte1Int(def.Map16, offset)
+			offset = s.setByte2Int(l, offset)
 		} else if l <= math.MaxUint32 {
-			offset = s.writeSize1Int(def.Map32, offset)
-			offset = s.writeSize4Int(l, offset)
+			offset = s.setByte1Int(def.Map32, offset)
+			offset = s.setByte4Int(l, offset)
 		}
 
 		if offset, find := s.writeFixedMap(rv, offset); find {
@@ -459,13 +459,13 @@ func (s *serializer) create(rv reflect.Value, offset int) (int, error) {
 		}
 		// write format
 		if num <= 0x0f {
-			offset = s.writeSize1Int(def.FixArray+num, offset)
+			offset = s.setByte1Int(def.FixArray+num, offset)
 		} else if num <= math.MaxUint16 {
-			offset = s.writeSize1Int(def.Array16, offset)
-			offset = s.writeSize2Int(num, offset)
+			offset = s.setByte1Int(def.Array16, offset)
+			offset = s.setByte2Int(num, offset)
 		} else if num <= math.MaxUint32 {
-			offset = s.writeSize1Int(def.Array32, offset)
-			offset = s.writeSize4Int(num, offset)
+			offset = s.setByte1Int(def.Array32, offset)
+			offset = s.setByte4Int(num, offset)
 		}
 
 		for i := 0; i < l; i++ {
@@ -499,19 +499,19 @@ func (s *serializer) create(rv reflect.Value, offset int) (int, error) {
 
 func (s *serializer) writeUint(v uint64, offset int) int {
 	if v <= math.MaxInt8 {
-		offset = s.writeSize1Uint64(v, offset)
+		offset = s.setByte1Uint64(v, offset)
 	} else if v <= math.MaxUint8 {
-		offset = s.writeSize1Int(def.Uint8, offset)
-		offset = s.writeSize1Uint64(v, offset)
+		offset = s.setByte1Int(def.Uint8, offset)
+		offset = s.setByte1Uint64(v, offset)
 	} else if v <= math.MaxUint16 {
-		offset = s.writeSize1Int(def.Uint16, offset)
-		offset = s.writeSize2Uint64(v, offset)
+		offset = s.setByte1Int(def.Uint16, offset)
+		offset = s.setByte2Uint64(v, offset)
 	} else if v <= math.MaxUint32 {
-		offset = s.writeSize1Int(def.Uint32, offset)
-		offset = s.writeSize4Uint64(v, offset)
+		offset = s.setByte1Int(def.Uint32, offset)
+		offset = s.setByte4Uint64(v, offset)
 	} else {
-		offset = s.writeSize1Int(def.Uint64, offset)
-		offset = s.writeSize8Uint64(v, offset)
+		offset = s.setByte1Int(def.Uint64, offset)
+		offset = s.setByte8Uint64(v, offset)
 	}
 	return offset
 }
@@ -520,19 +520,19 @@ func (s *serializer) writeInt(v int64, offset int) int {
 	if v >= 0 {
 		offset = s.writeUint(uint64(v), offset)
 	} else if s.isNegativeFixInt64(v) {
-		offset = s.writeSize1Int64(v, offset)
+		offset = s.setByte1Int64(v, offset)
 	} else if v >= math.MinInt8 {
-		offset = s.writeSize1Int(def.Int8, offset)
-		offset = s.writeSize1Int64(v, offset)
+		offset = s.setByte1Int(def.Int8, offset)
+		offset = s.setByte1Int64(v, offset)
 	} else if v >= math.MinInt16 {
-		offset = s.writeSize1Int(def.Int16, offset)
-		offset = s.writeSize2Int64(v, offset)
+		offset = s.setByte1Int(def.Int16, offset)
+		offset = s.setByte2Int64(v, offset)
 	} else if v >= math.MinInt32 {
-		offset = s.writeSize1Int(def.Int32, offset)
-		offset = s.writeSize4Int64(v, offset)
+		offset = s.setByte1Int(def.Int32, offset)
+		offset = s.setByte4Int64(v, offset)
 	} else {
-		offset = s.writeSize1Int(def.Int64, offset)
-		offset = s.writeSize8Int64(v, offset)
+		offset = s.setByte1Int(def.Int64, offset)
+		offset = s.setByte8Int64(v, offset)
 	}
 	return offset
 }
@@ -542,39 +542,39 @@ func (s *serializer) writeString(str string, offset int) int {
 	strBytes := *(*[]byte)(unsafe.Pointer(&str))
 	l := len(strBytes)
 	if l < 32 {
-		offset = s.writeSize1Int(def.FixStr+l, offset)
-		offset = s.writeBytes(strBytes, offset)
+		offset = s.setByte1Int(def.FixStr+l, offset)
+		offset = s.setBytes(strBytes, offset)
 	} else if l <= math.MaxUint8 {
-		offset = s.writeSize1Int(def.Str8, offset)
-		offset = s.writeSize1Int(l, offset)
-		offset = s.writeBytes(strBytes, offset)
+		offset = s.setByte1Int(def.Str8, offset)
+		offset = s.setByte1Int(l, offset)
+		offset = s.setBytes(strBytes, offset)
 	} else if l <= math.MaxUint16 {
-		offset = s.writeSize1Int(def.Str16, offset)
-		offset = s.writeSize2Int(l, offset)
-		offset = s.writeBytes(strBytes, offset)
+		offset = s.setByte1Int(def.Str16, offset)
+		offset = s.setByte2Int(l, offset)
+		offset = s.setBytes(strBytes, offset)
 	} else {
-		offset = s.writeSize1Int(def.Str32, offset)
-		offset = s.writeSize4Int(l, offset)
-		offset = s.writeBytes(strBytes, offset)
+		offset = s.setByte1Int(def.Str32, offset)
+		offset = s.setByte4Int(l, offset)
+		offset = s.setBytes(strBytes, offset)
 	}
 	return offset
 }
 
 func (s *serializer) writeNil(offset int) (int, error) {
-	offset = s.writeSize1Int(def.Nil, offset)
+	offset = s.setByte1Int(def.Nil, offset)
 	return offset, nil
 }
 
 func (s *serializer) writeSliceLength(l int, offset int) int {
 	// format size
 	if l <= 0x0f {
-		offset = s.writeSize1Int(def.FixArray+l, offset)
+		offset = s.setByte1Int(def.FixArray+l, offset)
 	} else if l <= math.MaxUint16 {
-		offset = s.writeSize1Int(def.Array16, offset)
-		offset = s.writeSize2Int(l, offset)
+		offset = s.setByte1Int(def.Array16, offset)
+		offset = s.setByte2Int(l, offset)
 	} else if l <= math.MaxUint32 {
-		offset = s.writeSize1Int(def.Array16, offset)
-		offset = s.writeSize4Int(l, offset)
+		offset = s.setByte1Int(def.Array16, offset)
+		offset = s.setByte4Int(l, offset)
 	}
 	return offset
 }
@@ -601,14 +601,14 @@ func (s *serializer) calcByteSlice(l int) (int, error) {
 
 func (s *serializer) writeByteSliceLength(l int, offset int) int {
 	if l <= math.MaxUint8 {
-		offset = s.writeSize1Int(def.Bin8, offset)
-		offset = s.writeSize1Int(l, offset)
+		offset = s.setByte1Int(def.Bin8, offset)
+		offset = s.setByte1Int(l, offset)
 	} else if l <= math.MaxUint16 {
-		offset = s.writeSize1Int(def.Bin16, offset)
-		offset = s.writeSize2Int(l, offset)
+		offset = s.setByte1Int(def.Bin16, offset)
+		offset = s.setByte2Int(l, offset)
 	} else if l <= math.MaxUint32 {
-		offset = s.writeSize1Int(def.Bin32, offset)
-		offset = s.writeSize4Int(l, offset)
+		offset = s.setByte1Int(def.Bin32, offset)
+		offset = s.setByte4Int(l, offset)
 	}
 	return offset
 }
@@ -640,23 +640,23 @@ func (s *serializer) writeTime(t time.Time, offset int) (int, error) {
 	if secs>>34 == 0 {
 		data := uint64(t.Nanosecond())<<34 | secs
 		if data&0xffffffff00000000 == 0 {
-			offset = s.writeSize1Int(def.Fixext4, offset)
-			offset = s.writeSize1Int(def.TimeStamp, offset)
-			offset = s.writeSize4Uint64(data, offset)
+			offset = s.setByte1Int(def.Fixext4, offset)
+			offset = s.setByte1Int(def.TimeStamp, offset)
+			offset = s.setByte4Uint64(data, offset)
 			return offset, nil
 		}
 
-		offset = s.writeSize1Int(def.Fixext8, offset)
-		offset = s.writeSize1Int(def.TimeStamp, offset)
-		offset = s.writeSize8Uint64(data, offset)
+		offset = s.setByte1Int(def.Fixext8, offset)
+		offset = s.setByte1Int(def.TimeStamp, offset)
+		offset = s.setByte8Uint64(data, offset)
 		return offset, nil
 	}
 
-	offset = s.writeSize1Int(def.Ext8, offset)
-	offset = s.writeSize1Int(12, offset)
-	offset = s.writeSize1Int(def.TimeStamp, offset)
-	offset = s.writeSize4Int(t.Nanosecond(), offset)
-	offset = s.writeSize8Uint64(secs, offset)
+	offset = s.setByte1Int(def.Ext8, offset)
+	offset = s.setByte1Int(12, offset)
+	offset = s.setByte1Int(def.TimeStamp, offset)
+	offset = s.setByte4Int(t.Nanosecond(), offset)
+	offset = s.setByte8Uint64(secs, offset)
 	return offset, nil
 }
 
