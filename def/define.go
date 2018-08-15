@@ -67,3 +67,8 @@ const (
 	Byte16
 	Byte32
 )
+
+// ext type
+const (
+	TimeStamp = -1
+)

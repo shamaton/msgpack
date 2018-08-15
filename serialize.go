@@ -1,8 +1,6 @@
 package msgpack
 
 import (
-	"errors"
-
 	"github.com/shamaton/msgpack/serialize"
 )
 
@@ -13,6 +11,7 @@ func Serialize(v interface{}) ([]byte, error) {
 }
 
 func SerializeAsArray(v interface{}) ([]byte, error) {
+	serialize.IsArray = true
 	return serialize.AsArray(v)
 }
 
@@ -21,5 +20,6 @@ func SerializeAsArray2(v interface{}) ([]byte, error) {
 }
 
 func SerializeAsMap(v interface{}) ([]byte, error) {
-	return []byte{}, errors.New("not implement")
+	serialize.IsArray = false
+	return serialize.AsArray(v)
 }
