@@ -12,8 +12,7 @@ func (s *serializer) calcStructArray(rv reflect.Value) (int, error) {
 	ret := 0
 	num := 0
 	for i := 0; i < rv.NumField(); i++ {
-		field := rv.Field(i)
-		if field.CanSet() {
+		if s.isPublic(rv.Type().Field(i).Name) {
 			size, err := s.calcSize(rv.Field(i))
 			if err != nil {
 				return 0, err
@@ -42,11 +41,10 @@ func (s *serializer) calcStructMap(rv reflect.Value) (int, error) {
 	l := rv.NumField()
 	num := 0
 	for i := 0; i < l; i++ {
-		field := rv.Field(i)
-		if field.CanSet() {
+		if ok, name := s.checkField(rv.Type().Field(i)); ok {
 			// TODO : tag check
-			keySize := def.Byte1 + s.calcString(rv.Type().Field(i).Name)
-			valueSize, err := s.calcSize(field)
+			keySize := def.Byte1 + s.calcString(name)
+			valueSize, err := s.calcSize(rv.Field(i))
 			if err != nil {
 				return 0, err
 			}
@@ -74,8 +72,7 @@ func (s *serializer) writeStructArray(rv reflect.Value, offset int) (int, error)
 	num := 0
 	l := rv.NumField()
 	for i := 0; i < l; i++ {
-		field := rv.Field(i)
-		if field.CanSet() {
+		if s.isPublic(rv.Type().Field(i).Name) {
 			num++
 		}
 	}
@@ -91,8 +88,7 @@ func (s *serializer) writeStructArray(rv reflect.Value, offset int) (int, error)
 	}
 
 	for i := 0; i < l; i++ {
-		field := rv.Field(i)
-		if field.CanSet() {
+		if s.isPublic(rv.Type().Field(i).Name) {
 			o, err := s.create(rv.Field(i), offset)
 			if err != nil {
 				return 0, err
@@ -107,8 +103,7 @@ func (s *serializer) writeStructMap(rv reflect.Value, offset int) (int, error) {
 	l := rv.NumField()
 	num := 0
 	for i := 0; i < l; i++ {
-		field := rv.Field(i)
-		if field.CanSet() {
+		if ok, _ := s.checkField(rv.Type().Field(i)); ok {
 			num++
 		}
 	}
@@ -124,11 +119,10 @@ func (s *serializer) writeStructMap(rv reflect.Value, offset int) (int, error) {
 	}
 
 	for i := 0; i < l; i++ {
-		field := rv.Field(i)
-		if field.CanSet() {
+		if ok, name := s.checkField(rv.Type().Field(i)); ok {
 			// TODO : tag check
-			o := s.writeString(rv.Type().Field(i).Name, offset)
-			o, err := s.create(field, o)
+			o := s.writeString(name, offset)
+			o, err := s.create(rv.Field(i), o)
 			if err != nil {
 				return 0, err
 			}
@@ -136,4 +130,21 @@ func (s *serializer) writeStructMap(rv reflect.Value, offset int) (int, error) {
 		}
 	}
 	return offset, nil
+}
+
+func (s *serializer) checkField(field reflect.StructField) (bool, string) {
+	// A to Z
+	if s.isPublic(field.Name) {
+		if tag := field.Tag.Get("msgpack"); tag == "ignore" {
+			return false, ""
+		} else if len(tag) > 0 {
+			return true, tag
+		}
+		return true, field.Name
+	}
+	return false, ""
+}
+
+func (s *serializer) isPublic(name string) bool {
+	return 0x41 <= name[0] && name[0] <= 0x5a
 }
