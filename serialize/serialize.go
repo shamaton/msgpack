@@ -2,7 +2,6 @@ package serialize
 
 import (
 	"fmt"
-	"log"
 	"math"
 	"reflect"
 	"runtime"
@@ -18,9 +17,16 @@ type serializer struct {
 
 var now = time.Now()
 
-func AsArray(v interface{}, asArray bool) ([]byte, error) {
+func AsArray(v interface{}, asArray bool) (b []byte, err error) {
 	s := serializer{asArray: asArray}
-	defer s.recover()
+	// defer s.recover()
+	defer func() {
+		e := recover()
+		if e != nil {
+			b = nil
+			err = fmt.Errorf("unexpected error!! \n%s", stackTrace())
+		}
+	}()
 
 	rv := reflect.ValueOf(v)
 	if rv.Kind() == reflect.Ptr {
@@ -45,17 +51,16 @@ func AsArray(v interface{}, asArray bool) ([]byte, error) {
 	return s.d, err
 }
 
-func (s *serializer) recover() {
-	err := recover()
-	if err != nil {
-		for depth := 0; ; depth++ {
-			_, file, line, ok := runtime.Caller(depth)
-			if !ok {
-				break
-			}
-			log.Printf("======> %d: %v:%d", depth, file, line)
+func stackTrace() string {
+	msg := ""
+	for depth := 0; ; depth++ {
+		_, file, line, ok := runtime.Caller(depth)
+		if !ok {
+			break
 		}
+		msg += fmt.Sprintln(depth, ": ", file, ":", line)
 	}
+	return msg
 }
 
 func (s *serializer) calcSize(rv reflect.Value) (int, error) {
