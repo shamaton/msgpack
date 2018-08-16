@@ -1,21 +1,7 @@
 package serialize
 
-import "github.com/shamaton/msgpack/def"
-
 type common struct {
 	d []byte
-}
-
-func (s *serializer) isPositiveFixInt64(v int64) bool {
-	return def.PositiveFixIntMin <= v && v <= def.PositiveFixIntMax
-}
-
-func (s *serializer) isPositiveFixUint64(v uint64) bool {
-	return def.PositiveFixIntMin <= v && v <= def.PositiveFixIntMax
-}
-
-func (s *serializer) isNegativeFixInt64(v int64) bool {
-	return def.NegativeFixintMin <= v && v <= def.NegativeFixintMax
 }
 
 func (c *common) setByte1Int64(value int64, offset int) int {
