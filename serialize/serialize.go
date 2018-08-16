@@ -7,7 +7,6 @@ import (
 	"reflect"
 	"runtime"
 	"time"
-	"unsafe"
 
 	"github.com/shamaton/msgpack/def"
 )
@@ -57,65 +56,6 @@ func (s *serializer) recover() {
 			log.Printf("======> %d: %v:%d", depth, file, line)
 		}
 	}
-}
-
-func (s *serializer) calcUint(v uint64) int {
-	if v <= math.MaxInt8 {
-		// format code only
-		return 0
-	} else if v <= math.MaxUint8 {
-		return def.Byte1
-	} else if v <= math.MaxUint16 {
-		return def.Byte2
-	} else if v <= math.MaxUint32 {
-		return def.Byte4
-	}
-	return def.Byte8
-}
-
-func (s *serializer) calcInt(v int64) int {
-	if v >= 0 {
-		return s.calcUint(uint64(v))
-	} else if s.isNegativeFixInt64(v) {
-		// format code only
-		return 0
-	} else if v >= math.MinInt8 {
-		return def.Byte1
-	} else if v >= math.MinInt16 {
-		return def.Byte2
-	} else if v >= math.MinInt32 {
-		return def.Byte4
-	}
-	return def.Byte8
-}
-
-func (s *serializer) calcSliceLength(l int) (int, error) {
-	// format size
-	if l <= 0x0f {
-		// format code only
-		return 0, nil
-	} else if l <= math.MaxUint16 {
-		return def.Byte2, nil
-	} else if l <= math.MaxUint32 {
-		return def.Byte4, nil
-	}
-	// not supported error
-	return 0, fmt.Errorf("not support this array length : %d", l)
-}
-
-func (s *serializer) calcString(v string) int {
-	// NOTE : unsafe
-	strBytes := *(*[]byte)(unsafe.Pointer(&v))
-	l := len(strBytes)
-	if l < 32 {
-		return l
-	} else if l <= math.MaxUint8 {
-		return def.Byte1 + l
-	} else if l <= math.MaxUint16 {
-		return def.Byte2 + l
-	}
-	return def.Byte4 + l
-	// NOTE : length over uint32
 }
 
 func (s *serializer) calcSize(rv reflect.Value) (int, error) {
@@ -302,18 +242,7 @@ func (s *serializer) create(rv reflect.Value, offset int) (int, error) {
 		}
 
 		// format
-		if l <= 0x0f {
-			offset = s.setByte1Int(def.FixArray+l, offset)
-		} else if l <= math.MaxUint16 {
-			offset = s.setByte1Int(def.Array16, offset)
-			offset = s.setByte2Int(l, offset)
-		} else if l <= math.MaxUint32 {
-			offset = s.setByte1Int(def.Array32, offset)
-			offset = s.setByte4Int(l, offset)
-		} else {
-			// not supported error
-			return 0, fmt.Errorf("not support this array length : %d", l)
-		}
+		offset = s.writeSliceLength(l, offset)
 
 		if offset, find := s.writeFixedSlice(rv, offset); find {
 			return offset, nil
@@ -334,16 +263,7 @@ func (s *serializer) create(rv reflect.Value, offset int) (int, error) {
 		}
 
 		l := rv.Len()
-		// format
-		if l <= 0x0f {
-			offset = s.setByte1Int(def.FixMap+l, offset)
-		} else if l <= math.MaxUint16 {
-			offset = s.setByte1Int(def.Map16, offset)
-			offset = s.setByte2Int(l, offset)
-		} else if l <= math.MaxUint32 {
-			offset = s.setByte1Int(def.Map32, offset)
-			offset = s.setByte4Int(l, offset)
-		}
+		offset = s.writeMapLength(l, offset)
 
 		if offset, find := s.writeFixedMap(rv, offset); find {
 			return offset, nil
@@ -395,226 +315,4 @@ func (s *serializer) create(rv reflect.Value, offset int) (int, error) {
 
 	}
 	return offset, nil
-}
-
-func (s *serializer) writeUint(v uint64, offset int) int {
-	if v <= math.MaxInt8 {
-		offset = s.setByte1Uint64(v, offset)
-	} else if v <= math.MaxUint8 {
-		offset = s.setByte1Int(def.Uint8, offset)
-		offset = s.setByte1Uint64(v, offset)
-	} else if v <= math.MaxUint16 {
-		offset = s.setByte1Int(def.Uint16, offset)
-		offset = s.setByte2Uint64(v, offset)
-	} else if v <= math.MaxUint32 {
-		offset = s.setByte1Int(def.Uint32, offset)
-		offset = s.setByte4Uint64(v, offset)
-	} else {
-		offset = s.setByte1Int(def.Uint64, offset)
-		offset = s.setByte8Uint64(v, offset)
-	}
-	return offset
-}
-
-func (s *serializer) writeInt(v int64, offset int) int {
-	if v >= 0 {
-		offset = s.writeUint(uint64(v), offset)
-	} else if s.isNegativeFixInt64(v) {
-		offset = s.setByte1Int64(v, offset)
-	} else if v >= math.MinInt8 {
-		offset = s.setByte1Int(def.Int8, offset)
-		offset = s.setByte1Int64(v, offset)
-	} else if v >= math.MinInt16 {
-		offset = s.setByte1Int(def.Int16, offset)
-		offset = s.setByte2Int64(v, offset)
-	} else if v >= math.MinInt32 {
-		offset = s.setByte1Int(def.Int32, offset)
-		offset = s.setByte4Int64(v, offset)
-	} else {
-		offset = s.setByte1Int(def.Int64, offset)
-		offset = s.setByte8Int64(v, offset)
-	}
-	return offset
-}
-
-func (s *serializer) writeString(str string, offset int) int {
-	// NOTE : unsafe
-	strBytes := *(*[]byte)(unsafe.Pointer(&str))
-	l := len(strBytes)
-	if l < 32 {
-		offset = s.setByte1Int(def.FixStr+l, offset)
-		offset = s.setBytes(strBytes, offset)
-	} else if l <= math.MaxUint8 {
-		offset = s.setByte1Int(def.Str8, offset)
-		offset = s.setByte1Int(l, offset)
-		offset = s.setBytes(strBytes, offset)
-	} else if l <= math.MaxUint16 {
-		offset = s.setByte1Int(def.Str16, offset)
-		offset = s.setByte2Int(l, offset)
-		offset = s.setBytes(strBytes, offset)
-	} else {
-		offset = s.setByte1Int(def.Str32, offset)
-		offset = s.setByte4Int(l, offset)
-		offset = s.setBytes(strBytes, offset)
-	}
-	return offset
-}
-
-func (s *serializer) writeNil(offset int) (int, error) {
-	offset = s.setByte1Int(def.Nil, offset)
-	return offset, nil
-}
-
-func (s *serializer) writeSliceLength(l int, offset int) int {
-	// format size
-	if l <= 0x0f {
-		offset = s.setByte1Int(def.FixArray+l, offset)
-	} else if l <= math.MaxUint16 {
-		offset = s.setByte1Int(def.Array16, offset)
-		offset = s.setByte2Int(l, offset)
-	} else if l <= math.MaxUint32 {
-		offset = s.setByte1Int(def.Array16, offset)
-		offset = s.setByte4Int(l, offset)
-	}
-	return offset
-}
-
-func (s *serializer) isByteSlice(rv reflect.Value) bool {
-	switch rv.Interface().(type) {
-	case []byte:
-		return true
-	}
-	return false
-}
-
-func (s *serializer) calcByteSlice(l int) (int, error) {
-	if l <= math.MaxUint8 {
-		return def.Byte1 + l, nil
-	} else if l <= math.MaxUint16 {
-		return def.Byte2 + l, nil
-	} else if l <= math.MaxUint32 {
-		return def.Byte4 + l, nil
-	}
-	// not supported error
-	return 0, fmt.Errorf("not support this array length : %d", l)
-}
-
-func (s *serializer) writeByteSliceLength(l int, offset int) int {
-	if l <= math.MaxUint8 {
-		offset = s.setByte1Int(def.Bin8, offset)
-		offset = s.setByte1Int(l, offset)
-	} else if l <= math.MaxUint16 {
-		offset = s.setByte1Int(def.Bin16, offset)
-		offset = s.setByte2Int(l, offset)
-	} else if l <= math.MaxUint32 {
-		offset = s.setByte1Int(def.Bin32, offset)
-		offset = s.setByte4Int(l, offset)
-	}
-	return offset
-}
-
-func (s *serializer) isDateTime(value reflect.Value) (bool, time.Time) {
-	i := value.Interface()
-	switch t := i.(type) {
-	case time.Time:
-		return true, t
-	}
-	return false, now
-}
-
-func (s *serializer) calcTime(t time.Time) int {
-	secs := uint64(t.Unix())
-	if secs>>34 == 0 {
-		data := uint64(t.Nanosecond())<<34 | secs
-		if data&0xffffffff00000000 == 0 {
-			return def.Byte1 + def.Byte4
-		}
-		return def.Byte1 + def.Byte8
-	}
-
-	return def.Byte1 + def.Byte1 + def.Byte4 + def.Byte8
-}
-
-func (s *serializer) writeTime(t time.Time, offset int) (int, error) {
-	secs := uint64(t.Unix())
-	if secs>>34 == 0 {
-		data := uint64(t.Nanosecond())<<34 | secs
-		if data&0xffffffff00000000 == 0 {
-			offset = s.setByte1Int(def.Fixext4, offset)
-			offset = s.setByte1Int(def.TimeStamp, offset)
-			offset = s.setByte4Uint64(data, offset)
-			return offset, nil
-		}
-
-		offset = s.setByte1Int(def.Fixext8, offset)
-		offset = s.setByte1Int(def.TimeStamp, offset)
-		offset = s.setByte8Uint64(data, offset)
-		return offset, nil
-	}
-
-	offset = s.setByte1Int(def.Ext8, offset)
-	offset = s.setByte1Int(12, offset)
-	offset = s.setByte1Int(def.TimeStamp, offset)
-	offset = s.setByte4Int(t.Nanosecond(), offset)
-	offset = s.setByte8Uint64(secs, offset)
-	return offset, nil
-}
-
-func (s *serializer) calcFixedMap(rv reflect.Value) (int, bool) {
-	size := 0
-	switch m := rv.Interface().(type) {
-	case map[int]int:
-		for k, v := range m {
-			size += def.Byte1 + s.calcInt(int64(k))
-			size += def.Byte1 + s.calcInt(int64(v))
-		}
-		return size, true
-	}
-	return size, false
-}
-
-func (s *serializer) writeFixedMap(rv reflect.Value, offset int) (int, bool) {
-	switch m := rv.Interface().(type) {
-	case map[int]int:
-		for k, v := range m {
-			offset = s.writeInt(int64(k), offset)
-			offset = s.writeInt(int64(v), offset)
-		}
-		return offset, true
-	}
-	return offset, false
-}
-
-func (s *serializer) calcFixedSlice(rv reflect.Value) (int, bool) {
-	size := 0
-	switch sli := rv.Interface().(type) {
-	case []int:
-		for _, v := range sli {
-			size += def.Byte1 + s.calcInt(int64(v))
-		}
-		return size, true
-	}
-	return size, false
-}
-
-func (s *serializer) writeFixedSlice(rv reflect.Value, offset int) (int, bool) {
-	switch sli := rv.Interface().(type) {
-	case []int:
-		for _, v := range sli {
-			offset = s.writeInt(int64(v), offset)
-		}
-		return offset, true
-	case []uint:
-	case []int8:
-	case []int16:
-	case []int32:
-	case []int64:
-	case []uint8:
-	case []uint16:
-	case []uint32:
-	case []uint64:
-	case []string:
-	}
-
-	return offset, false
 }
