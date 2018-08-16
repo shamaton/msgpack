@@ -196,6 +196,13 @@ func (s *serializer) calcSize(rv reflect.Value) (int, error) {
 		}
 		ret += size
 
+	case reflect.Interface:
+		size, err := s.calcSize(rv.Elem())
+		if err != nil {
+			return 0, err
+		}
+		ret = size
+
 	case reflect.Invalid:
 		// do nothing (return nil)
 	}
@@ -309,6 +316,13 @@ func (s *serializer) create(rv reflect.Value, offset int) (int, error) {
 			return s.writeNil(offset)
 		}
 
+		o, err := s.create(rv.Elem(), offset)
+		if err != nil {
+			return 0, err
+		}
+		offset = o
+
+	case reflect.Interface:
 		o, err := s.create(rv.Elem(), offset)
 		if err != nil {
 			return 0, err
