@@ -41,10 +41,7 @@ func AsArray(v interface{}, asArray bool) (b []byte, err error) {
 	}
 
 	s.d = make([]byte, size)
-	last, err := s.create(rv, 0)
-	if err != nil {
-		return nil, err
-	}
+	last := s.create(rv, 0)
 	if size != last {
 		return nil, fmt.Errorf("failed serialization size=%d, lastIdx=%d", size, last)
 	}
@@ -210,7 +207,7 @@ func (s *serializer) calcSize(rv reflect.Value) (int, error) {
 	return ret, nil
 }
 
-func (s *serializer) create(rv reflect.Value, offset int) (int, error) {
+func (s *serializer) create(rv reflect.Value, offset int) int {
 
 	switch rv.Kind() {
 	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
@@ -250,23 +247,19 @@ func (s *serializer) create(rv reflect.Value, offset int) (int, error) {
 		if s.isByteSlice(rv) {
 			offset = s.writeByteSliceLength(l, offset)
 			offset = s.setBytes(rv.Bytes(), offset)
-			return offset, nil
+			return offset
 		}
 
 		// format
 		offset = s.writeSliceLength(l, offset)
 
 		if offset, find := s.writeFixedSlice(rv, offset); find {
-			return offset, nil
+			return offset
 		}
 
 		// objects
 		for i := 0; i < l; i++ {
-			var err error
-			offset, err = s.create(rv.Index(i), offset)
-			if err != nil {
-				return 0, err
-			}
+			offset = s.create(rv.Index(i), offset)
 		}
 
 	case reflect.Map:
@@ -278,60 +271,39 @@ func (s *serializer) create(rv reflect.Value, offset int) (int, error) {
 		offset = s.writeMapLength(l, offset)
 
 		if offset, find := s.writeFixedMap(rv, offset); find {
-			return offset, nil
+			return offset
 		}
 
 		// key-value
 		keys := rv.MapKeys()
 		for _, k := range keys {
-			o, err := s.create(k, offset)
-			if err != nil {
-				return 0, err
-			}
-			o, err = s.create(rv.MapIndex(k), o)
-			if err != nil {
-				return 0, err
-			}
-			offset = o
+			offset = s.create(k, offset)
+			offset = s.create(rv.MapIndex(k), offset)
 		}
 
 	case reflect.Struct:
 		if isTime, tm := s.isDateTime(rv); isTime {
 			return s.writeTime(tm, offset)
 		}
-		var o int
-		var err error
 		if s.asArray {
-			o, err = s.writeStructArray(rv, offset)
+			offset = s.writeStructArray(rv, offset)
 		} else {
-			o, err = s.writeStructMap(rv, offset)
+			offset = s.writeStructMap(rv, offset)
 		}
-		if err != nil {
-			return 0, err
-		}
-		offset = o
 
 	case reflect.Ptr:
 		if rv.IsNil() {
 			return s.writeNil(offset)
 		}
 
-		o, err := s.create(rv.Elem(), offset)
-		if err != nil {
-			return 0, err
-		}
-		offset = o
+		offset = s.create(rv.Elem(), offset)
 
 	case reflect.Interface:
-		o, err := s.create(rv.Elem(), offset)
-		if err != nil {
-			return 0, err
-		}
-		offset = o
+		offset = s.create(rv.Elem(), offset)
 
 	case reflect.Invalid:
 		return s.writeNil(offset)
 
 	}
-	return offset, nil
+	return offset
 }
