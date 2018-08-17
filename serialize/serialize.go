@@ -11,7 +11,7 @@ import (
 )
 
 type serializer struct {
-	common
+	d       []byte
 	asArray bool
 }
 

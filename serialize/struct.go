@@ -8,30 +8,52 @@ import (
 	"github.com/shamaton/msgpack/def"
 )
 
+type structCache struct {
+	indexes []int
+	names   []string
+}
+
+var cachemap = map[reflect.Type]*structCache{}
+
 func (s *serializer) calcStructArray(rv reflect.Value) (int, error) {
 	ret := 0
-	num := 0
-	for i := 0; i < rv.NumField(); i++ {
-		if ok, _ := s.checkField(rv.Type().Field(i)); ok {
-			size, err := s.calcSize(rv.Field(i))
+	t := rv.Type()
+	c, find := cachemap[t]
+	if !find {
+		c = &structCache{}
+		for i := 0; i < rv.NumField(); i++ {
+			field := t.Field(i)
+			if ok, name := s.checkField(field); ok {
+				size, err := s.calcSize(rv.Field(i))
+				if err != nil {
+					return 0, err
+				}
+				ret += size
+				c.indexes = append(c.indexes, i)
+				c.names = append(c.names, name)
+			}
+			cachemap[t] = c
+		}
+	} else {
+		for _, v := range c.indexes {
+			size, err := s.calcSize(rv.Field(v))
 			if err != nil {
 				return 0, err
 			}
 			ret += size
-			num++
 		}
 	}
 
 	// format size
-	if num <= 0x0f {
+	if len(c.indexes) <= 0x0f {
 		// format code only
-	} else if num <= math.MaxUint16 {
+	} else if len(c.indexes) <= math.MaxUint16 {
 		ret += def.Byte2
-	} else if num <= math.MaxUint32 {
+	} else if len(c.indexes) <= math.MaxUint32 {
 		ret += def.Byte4
 	} else {
 		// not supported error
-		return 0, fmt.Errorf("not support this array length : %d", num)
+		return 0, fmt.Errorf("not support this array length : %d", len(c.indexes))
 	}
 	return ret, nil
 }
@@ -69,14 +91,10 @@ func (s *serializer) calcStructMap(rv reflect.Value) (int, error) {
 
 func (s *serializer) writeStructArray(rv reflect.Value, offset int) int {
 
-	num := 0
-	l := rv.NumField()
-	for i := 0; i < l; i++ {
-		if ok, _ := s.checkField(rv.Type().Field(i)); ok {
-			num++
-		}
-	}
+	c := cachemap[rv.Type()]
+
 	// write format
+	num := len(c.indexes)
 	if num <= 0x0f {
 		offset = s.setByte1Int(def.FixArray+num, offset)
 	} else if num <= math.MaxUint16 {
@@ -87,10 +105,8 @@ func (s *serializer) writeStructArray(rv reflect.Value, offset int) int {
 		offset = s.setByte4Int(num, offset)
 	}
 
-	for i := 0; i < l; i++ {
-		if ok, _ := s.checkField(rv.Type().Field(i)); ok {
-			offset = s.create(rv.Field(i), offset)
-		}
+	for i := 0; i < num; i++ {
+		offset = s.create(rv.Field(c.indexes[i]), offset)
 	}
 	return offset
 }
