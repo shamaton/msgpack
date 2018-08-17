@@ -12,7 +12,7 @@ func (s *serializer) calcStructArray(rv reflect.Value) (int, error) {
 	ret := 0
 	num := 0
 	for i := 0; i < rv.NumField(); i++ {
-		if s.isPublic(rv.Type().Field(i).Name) {
+		if ok, _ := s.checkField(rv.Type().Field(i)); ok {
 			size, err := s.calcSize(rv.Field(i))
 			if err != nil {
 				return 0, err
@@ -72,8 +72,7 @@ func (s *serializer) writeStructArray(rv reflect.Value, offset int) int {
 	num := 0
 	l := rv.NumField()
 	for i := 0; i < l; i++ {
-		// TODO : ignore check
-		if s.isPublic(rv.Type().Field(i).Name) {
+		if ok, _ := s.checkField(rv.Type().Field(i)); ok {
 			num++
 		}
 	}
@@ -89,7 +88,7 @@ func (s *serializer) writeStructArray(rv reflect.Value, offset int) int {
 	}
 
 	for i := 0; i < l; i++ {
-		if s.isPublic(rv.Type().Field(i).Name) {
+		if ok, _ := s.checkField(rv.Type().Field(i)); ok {
 			offset = s.create(rv.Field(i), offset)
 		}
 	}
@@ -117,7 +116,6 @@ func (s *serializer) writeStructMap(rv reflect.Value, offset int) int {
 
 	for i := 0; i < l; i++ {
 		if ok, name := s.checkField(rv.Type().Field(i)); ok {
-			// TODO : tag check
 			offset = s.writeString(name, offset)
 			offset = s.create(rv.Field(i), offset)
 		}
