@@ -32,11 +32,11 @@ func (s *serializer) calcStructArray(rv reflect.Value) (int, error) {
 				c.indexes = append(c.indexes, i)
 				c.names = append(c.names, name)
 			}
-			cachemap[t] = c
 		}
+		cachemap[t] = c
 	} else {
-		for _, v := range c.indexes {
-			size, err := s.calcSize(rv.Field(v))
+		for i := 0; i < len(c.indexes); i++ {
+			size, err := s.calcSize(rv.Field(c.indexes[i]))
 			if err != nil {
 				return 0, err
 			}
@@ -45,42 +45,57 @@ func (s *serializer) calcStructArray(rv reflect.Value) (int, error) {
 	}
 
 	// format size
-	if len(c.indexes) <= 0x0f {
+	l := len(c.indexes)
+	if l <= 0x0f {
 		// format code only
-	} else if len(c.indexes) <= math.MaxUint16 {
+	} else if l <= math.MaxUint16 {
 		ret += def.Byte2
-	} else if len(c.indexes) <= math.MaxUint32 {
+	} else if l <= math.MaxUint32 {
 		ret += def.Byte4
 	} else {
 		// not supported error
-		return 0, fmt.Errorf("not support this array length : %d", len(c.indexes))
+		return 0, fmt.Errorf("not support this array length : %d", l)
 	}
 	return ret, nil
 }
 
 func (s *serializer) calcStructMap(rv reflect.Value) (int, error) {
 	ret := 0
-	l := rv.NumField()
-	num := 0
-	for i := 0; i < l; i++ {
-		if ok, name := s.checkField(rv.Type().Field(i)); ok {
-			// TODO : tag check
-			keySize := def.Byte1 + s.calcString(name)
-			valueSize, err := s.calcSize(rv.Field(i))
+	t := rv.Type()
+	c, find := cachemap[t]
+	if !find {
+		c = &structCache{}
+		for i := 0; i < rv.NumField(); i++ {
+			if ok, name := s.checkField(rv.Type().Field(i)); ok {
+				keySize := def.Byte1 + s.calcString(name)
+				valueSize, err := s.calcSize(rv.Field(i))
+				if err != nil {
+					return 0, err
+				}
+				ret += keySize + valueSize
+				c.indexes = append(c.indexes, i)
+				c.names = append(c.names, name)
+			}
+		}
+		cachemap[t] = c
+	} else {
+		for i := 0; i < len(c.indexes); i++ {
+			keySize := def.Byte1 + s.calcString(c.names[i])
+			valueSize, err := s.calcSize(rv.Field(c.indexes[i]))
 			if err != nil {
 				return 0, err
 			}
 			ret += keySize + valueSize
-			num++
 		}
 	}
 
 	// format size
-	if num <= 0x0f {
+	l := len(c.indexes)
+	if l <= 0x0f {
 		// format code only
-	} else if num <= math.MaxUint16 {
+	} else if l <= math.MaxUint16 {
 		ret += def.Byte2
-	} else if num <= math.MaxUint32 {
+	} else if l <= math.MaxUint32 {
 		ret += def.Byte4
 	} else {
 		// not supported error
@@ -112,14 +127,11 @@ func (s *serializer) writeStructArray(rv reflect.Value, offset int) int {
 }
 
 func (s *serializer) writeStructMap(rv reflect.Value, offset int) int {
-	l := rv.NumField()
-	num := 0
-	for i := 0; i < l; i++ {
-		if ok, _ := s.checkField(rv.Type().Field(i)); ok {
-			num++
-		}
-	}
+
+	c := cachemap[rv.Type()]
+
 	// format size
+	num := len(c.indexes)
 	if num <= 0x0f {
 		offset = s.setByte1Int(def.FixMap+num, offset)
 	} else if num <= math.MaxUint16 {
@@ -130,11 +142,9 @@ func (s *serializer) writeStructMap(rv reflect.Value, offset int) int {
 		offset = s.setByte4Int(num, offset)
 	}
 
-	for i := 0; i < l; i++ {
-		if ok, name := s.checkField(rv.Type().Field(i)); ok {
-			offset = s.writeString(name, offset)
-			offset = s.create(rv.Field(i), offset)
-		}
+	for i := 0; i < num; i++ {
+		offset = s.writeString(c.names[i], offset)
+		offset = s.create(rv.Field(c.indexes[i]), offset)
 	}
 	return offset
 }
