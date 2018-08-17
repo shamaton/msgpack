@@ -20,13 +20,15 @@ var now = time.Now()
 func AsArray(v interface{}, asArray bool) (b []byte, err error) {
 	s := serializer{asArray: asArray}
 	// defer s.recover()
-	defer func() {
-		e := recover()
-		if e != nil {
-			b = nil
-			err = fmt.Errorf("unexpected error!! \n%s", stackTrace())
-		}
-	}()
+	/*
+		defer func() {
+			e := recover()
+			if e != nil {
+				b = nil
+				err = fmt.Errorf("unexpected error!! \n%s", stackTrace())
+			}
+		}()
+	*/
 
 	rv := reflect.ValueOf(v)
 	if rv.Kind() == reflect.Ptr {
