@@ -75,10 +75,10 @@ func (s *serializer) calcSize(rv reflect.Value) (int, error) {
 		ret += s.calcInt(int64(v))
 
 	case reflect.Float32:
-		ret += def.Byte4
+		ret += s.calcFloat32(0)
 
 	case reflect.Float64:
-		ret += def.Byte8
+		ret += s.calcFloat64(0)
 
 	case reflect.String:
 		ret += s.calcString(rv.String())
@@ -219,14 +219,10 @@ func (s *serializer) create(rv reflect.Value, offset int) int {
 		offset = s.writeInt(v, offset)
 
 	case reflect.Float32:
-		v := rv.Float()
-		offset = s.setByte1Int(def.Float32, offset)
-		offset = s.setByte4Uint64(uint64(math.Float32bits(float32(v))), offset)
+		offset = s.writeFloat32(rv.Float(), offset)
 
 	case reflect.Float64:
-		v := rv.Float()
-		offset = s.setByte1Int(def.Float64, offset)
-		offset = s.setByte8Uint64(math.Float64bits(v), offset)
+		offset = s.writeFloat64(rv.Float(), offset)
 
 	case reflect.Bool:
 		if rv.Bool() {
