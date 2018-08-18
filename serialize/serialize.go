@@ -225,11 +225,7 @@ func (s *serializer) create(rv reflect.Value, offset int) int {
 		offset = s.writeFloat64(rv.Float(), offset)
 
 	case reflect.Bool:
-		if rv.Bool() {
-			offset = s.setByte1Int(def.True, offset)
-		} else {
-			offset = s.setByte1Int(def.False, offset)
-		}
+		offset = s.writeBool(rv.Bool(), offset)
 
 	case reflect.String:
 		offset = s.writeString(rv.String(), offset)
