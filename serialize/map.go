@@ -39,6 +39,13 @@ func (s *serializer) calcFixedMap(rv reflect.Value) (int, bool) {
 		}
 		return size, true
 
+	case map[string]bool:
+		for k := range m {
+			size += def.Byte1 + s.calcString(k)
+			size += def.Byte1 /*+ s.calcBool()*/
+		}
+		return size, true
+
 	case map[string]string:
 		for k, v := range m {
 			size += def.Byte1 + s.calcString(k)
@@ -112,6 +119,13 @@ func (s *serializer) writeFixedMap(rv reflect.Value, offset int) (int, bool) {
 		for k, v := range m {
 			offset = s.writeString(k, offset)
 			offset = s.writeFloat64(v, offset)
+		}
+		return offset, true
+
+	case map[string]bool:
+		for k, v := range m {
+			offset = s.writeString(k, offset)
+			offset = s.writeBool(v, offset)
 		}
 		return offset, true
 
