@@ -11,9 +11,9 @@ func Serialize(v interface{}) ([]byte, error) {
 }
 
 func SerializeAsArray(v interface{}) ([]byte, error) {
-	return serialize.AsArray(v, true)
+	return serialize.Exec(v, true)
 }
 
 func SerializeAsMap(v interface{}) ([]byte, error) {
-	return serialize.AsArray(v, false)
+	return serialize.Exec(v, false)
 }
