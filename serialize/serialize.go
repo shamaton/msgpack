@@ -17,9 +17,8 @@ type serializer struct {
 
 var now = time.Now()
 
-func AsArray(v interface{}, asArray bool) (b []byte, err error) {
+func Exec(v interface{}, asArray bool) (b []byte, err error) {
 	s := serializer{asArray: asArray}
-	// defer s.recover()
 	/*
 		defer func() {
 			e := recover()
