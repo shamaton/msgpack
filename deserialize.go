@@ -1,6 +1,8 @@
 package msgpack
 
-import "errors"
+import (
+	"github.com/shamaton/msgpack/deserialize"
+)
 
 var defaultDeserializer = DeserializeAsMap
 
@@ -9,9 +11,9 @@ func Deserialize(data []byte, v interface{}) error {
 }
 
 func DeserializeAsArray(data []byte, v interface{}) error {
-	return errors.New("not implement")
+	return deserialize.Exec(data, v, true)
 }
 
 func DeserializeAsMap(data []byte, v interface{}) error {
-	return errors.New("not implement")
+	return deserialize.Exec(data, v, false)
 }
