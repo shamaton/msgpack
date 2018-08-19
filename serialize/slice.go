@@ -15,7 +15,45 @@ func (s *serializer) calcFixedSlice(rv reflect.Value) (int, bool) {
 			size += def.Byte1 + s.calcInt(int64(v))
 		}
 		return size, true
+
+	case []uint:
+		for _, v := range sli {
+			size += def.Byte1 + s.calcUint(uint64(v))
+		}
+		return size, true
+
+	case []string:
+		for _, v := range sli {
+			size += def.Byte1 + s.calcString(v)
+		}
+		return size, true
+
+	case []float32:
+		for _, v := range sli {
+			size += def.Byte1 + s.calcFloat32(float64(v))
+		}
+		return size, true
+
+	case []float64:
+		for _, v := range sli {
+			size += def.Byte1 + s.calcFloat64(v)
+		}
+		return size, true
+
+	case []bool:
+		size += def.Byte1 * len(sli)
+		return size, true
+
+	case []int8:
+	case []int16:
+	case []int32:
+	case []int64:
+	case []uint8:
+	case []uint16:
+	case []uint32:
+	case []uint64:
 	}
+
 	return size, false
 }
 
@@ -40,7 +78,37 @@ func (s *serializer) writeFixedSlice(rv reflect.Value, offset int) (int, bool) {
 			offset = s.writeInt(int64(v), offset)
 		}
 		return offset, true
+
 	case []uint:
+		for _, v := range sli {
+			offset = s.writeUint(uint64(v), offset)
+		}
+		return offset, true
+
+	case []string:
+		for _, v := range sli {
+			offset = s.writeString(v, offset)
+		}
+		return offset, true
+
+	case []float32:
+		for _, v := range sli {
+			offset = s.writeFloat32(float64(v), offset)
+		}
+		return offset, true
+
+	case []float64:
+		for _, v := range sli {
+			offset = s.writeFloat64(float64(v), offset)
+		}
+		return offset, true
+
+	case []bool:
+		for _, v := range sli {
+			offset = s.writeBool(v, offset)
+		}
+		return offset, true
+
 	case []int8:
 	case []int16:
 	case []int32:
@@ -49,7 +117,6 @@ func (s *serializer) writeFixedSlice(rv reflect.Value, offset int) (int, bool) {
 	case []uint16:
 	case []uint32:
 	case []uint64:
-	case []string:
 	}
 
 	return offset, false
