@@ -1,6 +1,7 @@
 package deserialize
 
 import (
+	"encoding/binary"
 	"fmt"
 	"reflect"
 
@@ -30,25 +31,56 @@ func Exec(data []byte, holder interface{}, asArray bool) error {
 }
 
 func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
+	var err error
 
 	// TODO : offset use uint
 	switch rv.Kind() {
 	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
-		if d.isFixNum(offset) {
-			b, o := d.readSize1(offset)
-			rv.SetUint(uint64(b))
-			offset = o
+		offset, err = d.readAsUint(rv, offset)
+		if err != nil {
+			return 0, err
 		}
 
 	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
 	}
-	return 0, nil
+	return offset, nil
 }
 
-func (d *deserializer) isFixNum(offset int) bool {
-	if def.PositiveFixIntMin <= d.data[offset] && d.data[offset] <= def.PositiveFixIntMax {
+func (d *deserializer) readAsUint(rv reflect.Value, offset int) (int, error) {
+	code := d.data[offset]
+
+	if d.isFixNum(code) {
+		b, o := d.readSize1(offset)
+		rv.SetUint(uint64(b))
+		offset = o
+	} else if code == def.Uint8 {
+		offset++
+		b, o := d.readSize1(offset)
+		rv.SetUint(uint64(b))
+		offset = o
+	} else if code == def.Uint16 {
+		offset++
+		b, o := d.readSize2(offset)
+		rv.SetUint(uint64(binary.BigEndian.Uint16(b)))
+		offset = o
+	} else if code == def.Uint32 {
+		offset++
+		b, o := d.readSize4(offset)
+		rv.SetUint(uint64(binary.BigEndian.Uint32(b)))
+		offset = o
+	} else if code == def.Uint64 {
+		offset++
+		b, o := d.readSize8(offset)
+		rv.SetUint(binary.BigEndian.Uint64(b))
+		offset = o
+	}
+	return offset, nil
+}
+
+func (d *deserializer) isFixNum(v byte) bool {
+	if def.PositiveFixIntMin <= v && v <= def.PositiveFixIntMax {
 		return true
-	} else if def.NegativeFixintMin <= int8(d.data[offset]) && int8(d.data[offset]) <= def.NegativeFixintMax {
+	} else if def.NegativeFixintMin <= int8(v) && int8(v) <= def.NegativeFixintMax {
 		return true
 	}
 	return false
