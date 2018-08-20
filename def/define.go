@@ -3,6 +3,8 @@ package def
 // IntSize : 32 or 64
 const IntSize = 32 << (^uint(0) >> 63)
 
+var IsIntSize32 = IntSize == 32
+
 // message pack format
 const (
 	PositiveFixIntMin = 0x00
