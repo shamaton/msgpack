@@ -31,10 +31,39 @@ func Exec(data []byte, holder interface{}, asArray bool) error {
 }
 
 func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
-	var err error
+	switch rv.Kind() {
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		v, o, err := d.asUint(offset, rv.Kind())
+		if err != nil {
+			return 0, err
+		}
+		rv.SetUint(v)
+		offset = o
+	}
+	return offset, nil
+}
+func (d *deserializer) _deserialize(rv reflect.Value, offset int) (int, error) {
 
 	// TODO : offset use uint
 	switch rv.Kind() {
+	case reflect.Uint:
+		if def.IsIntSize32 {
+			v, o, err := d.asUint32(rv, offset)
+			if err != nil {
+				return 0, err
+			}
+			rv.SetUint(uint64(v))
+			offset = o
+		} else {
+			v, o, err := d.asUint64(rv, offset)
+			if err != nil {
+				return 0, err
+			}
+			rv.SetUint(v)
+			offset = o
+		}
+
 	case reflect.Uint8:
 		v, o, err := d.asUint8(rv, offset)
 		if err != nil {
@@ -43,41 +72,33 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 		rv.SetUint(uint64(v))
 		offset = o
 
-	case reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
-		offset, err = d.readAsUint(rv, offset)
+	case reflect.Uint16:
+		v, o, err := d.asUint16(rv, offset)
 		if err != nil {
 			return 0, err
 		}
+		rv.SetUint(uint64(v))
+		offset = o
+
+	case reflect.Uint32:
+		v, o, err := d.asUint32(rv, offset)
+		if err != nil {
+			return 0, err
+		}
+		rv.SetUint(uint64(v))
+		offset = o
+
+	case reflect.Uint64:
+		v, o, err := d.asUint64(rv, offset)
+		if err != nil {
+			return 0, err
+		}
+		rv.SetUint(v)
+		offset = o
 
 	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
 	}
 	return offset, nil
-}
-
-func (d *deserializer) asUint8(rv reflect.Value, offset int) (uint8, int, error) {
-	code := d.data[offset]
-
-	if d.isFixNum(code) {
-		b, offset := d.readSize1(offset)
-		return uint8(b), offset, nil
-	} else if code == def.Uint8 || code == def.Int8 {
-		offset++
-		b, offset := d.readSize1(offset)
-		return uint8(b), offset, nil
-	} else if code == def.Uint16 || code == def.Int16 {
-		offset++
-		bs, offset := d.readSize2(offset)
-		return uint8(bs[1]), offset, nil
-	} else if code == def.Uint32 || code == def.Int32 || code == def.Float32 {
-		offset++
-		bs, offset := d.readSize4(offset)
-		return uint8(bs[3]), offset, nil
-	} else if code == def.Uint64 || code == def.Int64 || code == def.Float64 {
-		offset++
-		bs, offset := d.readSize8(offset)
-		return uint8(bs[7]), offset, nil
-	}
-	return 0, 0, fmt.Errorf("mismatch code : %x", code)
 }
 
 func (d *deserializer) readAsUint(rv reflect.Value, offset int) (int, error) {
@@ -114,6 +135,20 @@ func (d *deserializer) readAsUint(rv reflect.Value, offset int) (int, error) {
 		offset = o
 	}
 	return offset, nil
+}
+
+func (d *deserializer) isPositiveFixNum(v byte) bool {
+	if def.PositiveFixIntMin <= v && v <= def.PositiveFixIntMax {
+		return true
+	}
+	return false
+}
+
+func (d *deserializer) isNegativeFixNum(v byte) bool {
+	if def.NegativeFixintMin <= int8(v) && int8(v) <= def.NegativeFixintMax {
+		return true
+	}
+	return false
 }
 
 func (d *deserializer) isFixNum(v byte) bool {
