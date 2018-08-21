@@ -210,8 +210,7 @@ func (d *deserializer) asStringByte(offset int, k reflect.Kind) ([]byte, int, er
 	return emptyBytes, 0, fmt.Errorf("msgpack : invalid code %x decoding %v", code, k)
 }
 
-func (d *deserializer) isCodeString(offset int) bool {
-	code := d.data[offset]
+func (d *deserializer) isCodeString(code byte) bool {
 	switch {
 	case d.isFixString(code), code == def.Str8, code == def.Str16, code == def.Str32:
 		return true
@@ -229,4 +228,25 @@ func (d *deserializer) asBool(offset int, k reflect.Kind) (bool, int, error) {
 		return false, 0, nil
 	}
 	return false, 0, fmt.Errorf("msgpack : invalid code %x decoding %v", code, k)
+}
+
+func (d *deserializer) asBin(offset int, k reflect.Kind) ([]byte, int, error) {
+	code, offset := d.readSize1(offset)
+
+	switch code {
+	case def.Bin8:
+		l, offset := d.readSize1(offset)
+		o := offset + int(uint8(l))
+		return d.data[offset:o], o, nil
+	case def.Bin16:
+		bs, offset := d.readSize2(offset)
+		o := offset + int(binary.BigEndian.Uint16(bs))
+		return d.data[offset:o], o, nil
+	case def.Bin32:
+		bs, offset := d.readSize4(offset)
+		o := offset + int(binary.BigEndian.Uint32(bs))
+		return d.data[offset:o], o, nil
+	}
+
+	return emptyBytes, 0, d.errorTemplate(code, k)
 }
