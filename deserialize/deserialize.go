@@ -82,14 +82,22 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 
 	case reflect.Array, reflect.Slice:
 		// byte slice
-		// string to bytes
-		if d.isCodeString(offset) {
-			bs, o, err := d.asStringByte(offset, k)
+		if d.isCodeBin(d.data[offset]) {
+			bs, offset, err := d.asBin(offset, k)
 			if err != nil {
 				return 0, err
 			}
 			rv.SetBytes(bs)
-			offset = o
+			return offset, nil
+		}
+		// string to bytes
+		if d.isCodeString(d.data[offset]) {
+			bs, offset, err := d.asStringByte(offset, k)
+			if err != nil {
+				return 0, err
+			}
+			rv.SetBytes(bs)
+			return offset, nil
 		}
 
 	case reflect.Ptr:
@@ -114,4 +122,16 @@ func (d *deserializer) isNegativeFixNum(v byte) bool {
 
 func (d *deserializer) isFixString(v byte) bool {
 	return def.FixStr <= v && v <= def.FixStr+0x1f
+}
+
+func (d *deserializer) isCodeBin(v byte) bool {
+	switch v {
+	case def.Bin8, def.Bin16, def.Bin32:
+		return true
+	}
+	return false
+}
+
+func (d *deserializer) errorTemplate(code byte, k reflect.Kind) error {
+	return fmt.Errorf("msgpack : invalid code %x decoding %v", code, k)
 }
