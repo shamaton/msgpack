@@ -64,6 +64,26 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 		rv.SetFloat(v)
 		offset = o
 
+	case reflect.String:
+		v, o, err := d.asString(offset, k)
+		if err != nil {
+			return 0, err
+		}
+		rv.SetString(v)
+		offset = o
+
+	case reflect.Array, reflect.Slice:
+		// byte slice
+		// string to bytes
+		code := d.data[offset]
+		offset++
+		if def.FixStr <= code && code <= def.FixStr+0x1f {
+			l := int(code - def.FixStr)
+			bs, o := d.readSizeN(offset, l)
+			rv.SetBytes(bs)
+			offset = o
+		}
+
 	}
 	return offset, nil
 }
