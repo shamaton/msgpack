@@ -31,15 +31,40 @@ func Exec(data []byte, holder interface{}, asArray bool) error {
 }
 
 func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
-	switch rv.Kind() {
+	k := rv.Kind()
+	switch k {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		v, o, err := d.asInt(offset, k)
+		if err != nil {
+			return 0, err
+		}
+		rv.SetInt(v)
+		offset = o
 
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		v, o, err := d.asUint(offset, rv.Kind())
+		v, o, err := d.asUint(offset, k)
 		if err != nil {
 			return 0, err
 		}
 		rv.SetUint(v)
 		offset = o
+
+	case reflect.Float32:
+		v, o, err := d.asFloat32(offset, k)
+		if err != nil {
+			return 0, err
+		}
+		rv.SetFloat(float64(v))
+		offset = o
+
+	case reflect.Float64:
+		v, o, err := d.asFloat64(offset, k)
+		if err != nil {
+			return 0, err
+		}
+		rv.SetFloat(v)
+		offset = o
+
 	}
 	return offset, nil
 }
