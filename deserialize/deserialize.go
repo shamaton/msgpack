@@ -100,6 +100,43 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 			return offset, nil
 		}
 
+		l, o, err := d.sliceLength(offset, k)
+		if err != nil {
+			return 0, err
+		}
+
+		// allocate interface
+		switch rv.Interface().(type) {
+		case []int8:
+			sli := make([]int8, l) // allocate
+			k = rv.Type().Elem().Kind()
+			for i := range sli {
+				v, _o, err := d.asInt(o, k)
+				if err != nil {
+					return 0, nil
+				}
+				sli[i] = int8(v)
+				o = _o
+			}
+			rv.Set(reflect.ValueOf(sli)) // allocate
+			return o, nil
+		}
+
+		tmpSlice := reflect.MakeSlice(rv.Type(), l, l)
+
+		// element type
+		e := rv.Type().Elem()
+		for i := 0; i < l; i++ {
+			v := reflect.New(e).Elem()
+			o, err = d.deserialize(v, o)
+			if err != nil {
+				return 0, err
+			}
+
+			tmpSlice.Index(i).Set(v)
+		}
+		rv.Set(tmpSlice)
+
 	case reflect.Ptr:
 
 	}
