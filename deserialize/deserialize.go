@@ -83,11 +83,11 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 	case reflect.Array, reflect.Slice:
 		// byte slice
 		// string to bytes
-		code := d.data[offset]
-		offset++
-		if def.FixStr <= code && code <= def.FixStr+0x1f {
-			l := int(code - def.FixStr)
-			bs, o := d.readSizeN(offset, l)
+		if d.isCodeString(offset) {
+			bs, o, err := d.asStringByte(offset, k)
+			if err != nil {
+				return 0, err
+			}
 			rv.SetBytes(bs)
 			offset = o
 		}
@@ -110,4 +110,8 @@ func (d *deserializer) isNegativeFixNum(v byte) bool {
 		return true
 	}
 	return false
+}
+
+func (d *deserializer) isFixString(v byte) bool {
+	return def.FixStr <= v && v <= def.FixStr+0x1f
 }

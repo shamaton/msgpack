@@ -153,30 +153,34 @@ var emptyString = ""
 var emptyBytes = []byte{}
 
 func (d *deserializer) asString(offset int, k reflect.Kind) (string, int, error) {
-	code := d.data[offset]
-	offset++
-
-	if def.FixStr <= code && code <= def.FixStr+0x1f {
-		l := int(code - def.FixStr)
-		bs, offset := d.readSizeN(offset, l)
-		return *(*string)(unsafe.Pointer(&bs)), offset, nil
-	} else if code == def.Str8 {
-		b, offset := d.readSize1(offset)
-		bs, offset := d.readSizeN(offset, int(b))
-		return *(*string)(unsafe.Pointer(&bs)), offset, nil
-	} else if code == def.Str16 {
-		b, offset := d.readSize2(offset)
-		bs, offset := d.readSizeN(offset, int(binary.BigEndian.Uint16(b)))
-		return *(*string)(unsafe.Pointer(&bs)), offset, nil
-	} else if code == def.Str32 {
-		b, offset := d.readSize4(offset)
-		bs, offset := d.readSizeN(offset, int(binary.BigEndian.Uint32(b)))
-		return *(*string)(unsafe.Pointer(&bs)), offset, nil
-	} else if code == def.Nil {
-		offset++
-		return emptyString, offset, nil
+	bs, offset, err := d.asStringByte(offset, k)
+	if err != nil {
+		return emptyString, 0, err
 	}
-	return emptyString, 0, fmt.Errorf("msgpack : invalid code %x decoding %v", code, k)
+	return *(*string)(unsafe.Pointer(&bs)), offset, nil
+	/*
+		if def.FixStr <= code && code <= def.FixStr+0x1f {
+			l := int(code - def.FixStr)
+			bs, offset := d.readSizeN(offset, l)
+			return *(*string)(unsafe.Pointer(&bs)), offset, nil
+		} else if code == def.Str8 {
+			b, offset := d.readSize1(offset)
+			bs, offset := d.readSizeN(offset, int(b))
+			return *(*string)(unsafe.Pointer(&bs)), offset, nil
+		} else if code == def.Str16 {
+			b, offset := d.readSize2(offset)
+			bs, offset := d.readSizeN(offset, int(binary.BigEndian.Uint16(b)))
+			return *(*string)(unsafe.Pointer(&bs)), offset, nil
+		} else if code == def.Str32 {
+			b, offset := d.readSize4(offset)
+			bs, offset := d.readSizeN(offset, int(binary.BigEndian.Uint32(b)))
+			return *(*string)(unsafe.Pointer(&bs)), offset, nil
+		} else if code == def.Nil {
+			offset++
+			return emptyString, offset, nil
+		}
+		return emptyString, 0, fmt.Errorf("msgpack : invalid code %x decoding %v", code, k)
+	*/
 }
 
 func (d *deserializer) asStringByte(offset int, k reflect.Kind) ([]byte, int, error) {
@@ -204,6 +208,15 @@ func (d *deserializer) asStringByte(offset int, k reflect.Kind) ([]byte, int, er
 		return emptyBytes, offset, nil
 	}
 	return emptyBytes, 0, fmt.Errorf("msgpack : invalid code %x decoding %v", code, k)
+}
+
+func (d *deserializer) isCodeString(offset int) bool {
+	code := d.data[offset]
+	switch {
+	case d.isFixString(code), code == def.Str8, code == def.Str16, code == def.Str32:
+		return true
+	}
+	return false
 }
 
 func (d *deserializer) asBool(offset int, k reflect.Kind) (bool, int, error) {
