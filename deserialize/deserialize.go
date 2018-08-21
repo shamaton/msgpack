@@ -72,6 +72,14 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 		rv.SetString(v)
 		offset = o
 
+	case reflect.Bool:
+		v, o, err := d.asBool(offset, k)
+		if err != nil {
+			return 0, err
+		}
+		rv.SetBool(v)
+		offset = o
+
 	case reflect.Array, reflect.Slice:
 		// byte slice
 		// string to bytes
@@ -83,6 +91,8 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 			rv.SetBytes(bs)
 			offset = o
 		}
+
+	case reflect.Ptr:
 
 	}
 	return offset, nil
