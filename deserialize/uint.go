@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"unsafe"
 
 	"github.com/shamaton/msgpack/def"
 )
@@ -134,4 +135,31 @@ func (d *deserializer) asFloat64(offset int, k reflect.Kind) (float64, int, erro
 		return float64(v), offset, nil
 	}
 	return 0, 0, fmt.Errorf("mismatch code : %x decoing %v", code, k)
+}
+
+var emptyString = ""
+
+func (d *deserializer) asString(offset int, k reflect.Kind) (string, int, error) {
+	code := d.data[offset]
+	offset++
+
+	if def.FixStr <= code && code <= def.FixStr+0x1f {
+		l := int(code - def.FixStr)
+		bs, offset := d.readSizeN(offset, l)
+		return *(*string)(unsafe.Pointer(&bs)), offset, nil
+	} else if code == def.Str8 {
+		b, offset := d.readSize1(offset)
+		bs, offset := d.readSizeN(offset, int(b))
+		return *(*string)(unsafe.Pointer(&bs)), offset, nil
+	} else if code == def.Str16 {
+		b, offset := d.readSize2(offset)
+		bs, offset := d.readSizeN(offset, int(binary.BigEndian.Uint16(b)))
+		return *(*string)(unsafe.Pointer(&bs)), offset, nil
+
+	} else if code == def.Str32 {
+		b, offset := d.readSize4(offset)
+		bs, offset := d.readSizeN(offset, int(binary.BigEndian.Uint32(b)))
+		return *(*string)(unsafe.Pointer(&bs)), offset, nil
+	}
+	return emptyString, 0, fmt.Errorf("mismatch code : %x decoing %v", code, k)
 }
