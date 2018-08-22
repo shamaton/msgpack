@@ -230,6 +230,34 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 		}
 
 	case reflect.Struct:
+		l, offset, err := d.mapLength(offset, k)
+		if err != nil {
+			return 0, err
+		}
+		// create map
+		m := map[string]reflect.Value{}
+		for i := 0; i < rv.NumField(); i++ {
+			if ok, name := d.checkField(rv.Type().Field(i)); ok {
+				m[name] = rv.Field(i)
+			}
+		}
+		// set value if string correct
+		for i := 0; i < l; i++ {
+			key, o, err := d.asString(offset, k)
+			if err != nil {
+				return 0, err
+			}
+			if _, ok := m[key]; ok {
+				offset, err = d.deserialize(m[key], o)
+			} else {
+				// todo : jump bytes
+				offset = d.jumpByte(o)
+			}
+		}
+		// todo : date and ext
+		//todo : array
+		// todo : cache
+
 	case reflect.Ptr:
 
 	case reflect.Interface:
@@ -239,6 +267,36 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 		return 0, d.errorTemplate(d.data[offset], k)
 	}
 	return offset, nil
+}
+
+func (d *deserializer) jumpByte(offset int) int {
+	code, offset := d.readSize1(offset)
+	switch {
+	case d.isPositiveFixNum(code) || d.isNegativeFixNum(code):
+	case code == def.Uint8 || code == def.Int8:
+		offset += def.Byte1
+
+	}
+	return offset
+}
+
+// todo same method...
+func (d *deserializer) checkField(field reflect.StructField) (bool, string) {
+	// A to Z
+	if d.isPublic(field.Name) {
+		if tag := field.Tag.Get("msgpack"); tag == "ignore" {
+			return false, ""
+		} else if len(tag) > 0 {
+			return true, tag
+		}
+		return true, field.Name
+	}
+	return false, ""
+}
+
+// todo same method...
+func (d *deserializer) isPublic(name string) bool {
+	return 0x41 <= name[0] && name[0] <= 0x5a
 }
 
 func (d *deserializer) asFixedMap(rv reflect.Value, offset int, l int) (int, bool, error) {
@@ -330,6 +388,23 @@ func (d *deserializer) isCodeBin(v byte) bool {
 
 func (d *deserializer) isCodeNil(v byte) bool {
 	return def.Nil == v
+}
+
+func (d *deserializer) isDateTime(offset int) bool {
+	code, offset := d.readSize1(offset)
+
+	if code == def.Fixext4 {
+		t, _ := d.readSize1(offset)
+		return int8(t) == def.TimeStamp
+	} else if code == def.Fixext8 {
+		t, _ := d.readSize1(offset)
+		return int8(t) == def.TimeStamp
+	} else if code == def.Ext8 {
+		l, offset := d.readSize1(offset)
+		t, _ := d.readSize1(offset)
+		return l == 12 && int8(t) == def.TimeStamp
+	}
+	return false
 }
 
 func (d *deserializer) errorTemplate(code byte, k reflect.Kind) error {
