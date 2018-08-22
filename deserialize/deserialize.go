@@ -81,6 +81,11 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 		offset = o
 
 	case reflect.Slice:
+		// nil
+		if d.isCodeNil(d.data[offset]) {
+			offset++
+			return offset, nil
+		}
 		// byte slice
 		if d.isCodeBin(d.data[offset]) {
 			bs, offset, err := d.asBin(offset, k)
@@ -92,16 +97,12 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 		}
 		// string to bytes
 		if d.isCodeString(d.data[offset]) {
-			bs, offset, err := d.asStringByte(offset, k)
+			l, offset, err := d.stringByteLength(offset, k)
 			if err != nil {
 				return 0, err
 			}
+			bs, offset := d.asStringByte(offset, l, k)
 			rv.SetBytes(bs)
-			return offset, nil
-		}
-		// nil
-		if d.isCodeNil(d.data[offset]) {
-			offset++
 			return offset, nil
 		}
 
@@ -135,6 +136,54 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 		rv.Set(tmpSlice)
 
 	case reflect.Array:
+		// nil
+		if d.isCodeNil(d.data[offset]) {
+			offset++
+			return offset, nil
+		}
+		// byte slice
+		if d.isCodeBin(d.data[offset]) {
+			// todo : length check
+			bs, offset, err := d.asBin(offset, k)
+			if err != nil {
+				return 0, err
+			}
+			rv.SetBytes(bs)
+			return offset, nil
+		}
+		// string to bytes
+		if d.isCodeString(d.data[offset]) {
+			l, offset, err := d.stringByteLength(offset, k)
+			if err != nil {
+				return 0, err
+			}
+			if l > rv.Len() {
+				return 0, fmt.Errorf("%v len is %d, but msgpack has %d elements", rv.Type(), rv.Len(), l)
+			}
+			bs, offset := d.asStringByte(offset, l, k)
+			for i, b := range bs {
+				rv.Index(i).SetUint(uint64(b))
+			}
+			return offset, nil
+		}
+
+		// get slice length
+		l, offset, err := d.sliceLength(offset, k)
+		if err != nil {
+			return 0, err
+		}
+
+		if l > rv.Len() {
+			return 0, fmt.Errorf("%v len is %d, but msgpack has %d elements", rv.Type(), rv.Len(), l)
+		}
+
+		// create array dynamically
+		for i := 0; i < l; i++ {
+			offset, err = d.deserialize(rv.Index(i), offset)
+			if err != nil {
+				return 0, err
+			}
+		}
 
 	case reflect.Map:
 	case reflect.Struct:

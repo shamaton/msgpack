@@ -152,38 +152,42 @@ var emptyString = ""
 var emptyBytes = []byte{}
 
 func (d *deserializer) asString(offset int, k reflect.Kind) (string, int, error) {
-	bs, offset, err := d.asStringByte(offset, k)
+	l, offset, err := d.stringByteLength(offset, k)
 	if err != nil {
 		return emptyString, 0, err
 	}
+	bs, offset := d.asStringByte(offset, l, k)
 	return *(*string)(unsafe.Pointer(&bs)), offset, nil
 }
 
-func (d *deserializer) asStringByte(offset int, k reflect.Kind) ([]byte, int, error) {
+func (d *deserializer) stringByteLength(offset int, k reflect.Kind) (int, int, error) {
 	code := d.data[offset]
 	offset++
 
 	if def.FixStr <= code && code <= def.FixStr+0x1f {
 		l := int(code - def.FixStr)
-		bs, offset := d.readSizeN(offset, l)
-		return bs, offset, nil
+		return l, offset, nil
 	} else if code == def.Str8 {
 		b, offset := d.readSize1(offset)
-		bs, offset := d.readSizeN(offset, int(b))
-		return bs, offset, nil
+		return int(b), offset, nil
 	} else if code == def.Str16 {
 		b, offset := d.readSize2(offset)
-		bs, offset := d.readSizeN(offset, int(binary.BigEndian.Uint16(b)))
-		return bs, offset, nil
+		return int(binary.BigEndian.Uint16(b)), offset, nil
 	} else if code == def.Str32 {
 		b, offset := d.readSize4(offset)
-		bs, offset := d.readSizeN(offset, int(binary.BigEndian.Uint32(b)))
-		return bs, offset, nil
+		return int(binary.BigEndian.Uint32(b)), offset, nil
 	} else if code == def.Nil {
-		offset++
-		return emptyBytes, offset, nil
+		return 0, offset, nil
 	}
-	return emptyBytes, 0, d.errorTemplate(code, k)
+	return 0, 0, d.errorTemplate(code, k)
+}
+
+func (d *deserializer) asStringByte(offset int, l int, k reflect.Kind) ([]byte, int) {
+	if l < 1 {
+		return emptyBytes, offset
+	}
+
+	return d.readSizeN(offset, l)
 }
 
 func (d *deserializer) isCodeString(code byte) bool {
