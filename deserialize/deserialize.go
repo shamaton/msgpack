@@ -80,7 +80,7 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 		rv.SetBool(v)
 		offset = o
 
-	case reflect.Array, reflect.Slice:
+	case reflect.Slice:
 		// byte slice
 		if d.isCodeBin(d.data[offset]) {
 			bs, offset, err := d.asBin(offset, k)
@@ -99,36 +99,33 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 			rv.SetBytes(bs)
 			return offset, nil
 		}
+		// nil
+		if d.isCodeNil(d.data[offset]) {
+			offset++
+			return offset, nil
+		}
 
-		l, o, err := d.sliceLength(offset, k)
+		// get slice length
+		l, offset, err := d.sliceLength(offset, k)
 		if err != nil {
 			return 0, err
 		}
 
-		// allocate interface
-		switch rv.Interface().(type) {
-		case []int8:
-			sli := make([]int8, l) // allocate
-			k = rv.Type().Elem().Kind()
-			for i := range sli {
-				v, _o, err := d.asInt(o, k)
-				if err != nil {
-					return 0, nil
-				}
-				sli[i] = int8(v)
-				o = _o
-			}
-			rv.Set(reflect.ValueOf(sli)) // allocate
-			return o, nil
+		// check fixed type
+		fixedOffset, found, err := d.asFixedSlice(rv, offset, l)
+		if err != nil {
+			return 0, err
+		}
+		if found {
+			return fixedOffset, nil
 		}
 
-		tmpSlice := reflect.MakeSlice(rv.Type(), l, l)
-
-		// element type
+		// create slice dynamically
 		e := rv.Type().Elem()
+		tmpSlice := reflect.MakeSlice(rv.Type(), l, l)
 		for i := 0; i < l; i++ {
 			v := reflect.New(e).Elem()
-			o, err = d.deserialize(v, o)
+			offset, err = d.deserialize(v, offset)
 			if err != nil {
 				return 0, err
 			}
@@ -137,10 +134,53 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 		}
 		rv.Set(tmpSlice)
 
+	case reflect.Array:
+
+	case reflect.Map:
+	case reflect.Struct:
 	case reflect.Ptr:
 
+	case reflect.Interface:
+		// all type...
+
+	default:
+		return 0, d.errorTemplate(d.data[offset], k)
 	}
 	return offset, nil
+}
+
+func (d *deserializer) asFixedSlice(rv reflect.Value, offset int, l int) (int, bool, error) {
+	t := rv.Type()
+	k := t.Elem().Kind()
+	switch t {
+	case typeIntSlice:
+		sli := make([]int, l)
+		for i := range sli {
+			v, o, err := d.asInt(offset, k)
+			if err != nil {
+				return 0, false, err
+			}
+			sli[i] = int(v)
+			offset = o
+		}
+		rv.Set(reflect.ValueOf(sli))
+		return offset, true, nil
+
+	case typeInt8Slice:
+		sli := make([]int8, l)
+		for i := range sli {
+			v, o, err := d.asInt(offset, k)
+			if err != nil {
+				return 0, false, err
+			}
+			sli[i] = int8(v)
+			offset = o
+		}
+		rv.Set(reflect.ValueOf(sli))
+		return offset, true, nil
+	}
+
+	return offset, false, nil
 }
 
 func (d *deserializer) isPositiveFixNum(v byte) bool {
@@ -167,6 +207,10 @@ func (d *deserializer) isCodeBin(v byte) bool {
 		return true
 	}
 	return false
+}
+
+func (d *deserializer) isCodeNil(v byte) bool {
+	return def.Nil == v
 }
 
 func (d *deserializer) errorTemplate(code byte, k reflect.Kind) error {

@@ -85,7 +85,7 @@ func (s *serializer) calcSize(rv reflect.Value) (int, error) {
 	case reflect.Bool:
 		// do nothing
 
-	case reflect.Array, reflect.Slice:
+	case reflect.Slice:
 		if rv.IsNil() {
 			return ret, nil
 		}
@@ -115,6 +115,40 @@ func (s *serializer) calcSize(rv reflect.Value) (int, error) {
 		if size, find := s.calcFixedSlice(rv); find {
 			ret += size
 			return ret, nil
+		}
+
+		// objects size
+		for i := 0; i < l; i++ {
+			s, err := s.calcSize(rv.Index(i))
+			if err != nil {
+				return 0, err
+			}
+			ret += s
+		}
+
+	case reflect.Array:
+		l := rv.Len()
+		// bin format
+		if s.isByteSlice(rv) {
+			r, err := s.calcByteSlice(l)
+			if err != nil {
+				return 0, err
+			}
+			ret += r
+			return ret, nil
+		}
+
+		// format size
+		// todo : func
+		if l <= 0x0f {
+			// format code only
+		} else if l <= math.MaxUint16 {
+			ret += def.Byte2
+		} else if l <= math.MaxUint32 {
+			ret += def.Byte4
+		} else {
+			// not supported error
+			return 0, fmt.Errorf("not support this array length : %d", l)
 		}
 
 		// objects size
@@ -201,6 +235,8 @@ func (s *serializer) calcSize(rv reflect.Value) (int, error) {
 
 	case reflect.Invalid:
 		// do nothing (return nil)
+
+		// todo : default
 	}
 
 	return ret, nil
@@ -229,7 +265,7 @@ func (s *serializer) create(rv reflect.Value, offset int) int {
 	case reflect.String:
 		offset = s.writeString(rv.String(), offset)
 
-	case reflect.Array, reflect.Slice:
+	case reflect.Slice:
 		if rv.IsNil() {
 			return s.writeNil(offset)
 		}
@@ -247,6 +283,26 @@ func (s *serializer) create(rv reflect.Value, offset int) int {
 		if offset, find := s.writeFixedSlice(rv, offset); find {
 			return offset
 		}
+
+		// objects
+		for i := 0; i < l; i++ {
+			offset = s.create(rv.Index(i), offset)
+		}
+
+	case reflect.Array:
+		l := rv.Len()
+		// bin format
+		if s.isByteSlice(rv) {
+			offset = s.writeByteSliceLength(l, offset)
+			// objects
+			for i := 0; i < l; i++ {
+				offset = s.setByte1Uint64(rv.Index(i).Uint(), offset)
+			}
+			return offset
+		}
+
+		// format
+		offset = s.writeSliceLength(l, offset)
 
 		// objects
 		for i := 0; i < l; i++ {
