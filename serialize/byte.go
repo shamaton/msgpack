@@ -8,12 +8,10 @@ import (
 	"github.com/shamaton/msgpack/def"
 )
 
+var typeByte = reflect.TypeOf(byte(0))
+
 func (s *serializer) isByteSlice(rv reflect.Value) bool {
-	switch rv.Interface().(type) {
-	case []byte:
-		return true
-	}
-	return false
+	return rv.Type().Elem() == typeByte
 }
 
 func (s *serializer) calcByteSlice(l int) (int, error) {
