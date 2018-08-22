@@ -186,6 +186,49 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 		}
 
 	case reflect.Map:
+		// nil
+		if d.isCodeNil(d.data[offset]) {
+			offset++
+			return offset, nil
+		}
+
+		// get map length
+		l, offset, err := d.mapLength(offset, k)
+		if err != nil {
+			return 0, err
+		}
+
+		// check fixed type
+		fixedOffset, found, err := d.asFixedMap(rv, offset, l)
+		if err != nil {
+			return 0, err
+		}
+		if found {
+			return fixedOffset, nil
+		}
+
+		// create dynamically
+		key := rv.Type().Key()
+		value := rv.Type().Elem()
+		if rv.IsNil() {
+			rv.Set(reflect.MakeMap(rv.Type()))
+		}
+		for i := 0; i < l; i++ {
+			k := reflect.New(key).Elem()
+			v := reflect.New(value).Elem()
+			o, err := d.deserialize(k, offset)
+			if err != nil {
+				return 0, err
+			}
+			o, err = d.deserialize(v, o)
+			if err != nil {
+				return 0, err
+			}
+
+			rv.SetMapIndex(k, v)
+			offset = o
+		}
+
 	case reflect.Struct:
 	case reflect.Ptr:
 
@@ -196,6 +239,33 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 		return 0, d.errorTemplate(d.data[offset], k)
 	}
 	return offset, nil
+}
+
+func (d *deserializer) asFixedMap(rv reflect.Value, offset int, l int) (int, bool, error) {
+	t := rv.Type()
+
+	keyKind := rv.Type().Key().Kind()
+	valueKind := rv.Type().Elem().Kind()
+	switch t {
+	case typeMapStringInt:
+		m := make(map[string]int, l)
+		for i := 0; i < l; i++ {
+			k, o, err := d.asString(offset, keyKind)
+			if err != nil {
+				return 0, false, err
+			}
+			v, o, err := d.asInt(o, valueKind)
+			if err != nil {
+				return 0, false, err
+			}
+			m[k] = int(v)
+			offset = o
+		}
+		rv.Set(reflect.ValueOf(m))
+		return offset, true, nil
+	}
+
+	return offset, false, nil
 }
 
 func (d *deserializer) asFixedSlice(rv reflect.Value, offset int, l int) (int, bool, error) {
