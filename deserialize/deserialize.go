@@ -114,13 +114,13 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 		}
 
 		// get slice length
-		l, offset, err := d.sliceLength(offset, k)
+		l, o, err := d.sliceLength(offset, k)
 		if err != nil {
 			return 0, err
 		}
 
 		// check fixed type
-		fixedOffset, found, err := d.asFixedSlice(rv, offset, l)
+		fixedOffset, found, err := d.asFixedSlice(rv, o, l)
 		if err != nil {
 			return 0, err
 		}
@@ -133,7 +133,7 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 		tmpSlice := reflect.MakeSlice(rv.Type(), l, l)
 		for i := 0; i < l; i++ {
 			v := reflect.New(e).Elem()
-			offset, err = d.deserialize(v, offset)
+			o, err = d.deserialize(v, o)
 			if err != nil {
 				return 0, err
 			}
@@ -141,6 +141,7 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 			tmpSlice.Index(i).Set(v)
 		}
 		rv.Set(tmpSlice)
+		offset = o
 
 	case reflect.Array:
 		// nil
@@ -175,7 +176,7 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 		}
 
 		// get slice length
-		l, offset, err := d.sliceLength(offset, k)
+		l, o, err := d.sliceLength(offset, k)
 		if err != nil {
 			return 0, err
 		}
@@ -186,11 +187,12 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 
 		// create array dynamically
 		for i := 0; i < l; i++ {
-			offset, err = d.deserialize(rv.Index(i), offset)
+			o, err = d.deserialize(rv.Index(i), o)
 			if err != nil {
 				return 0, err
 			}
 		}
+		offset = o
 
 	case reflect.Map:
 		// nil
@@ -200,13 +202,13 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 		}
 
 		// get map length
-		l, offset, err := d.mapLength(offset, k)
+		l, o, err := d.mapLength(offset, k)
 		if err != nil {
 			return 0, err
 		}
 
 		// check fixed type
-		fixedOffset, found, err := d.asFixedMap(rv, offset, l)
+		fixedOffset, found, err := d.asFixedMap(rv, o, l)
 		if err != nil {
 			return 0, err
 		}
@@ -223,7 +225,7 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 		for i := 0; i < l; i++ {
 			k := reflect.New(key).Elem()
 			v := reflect.New(value).Elem()
-			o, err := d.deserialize(k, offset)
+			o, err = d.deserialize(k, o)
 			if err != nil {
 				return 0, err
 			}
@@ -233,8 +235,8 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 			}
 
 			rv.SetMapIndex(k, v)
-			offset = o
 		}
+		offset = o
 
 	case reflect.Struct:
 		if d.asArray {
@@ -242,17 +244,21 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 			if err != nil {
 				return 0, err
 			}
-			// create reference
-			refs := []reflect.Value{}
-			for i := 0; i < rv.NumField(); i++ {
-				if ok, _ := d.checkField(rv.Type().Field(i)); ok {
-					refs = append(refs, rv.Field(i))
+			// find or create reference
+			cm, findCache := cachemap2[rv.Type()]
+			if !findCache {
+				cm = &structCache2{}
+				for i := 0; i < rv.NumField(); i++ {
+					if ok, _ := d.checkField(rv.Type().Field(i)); ok {
+						cm.m = append(cm.m, i)
+					}
 				}
+				cachemap2[rv.Type()] = cm
 			}
 			// set value
 			for i := 0; i < l; i++ {
-				if i < len(refs) {
-					o, err = d.deserialize(refs[i], o)
+				if i < len(cm.m) {
+					o, err = d.deserialize(rv.Field(cm.m[i]), o)
 					if err != nil {
 						return 0, err
 					}
@@ -267,12 +273,16 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 			if err != nil {
 				return 0, err
 			}
-			// create reference
-			m := map[string]reflect.Value{}
-			for i := 0; i < rv.NumField(); i++ {
-				if ok, name := d.checkField(rv.Type().Field(i)); ok {
-					m[name] = rv.Field(i)
+			// find or create reference
+			cm, cacheFind := cachemap[rv.Type()]
+			if !cacheFind {
+				cm = &structCache{m: map[string]int{}}
+				for i := 0; i < rv.NumField(); i++ {
+					if ok, name := d.checkField(rv.Type().Field(i)); ok {
+						cm.m[name] = i
+					}
 				}
+				cachemap[rv.Type()] = cm
 			}
 			// set value if string correct
 			for i := 0; i < l; i++ {
@@ -280,8 +290,8 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 				if err != nil {
 					return 0, err
 				}
-				if _, ok := m[key]; ok {
-					o2, err = d.deserialize(m[key], o2)
+				if _, ok := cm.m[key]; ok {
+					o2, err = d.deserialize(rv.Field(cm.m[key]), o2)
 					if err != nil {
 						return 0, err
 					}
@@ -293,8 +303,6 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 			offset = o
 		}
 		// todo : date and ext
-		//todo : as array
-		// todo : cache
 
 	case reflect.Ptr:
 
@@ -306,6 +314,17 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 	}
 	return offset, nil
 }
+
+type structCache struct {
+	m map[string]int
+}
+
+type structCache2 struct {
+	m []int
+}
+
+var cachemap = map[reflect.Type]*structCache{}
+var cachemap2 = map[reflect.Type]*structCache2{}
 
 // todo : change method name
 func (d *deserializer) jumpByte(offset int) int {

@@ -203,9 +203,9 @@ func (d *deserializer) asBool(offset int, k reflect.Kind) (bool, int, error) {
 	offset++
 
 	if code == def.True {
-		return true, 0, nil
+		return true, offset, nil
 	} else if code == def.False {
-		return false, 0, nil
+		return false, offset, nil
 	}
 	return false, 0, d.errorTemplate(code, k)
 }
