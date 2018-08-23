@@ -1,6 +1,7 @@
 package deserialize
 
 import (
+	"encoding/binary"
 	"fmt"
 	"reflect"
 
@@ -25,7 +26,13 @@ func Exec(data []byte, holder interface{}, asArray bool) error {
 		rv = rv.Elem()
 	}
 
-	_, err := d.deserialize(rv, 0)
+	last, err := d.deserialize(rv, 0)
+	if err != nil {
+		return err
+	}
+	if len(data) != last {
+		return fmt.Errorf("failed deserialization size=%d, last=%d", len(data), last)
+	}
 	return err
 }
 
@@ -230,32 +237,63 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 		}
 
 	case reflect.Struct:
-		l, offset, err := d.mapLength(offset, k)
-		if err != nil {
-			return 0, err
-		}
-		// create map
-		m := map[string]reflect.Value{}
-		for i := 0; i < rv.NumField(); i++ {
-			if ok, name := d.checkField(rv.Type().Field(i)); ok {
-				m[name] = rv.Field(i)
-			}
-		}
-		// set value if string correct
-		for i := 0; i < l; i++ {
-			key, o, err := d.asString(offset, k)
+		if d.asArray {
+			l, o, err := d.sliceLength(offset, k)
 			if err != nil {
 				return 0, err
 			}
-			if _, ok := m[key]; ok {
-				offset, err = d.deserialize(m[key], o)
-			} else {
-				// todo : jump bytes
-				offset = d.jumpByte(o)
+			// create reference
+			refs := []reflect.Value{}
+			for i := 0; i < rv.NumField(); i++ {
+				if ok, _ := d.checkField(rv.Type().Field(i)); ok {
+					refs = append(refs, rv.Field(i))
+				}
 			}
+			// set value
+			for i := 0; i < l; i++ {
+				if i < len(refs) {
+					o, err = d.deserialize(refs[i], o)
+					if err != nil {
+						return 0, err
+					}
+				} else {
+					o = d.jumpByte(o)
+				}
+			}
+			offset = o
+
+		} else {
+			l, o, err := d.mapLength(offset, k)
+			if err != nil {
+				return 0, err
+			}
+			// create reference
+			m := map[string]reflect.Value{}
+			for i := 0; i < rv.NumField(); i++ {
+				if ok, name := d.checkField(rv.Type().Field(i)); ok {
+					m[name] = rv.Field(i)
+				}
+			}
+			// set value if string correct
+			for i := 0; i < l; i++ {
+				key, o2, err := d.asString(o, k)
+				if err != nil {
+					return 0, err
+				}
+				if _, ok := m[key]; ok {
+					o2, err = d.deserialize(m[key], o2)
+					if err != nil {
+						return 0, err
+					}
+				} else {
+					o2 = d.jumpByte(o2)
+				}
+				o = o2
+			}
+			offset = o
 		}
 		// todo : date and ext
-		//todo : array
+		//todo : as array
 		// todo : cache
 
 	case reflect.Ptr:
@@ -269,12 +307,92 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 	return offset, nil
 }
 
+// todo : change method name
 func (d *deserializer) jumpByte(offset int) int {
 	code, offset := d.readSize1(offset)
 	switch {
+	case code == def.True, code == def.False, code == def.Nil:
+		// do nothing
+
 	case d.isPositiveFixNum(code) || d.isNegativeFixNum(code):
-	case code == def.Uint8 || code == def.Int8:
+		// do nothing
+	case code == def.Uint8, code == def.Int8:
 		offset += def.Byte1
+	case code == def.Uint16, code == def.Int16:
+		offset += def.Byte2
+	case code == def.Uint32, code == def.Int32, code == def.Float32:
+		offset += def.Byte4
+	case code == def.Uint64, code == def.Int64, code == def.Float64:
+		offset += def.Byte8
+
+	case d.isFixString(code):
+		offset += int(code - def.FixStr)
+	case code == def.Str8, code == def.Bin8:
+		b, offset := d.readSize1(offset)
+		offset += int(b)
+	case code == def.Str16, code == def.Bin16:
+		bs, offset := d.readSize2(offset)
+		offset += int(binary.BigEndian.Uint16(bs))
+	case code == def.Str32, code == def.Bin32:
+		bs, offset := d.readSize4(offset)
+		offset += int(binary.BigEndian.Uint32(bs))
+
+	case d.isFixSlice(code):
+		l := int(code - def.FixStr)
+		for i := 0; i < l; i++ {
+			offset += d.jumpByte(offset)
+		}
+	case code == def.Array16:
+		bs, offset := d.readSize2(offset)
+		l := int(binary.BigEndian.Uint16(bs))
+		for i := 0; i < l; i++ {
+			offset += d.jumpByte(offset)
+		}
+	case code == def.Array32:
+		bs, offset := d.readSize4(offset)
+		l := int(binary.BigEndian.Uint32(bs))
+		for i := 0; i < l; i++ {
+			offset += d.jumpByte(offset)
+		}
+
+	case d.isFixMap(code):
+		l := int(code - def.FixMap)
+		for i := 0; i < l*2; i++ {
+			offset += d.jumpByte(offset)
+		}
+	case code == def.Map16:
+		bs, offset := d.readSize2(offset)
+		l := int(binary.BigEndian.Uint16(bs))
+		for i := 0; i < l*2; i++ {
+			offset += d.jumpByte(offset)
+		}
+	case code == def.Map32:
+		bs, offset := d.readSize4(offset)
+		l := int(binary.BigEndian.Uint32(bs))
+		for i := 0; i < l*2; i++ {
+			offset += d.jumpByte(offset)
+		}
+
+	case code == def.Fixext1:
+		offset += def.Byte1 + def.Byte1
+	case code == def.Fixext2:
+		offset += def.Byte1 + def.Byte2
+	case code == def.Fixext4:
+		offset += def.Byte1 + def.Byte4
+	case code == def.Fixext8:
+		offset += def.Byte1 + def.Byte8
+	case code == def.Fixext16:
+		offset += def.Byte1 + def.Byte16
+
+	case code == def.Ext8:
+		b, offset := d.readSize1(offset)
+		offset += def.Byte1 + int(b)
+	case code == def.Ext16:
+		bs, offset := d.readSize2(offset)
+		offset += def.Byte1 + int(binary.BigEndian.Uint16(bs))
+	case code == def.Ext32:
+		bs, offset := d.readSize4(offset)
+		offset += def.Byte1 + int(binary.BigEndian.Uint32(bs))
 
 	}
 	return offset
