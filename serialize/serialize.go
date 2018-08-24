@@ -224,7 +224,7 @@ func (s *serializer) calcSize(rv reflect.Value) (int, error) {
 		if err != nil {
 			return 0, err
 		}
-		ret += size
+		ret = size
 
 	case reflect.Interface:
 		size, err := s.calcSize(rv.Elem())
