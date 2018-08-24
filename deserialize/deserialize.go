@@ -330,6 +330,7 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 		offset = o
 
 	case reflect.Interface:
+		fmt.Println(rv.CanSet())
 		// all type...
 
 	default:
