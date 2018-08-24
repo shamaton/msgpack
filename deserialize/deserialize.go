@@ -23,9 +23,6 @@ func Exec(data []byte, holder interface{}, asArray bool) error {
 	}
 
 	rv = rv.Elem()
-	if rv.Kind() == reflect.Ptr {
-		rv = rv.Elem()
-	}
 
 	last, err := d.deserialize(rv, 0)
 	if err != nil {
@@ -315,12 +312,17 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 		}
 
 	case reflect.Ptr:
-		fmt.Println("nnnnnnnnill")
 		// nil
 		if d.isCodeNil(d.data[offset]) {
 			offset++
 			return offset, nil
 		}
+
+		if rv.Elem().Kind() == reflect.Invalid {
+			n := reflect.New(rv.Type().Elem())
+			rv.Set(n)
+		}
+
 		o, err := d.deserialize(rv.Elem(), offset)
 		if err != nil {
 			return 0, err
