@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/shamaton/msgpack/def"
 )
@@ -239,6 +240,16 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 		offset = o
 
 	case reflect.Struct:
+		// todo : ext
+		if d.isDateTime(offset) {
+			dt, offset, err := d.asDateTime(offset, k)
+			if err != nil {
+				return 0, err
+			}
+			rv.Set(reflect.ValueOf(dt))
+			return offset, nil
+		}
+
 		if d.asArray {
 			l, o, err := d.sliceLength(offset, k)
 			if err != nil {
@@ -302,9 +313,19 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 			}
 			offset = o
 		}
-		// todo : date and ext
 
 	case reflect.Ptr:
+		fmt.Println("nnnnnnnnill")
+		// nil
+		if d.isCodeNil(d.data[offset]) {
+			offset++
+			return offset, nil
+		}
+		o, err := d.deserialize(rv.Elem(), offset)
+		if err != nil {
+			return 0, err
+		}
+		offset = o
 
 	case reflect.Interface:
 		// all type...
@@ -542,6 +563,36 @@ func (d *deserializer) isDateTime(offset int) bool {
 		return l == 12 && int8(t) == def.TimeStamp
 	}
 	return false
+}
+
+func (d *deserializer) asDateTime(offset int, k reflect.Kind) (time.Time, int, error) {
+	code, offset := d.readSize1(offset)
+
+	// TODO : In timestamp 64 and timestamp 96 formats, nanoseconds must not be larger than 999999999.
+
+	switch code {
+	case def.Fixext4:
+		_, offset = d.readSize1(offset)
+		bs, offset := d.readSize4(offset)
+		return time.Unix(int64(binary.BigEndian.Uint32(bs)), 0), offset, nil
+
+	case def.Fixext8:
+		_, offset = d.readSize1(offset)
+		bs, offset := d.readSize8(offset)
+		data64 := binary.BigEndian.Uint64(bs)
+		return time.Unix(int64(data64&0x00000003ffffffff), int64(data64>>34)), offset, nil
+
+	case def.Ext8:
+		_, offset = d.readSize1(offset)
+		_, offset = d.readSize1(offset)
+		nanobs, offset := d.readSize4(offset)
+		secbs, offset := d.readSize8(offset)
+		nano := binary.BigEndian.Uint32(nanobs)
+		sec := binary.BigEndian.Uint64(secbs)
+		return time.Unix(int64(sec), int64(nano)), offset, nil
+	}
+
+	return time.Now(), 0, d.errorTemplate(code, k)
 }
 
 func (d *deserializer) errorTemplate(code byte, k reflect.Kind) error {
