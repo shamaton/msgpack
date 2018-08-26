@@ -330,8 +330,14 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 		offset = o
 
 	case reflect.Interface:
-		fmt.Println(rv.CanSet())
-		// all type...
+		v, o, err := d.asInterface(offset, k)
+		if err != nil {
+			return 0, err
+		}
+		if v != nil {
+			rv.Set(reflect.ValueOf(v))
+		}
+		offset = o
 
 	default:
 		return 0, d.errorTemplate(d.data[offset], k)
