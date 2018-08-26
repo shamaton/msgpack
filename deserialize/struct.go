@@ -15,6 +15,7 @@ type structCache2 struct {
 	m []int
 }
 
+// todo : rename
 var cachemap = map[reflect.Type]*structCache{}
 var cachemap2 = map[reflect.Type]*structCache2{}
 
