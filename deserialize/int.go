@@ -7,6 +7,20 @@ import (
 	"github.com/shamaton/msgpack/def"
 )
 
+func (d *deserializer) isPositiveFixNum(v byte) bool {
+	if def.PositiveFixIntMin <= v && v <= def.PositiveFixIntMax {
+		return true
+	}
+	return false
+}
+
+func (d *deserializer) isNegativeFixNum(v byte) bool {
+	if def.NegativeFixintMin <= int8(v) && int8(v) <= def.NegativeFixintMax {
+		return true
+	}
+	return false
+}
+
 func (d *deserializer) asInt(offset int, k reflect.Kind) (int64, int, error) {
 
 	code := d.data[offset]

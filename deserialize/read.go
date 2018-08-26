@@ -24,7 +24,6 @@ func (d *deserializer) readSize8(index int) ([]byte, int) {
 	return d.data[index : index+rb], index + rb
 }
 
-// TODO uint
 func (d *deserializer) readSizeN(index, n int) ([]byte, int) {
 	return d.data[index : index+n], index + n
 }
