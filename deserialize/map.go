@@ -26,3 +26,30 @@ func (d *deserializer) mapLength(offset int, k reflect.Kind) (int, int, error) {
 	}
 	return 0, 0, d.errorTemplate(code, k)
 }
+
+func (d *deserializer) asFixedMap(rv reflect.Value, offset int, l int) (int, bool, error) {
+	t := rv.Type()
+
+	keyKind := rv.Type().Key().Kind()
+	valueKind := rv.Type().Elem().Kind()
+	switch t {
+	case typeMapStringInt:
+		m := make(map[string]int, l)
+		for i := 0; i < l; i++ {
+			k, o, err := d.asString(offset, keyKind)
+			if err != nil {
+				return 0, false, err
+			}
+			v, o, err := d.asInt(o, valueKind)
+			if err != nil {
+				return 0, false, err
+			}
+			m[k] = int(v)
+			offset = o
+		}
+		rv.Set(reflect.ValueOf(m))
+		return offset, true, nil
+	}
+
+	return offset, false, nil
+}

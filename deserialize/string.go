@@ -19,6 +19,10 @@ func (d *deserializer) isCodeString(code byte) bool {
 	return false
 }
 
+func (d *deserializer) isFixString(v byte) bool {
+	return def.FixStr <= v && v <= def.FixStr+0x1f
+}
+
 func (d *deserializer) stringByteLength(offset int, k reflect.Kind) (int, int, error) {
 	code := d.data[offset]
 	offset++

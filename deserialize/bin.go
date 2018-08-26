@@ -7,6 +7,14 @@ import (
 	"github.com/shamaton/msgpack/def"
 )
 
+func (d *deserializer) isCodeBin(v byte) bool {
+	switch v {
+	case def.Bin8, def.Bin16, def.Bin32:
+		return true
+	}
+	return false
+}
+
 func (d *deserializer) asBin(offset int, k reflect.Kind) ([]byte, int, error) {
 	code, offset := d.readSize1(offset)
 
