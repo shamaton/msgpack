@@ -10,21 +10,22 @@ import (
 	"github.com/shamaton/msgpack/ext"
 )
 
-type timeSerializer struct {
-	ext.Common
+var zero = time.Unix(0, 0)
+
+type timeEncoder struct {
+	ext.EncoderCommon
 }
 
-// todo : typo
-func GetExtSerilizer() ext.ExtSeri {
-	return new(timeSerializer)
+func GetCoder() (ext.Encoder, ext.Decoder) {
+	return new(timeEncoder), new(timeDecoder)
 }
 
-func (s *timeSerializer) IsType(value reflect.Value) bool {
+func (s *timeEncoder) IsType(value reflect.Value) bool {
 	_, ok := value.Interface().(time.Time)
 	return ok
 }
 
-func (s *timeSerializer) CalcByteSize(value reflect.Value) (int, error) {
+func (s *timeEncoder) CalcByteSize(value reflect.Value) (int, error) {
 	t := value.Interface().(time.Time)
 	secs := uint64(t.Unix())
 	if secs>>34 == 0 {
@@ -38,7 +39,7 @@ func (s *timeSerializer) CalcByteSize(value reflect.Value) (int, error) {
 	return def.Byte1 + def.Byte1 + def.Byte4 + def.Byte8, nil
 }
 
-func (s *timeSerializer) WriteToBytes(value reflect.Value, offset int, bytes *[]byte) int {
+func (s *timeEncoder) WriteToBytes(value reflect.Value, offset int, bytes *[]byte) int {
 	t := value.Interface().(time.Time)
 
 	secs := uint64(t.Unix())
@@ -65,16 +66,11 @@ func (s *timeSerializer) WriteToBytes(value reflect.Value, offset int, bytes *[]
 	return offset
 }
 
-type timeDeserializer struct {
-	ext.CommonDeseri
+type timeDecoder struct {
+	ext.DecoderCommon
 }
 
-// todo : typo
-func GetExtDeserilizer() ext.ExtDeseri {
-	return new(timeDeserializer)
-}
-
-func (td *timeDeserializer) IsType(offset int, d *[]byte) bool {
+func (td *timeDecoder) IsType(offset int, d *[]byte) bool {
 	code, offset := td.ReadSize1(offset, d)
 
 	if code == def.Fixext4 {
@@ -91,7 +87,7 @@ func (td *timeDeserializer) IsType(offset int, d *[]byte) bool {
 	return false
 }
 
-func (td *timeDeserializer) AsValue(offset int, k reflect.Kind, d *[]byte) (interface{}, int, error) {
+func (td *timeDecoder) AsValue(offset int, k reflect.Kind, d *[]byte) (interface{}, int, error) {
 	code, offset := td.ReadSize1(offset, d)
 
 	// TODO : In timestamp 64 and timestamp 96 formats, nanoseconds must not be larger than 999999999.
@@ -118,6 +114,5 @@ func (td *timeDeserializer) AsValue(offset int, k reflect.Kind, d *[]byte) (inte
 		return time.Unix(int64(sec), int64(nano)), offset, nil
 	}
 
-	// todo : const now
-	return time.Now(), 0, fmt.Errorf("should not reach this line!! code %x decoding %v", code, k)
+	return zero, 0, fmt.Errorf("should not reach this line!! code %x decoding %v", code, k)
 }
