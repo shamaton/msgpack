@@ -244,65 +244,15 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 		}
 
 		if d.asArray {
-			l, o, err := d.sliceLength(offset, k)
+			o, err := d.setStructFromArray(rv, offset, k)
 			if err != nil {
 				return 0, err
-			}
-			// find or create reference
-			cm, findCache := cachemap2[rv.Type()]
-			if !findCache {
-				cm = &structCache2{}
-				for i := 0; i < rv.NumField(); i++ {
-					if ok, _ := d.checkField(rv.Type().Field(i)); ok {
-						cm.m = append(cm.m, i)
-					}
-				}
-				cachemap2[rv.Type()] = cm
-			}
-			// set value
-			for i := 0; i < l; i++ {
-				if i < len(cm.m) {
-					o, err = d.deserialize(rv.Field(cm.m[i]), o)
-					if err != nil {
-						return 0, err
-					}
-				} else {
-					o = d.jumpByte(o)
-				}
 			}
 			offset = o
-
 		} else {
-			l, o, err := d.mapLength(offset, k)
+			o, err := d.setStructFromMap(rv, offset, k)
 			if err != nil {
 				return 0, err
-			}
-			// find or create reference
-			cm, cacheFind := cachemap[rv.Type()]
-			if !cacheFind {
-				cm = &structCache{m: map[string]int{}}
-				for i := 0; i < rv.NumField(); i++ {
-					if ok, name := d.checkField(rv.Type().Field(i)); ok {
-						cm.m[name] = i
-					}
-				}
-				cachemap[rv.Type()] = cm
-			}
-			// set value if string correct
-			for i := 0; i < l; i++ {
-				key, o2, err := d.asString(o, k)
-				if err != nil {
-					return 0, err
-				}
-				if _, ok := cm.m[key]; ok {
-					o2, err = d.deserialize(rv.Field(cm.m[key]), o2)
-					if err != nil {
-						return 0, err
-					}
-				} else {
-					o2 = d.jumpByte(o2)
-				}
-				o = o2
 			}
 			offset = o
 		}

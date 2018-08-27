@@ -7,20 +7,88 @@ import (
 	"github.com/shamaton/msgpack/def"
 )
 
-type structCache struct {
+type structCacheTypeMap struct {
 	m map[string]int
 }
 
-type structCache2 struct {
+type structCacheTypeArray struct {
 	m []int
 }
 
-// todo : rename
-var cachemap = map[reflect.Type]*structCache{}
-var cachemap2 = map[reflect.Type]*structCache2{}
+// struct cache map
+var mapSCTM = map[reflect.Type]*structCacheTypeMap{}
+var mapSCTA = map[reflect.Type]*structCacheTypeArray{}
 
-// todo : change method name
-func (d *deserializer) jumpByte(offset int) int {
+func (d *deserializer) setStructFromArray(rv reflect.Value, offset int, k reflect.Kind) (int, error) {
+	// get length
+	l, o, err := d.sliceLength(offset, k)
+	if err != nil {
+		return 0, err
+	}
+
+	// find or create reference
+	scta, findCache := mapSCTA[rv.Type()]
+	if !findCache {
+		scta = &structCacheTypeArray{}
+		for i := 0; i < rv.NumField(); i++ {
+			if ok, _ := d.checkField(rv.Type().Field(i)); ok {
+				scta.m = append(scta.m, i)
+			}
+		}
+		mapSCTA[rv.Type()] = scta
+	}
+	// set value
+	for i := 0; i < l; i++ {
+		if i < len(scta.m) {
+			o, err = d.deserialize(rv.Field(scta.m[i]), o)
+			if err != nil {
+				return 0, err
+			}
+		} else {
+			o = d.jumpOffset(o)
+		}
+	}
+	return o, nil
+}
+
+func (d *deserializer) setStructFromMap(rv reflect.Value, offset int, k reflect.Kind) (int, error) {
+	// get length
+	l, o, err := d.mapLength(offset, k)
+	if err != nil {
+		return 0, err
+	}
+
+	// find or create reference
+	sctm, cacheFind := mapSCTM[rv.Type()]
+	if !cacheFind {
+		sctm = &structCacheTypeMap{m: map[string]int{}}
+		for i := 0; i < rv.NumField(); i++ {
+			if ok, name := d.checkField(rv.Type().Field(i)); ok {
+				sctm.m[name] = i
+			}
+		}
+		mapSCTM[rv.Type()] = sctm
+	}
+	// set value if string correct
+	for i := 0; i < l; i++ {
+		key, o2, err := d.asString(o, k)
+		if err != nil {
+			return 0, err
+		}
+		if _, ok := sctm.m[key]; ok {
+			o2, err = d.deserialize(rv.Field(sctm.m[key]), o2)
+			if err != nil {
+				return 0, err
+			}
+		} else {
+			o2 = d.jumpOffset(o2)
+		}
+		o = o2
+	}
+	return o, nil
+}
+
+func (d *deserializer) jumpOffset(offset int) int {
 	code, offset := d.readSize1(offset)
 	switch {
 	case code == def.True, code == def.False, code == def.Nil:
@@ -52,37 +120,37 @@ func (d *deserializer) jumpByte(offset int) int {
 	case d.isFixSlice(code):
 		l := int(code - def.FixStr)
 		for i := 0; i < l; i++ {
-			offset += d.jumpByte(offset)
+			offset += d.jumpOffset(offset)
 		}
 	case code == def.Array16:
 		bs, offset := d.readSize2(offset)
 		l := int(binary.BigEndian.Uint16(bs))
 		for i := 0; i < l; i++ {
-			offset += d.jumpByte(offset)
+			offset += d.jumpOffset(offset)
 		}
 	case code == def.Array32:
 		bs, offset := d.readSize4(offset)
 		l := int(binary.BigEndian.Uint32(bs))
 		for i := 0; i < l; i++ {
-			offset += d.jumpByte(offset)
+			offset += d.jumpOffset(offset)
 		}
 
 	case d.isFixMap(code):
 		l := int(code - def.FixMap)
 		for i := 0; i < l*2; i++ {
-			offset += d.jumpByte(offset)
+			offset += d.jumpOffset(offset)
 		}
 	case code == def.Map16:
 		bs, offset := d.readSize2(offset)
 		l := int(binary.BigEndian.Uint16(bs))
 		for i := 0; i < l*2; i++ {
-			offset += d.jumpByte(offset)
+			offset += d.jumpOffset(offset)
 		}
 	case code == def.Map32:
 		bs, offset := d.readSize4(offset)
 		l := int(binary.BigEndian.Uint32(bs))
 		for i := 0; i < l*2; i++ {
-			offset += d.jumpByte(offset)
+			offset += d.jumpOffset(offset)
 		}
 
 	case code == def.Fixext1:

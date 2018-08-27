@@ -4,16 +4,14 @@ import (
 	"github.com/shamaton/msgpack/deserialize"
 )
 
-var defaultDeserializer = DeserializeAsMap
-
 func Deserialize(data []byte, v interface{}) error {
-	return defaultDeserializer(data, v)
+	return deserialize.Exec(data, v, asArray)
 }
 
-func DeserializeAsArray(data []byte, v interface{}) error {
+func DeserializeStructAsArray(data []byte, v interface{}) error {
 	return deserialize.Exec(data, v, true)
 }
 
-func DeserializeAsMap(data []byte, v interface{}) error {
+func DeserializeStructAsMap(data []byte, v interface{}) error {
 	return deserialize.Exec(data, v, false)
 }
