@@ -1,11 +1,11 @@
 package msgpack
 
+var asArray = false
+
 func SetDefaultToArray() {
-	defaultSerializer = SerializeAsArray
-	defaultDeserializer = DeserializeAsArray
+	asArray = true
 }
 
 func SetDefaultToMap() {
-	defaultSerializer = SerializeAsMap
-	defaultDeserializer = DeserializeAsMap
+	asArray = false
 }

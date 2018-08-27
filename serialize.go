@@ -4,16 +4,14 @@ import (
 	"github.com/shamaton/msgpack/serialize"
 )
 
-var defaultSerializer = SerializeAsMap
-
 func Serialize(v interface{}) ([]byte, error) {
-	return defaultSerializer(v)
+	return serialize.Exec(v, asArray)
 }
 
-func SerializeAsArray(v interface{}) ([]byte, error) {
+func SerializeStructAsArray(v interface{}) ([]byte, error) {
 	return serialize.Exec(v, true)
 }
 
-func SerializeAsMap(v interface{}) ([]byte, error) {
+func SerializeStructAsMap(v interface{}) ([]byte, error) {
 	return serialize.Exec(v, false)
 }
