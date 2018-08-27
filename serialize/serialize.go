@@ -198,10 +198,23 @@ func (s *serializer) calcSize(rv reflect.Value) (int, error) {
 		}
 
 	case reflect.Struct:
-		if isTime, tm := s.isDateTime(rv); isTime {
-			size := s.calcTime(tm)
-			ret += size
-			return ret, nil
+		/*
+			if isTime, tm := s.isDateTime(rv); isTime {
+				size := s.calcTime(tm)
+				ret += size
+				return ret, nil
+			}
+		*/
+
+		for i := range extFuncs {
+			if extFuncs[i].IsType(rv) {
+				size, err := extFuncs[i].CalcByteSize(rv)
+				if err != nil {
+					return 0, err
+				}
+				ret += size
+				return ret, nil
+			}
 		}
 
 		var size int
@@ -329,9 +342,18 @@ func (s *serializer) create(rv reflect.Value, offset int) int {
 		}
 
 	case reflect.Struct:
-		if isTime, tm := s.isDateTime(rv); isTime {
-			return s.writeTime(tm, offset)
+		/*
+			if isTime, tm := s.isDateTime(rv); isTime {
+				return s.writeTime(tm, offset)
+			}
+		*/
+
+		for i := range extFuncs {
+			if extFuncs[i].IsType(rv) {
+				return extFuncs[i].WriteToBytes(rv, offset, &s.d)
+			}
 		}
+
 		if s.asArray {
 			offset = s.writeStructArray(rv, offset)
 		} else {

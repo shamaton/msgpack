@@ -234,13 +234,25 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 
 	case reflect.Struct:
 		// todo : ext
-		if d.isDateTime(offset) {
-			dt, offset, err := d.asDateTime(offset, k)
-			if err != nil {
-				return 0, err
+		/*
+			if d.isDateTime(offset) {
+				dt, offset, err := d.asDateTime(offset, k)
+				if err != nil {
+					return 0, err
+				}
+				rv.Set(reflect.ValueOf(dt))
+				return offset, nil
 			}
-			rv.Set(reflect.ValueOf(dt))
-			return offset, nil
+		*/
+		for i := range extFuncs {
+			if extFuncs[i].IsType(offset, &d.data) {
+				v, offset, err := extFuncs[i].AsValue(offset, k, &d.data)
+				if err != nil {
+					return 0, err
+				}
+				rv.Set(reflect.ValueOf(v))
+				return offset, nil
+			}
 		}
 
 		if d.asArray {

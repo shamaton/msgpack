@@ -5,7 +5,38 @@ import (
 	"time"
 
 	"github.com/shamaton/msgpack/def"
+	"github.com/shamaton/msgpack/ext"
 )
+
+var extFuncMaps = map[reflect.Type]ext.ExtSeri{}
+var extFuncs = []ext.ExtSeri{}
+
+func createCacheFuncs() {
+	extFuncs = make([]ext.ExtSeri, len(extFuncMaps))
+	i := 0
+	for k := range extFuncMaps {
+		extFuncs[i] = extFuncMaps[k]
+		i++
+	}
+}
+
+func SetExtFunc(f ext.ExtSeri) {
+	t := reflect.TypeOf(f)
+	_, ok := extFuncMaps[t]
+	if !ok {
+		extFuncMaps[t] = f
+		createCacheFuncs()
+	}
+}
+
+func UnsetExtFunc(f ext.ExtSeri) {
+	t := reflect.TypeOf(f)
+	_, ok := extFuncMaps[t]
+	if ok {
+		delete(extFuncMaps, t)
+		createCacheFuncs()
+	}
+}
 
 func (s *serializer) isDateTime(value reflect.Value) (bool, time.Time) {
 	i := value.Interface()
