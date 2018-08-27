@@ -6,7 +6,38 @@ import (
 	"time"
 
 	"github.com/shamaton/msgpack/def"
+	"github.com/shamaton/msgpack/ext"
 )
+
+var extFuncMaps = map[reflect.Type]ext.ExtDeseri{}
+var extFuncs = []ext.ExtDeseri{}
+
+func createCacheFuncs() {
+	extFuncs = make([]ext.ExtDeseri, len(extFuncMaps))
+	i := 0
+	for k := range extFuncMaps {
+		extFuncs[i] = extFuncMaps[k]
+		i++
+	}
+}
+
+func SetExtFunc(f ext.ExtDeseri) {
+	t := reflect.TypeOf(f)
+	_, ok := extFuncMaps[t]
+	if !ok {
+		extFuncMaps[t] = f
+		createCacheFuncs()
+	}
+}
+
+func UnsetExtFunc(f ext.ExtDeseri) {
+	t := reflect.TypeOf(f)
+	_, ok := extFuncMaps[t]
+	if ok {
+		delete(extFuncMaps, t)
+		createCacheFuncs()
+	}
+}
 
 func (d *deserializer) isDateTime(offset int) bool {
 	code, offset := d.readSize1(offset)
