@@ -9,11 +9,11 @@ import (
 	"github.com/shamaton/msgpack/ext"
 )
 
-var extFuncMaps = map[reflect.Type]ext.ExtDeseri{}
-var extFuncs = []ext.ExtDeseri{}
+var extFuncMaps = map[reflect.Type]ext.Decoder{}
+var extFuncs = []ext.Decoder{}
 
 func createCacheFuncs() {
-	extFuncs = make([]ext.ExtDeseri, len(extFuncMaps))
+	extFuncs = make([]ext.Decoder, len(extFuncMaps))
 	i := 0
 	for k := range extFuncMaps {
 		extFuncs[i] = extFuncMaps[k]
@@ -21,7 +21,7 @@ func createCacheFuncs() {
 	}
 }
 
-func SetExtFunc(f ext.ExtDeseri) {
+func SetExtFunc(f ext.Decoder) {
 	t := reflect.TypeOf(f)
 	_, ok := extFuncMaps[t]
 	if !ok {
@@ -30,7 +30,7 @@ func SetExtFunc(f ext.ExtDeseri) {
 	}
 }
 
-func UnsetExtFunc(f ext.ExtDeseri) {
+func UnsetExtFunc(f ext.Decoder) {
 	t := reflect.TypeOf(f)
 	_, ok := extFuncMaps[t]
 	if ok {
