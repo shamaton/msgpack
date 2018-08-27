@@ -118,5 +118,6 @@ func (td *timeDeserializer) AsValue(offset int, k reflect.Kind, d *[]byte) (inte
 		return time.Unix(int64(sec), int64(nano)), offset, nil
 	}
 
+	// todo : const now
 	return time.Now(), 0, fmt.Errorf("should not reach this line!! code %x decoding %v", code, k)
 }
