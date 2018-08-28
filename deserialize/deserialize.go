@@ -233,7 +233,6 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 		offset = o
 
 	case reflect.Struct:
-		// todo : ext
 		/*
 			if d.isDateTime(offset) {
 				dt, offset, err := d.asDateTime(offset, k)
@@ -244,6 +243,7 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 				return offset, nil
 			}
 		*/
+
 		for i := range extFuncs {
 			if extFuncs[i].IsType(offset, &d.data) {
 				v, offset, err := extFuncs[i].AsValue(offset, k, &d.data)

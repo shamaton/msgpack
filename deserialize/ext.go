@@ -1,11 +1,8 @@
 package deserialize
 
 import (
-	"encoding/binary"
 	"reflect"
-	"time"
 
-	"github.com/shamaton/msgpack/def"
 	"github.com/shamaton/msgpack/ext"
 )
 
@@ -39,6 +36,7 @@ func UnsetExtFunc(f ext.Decoder) {
 	}
 }
 
+/*
 func (d *deserializer) isDateTime(offset int) bool {
 	code, offset := d.readSize1(offset)
 
@@ -85,3 +83,4 @@ func (d *deserializer) asDateTime(offset int, k reflect.Kind) (time.Time, int, e
 
 	return time.Now(), 0, d.errorTemplate(code, k)
 }
+*/

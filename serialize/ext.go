@@ -2,9 +2,7 @@ package serialize
 
 import (
 	"reflect"
-	"time"
 
-	"github.com/shamaton/msgpack/def"
 	"github.com/shamaton/msgpack/ext"
 )
 
@@ -38,6 +36,7 @@ func UnsetExtFunc(f ext.Encoder) {
 	}
 }
 
+/*
 func (s *serializer) isDateTime(value reflect.Value) (bool, time.Time) {
 	i := value.Interface()
 	switch t := i.(type) {
@@ -84,3 +83,4 @@ func (s *serializer) writeTime(t time.Time, offset int) int {
 	offset = s.setByte8Uint64(secs, offset)
 	return offset
 }
+*/
