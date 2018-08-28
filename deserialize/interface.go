@@ -138,7 +138,7 @@ func (d *deserializer) asInterface(offset int, k reflect.Kind) (interface{}, int
 		return v, offset, nil
 	}
 
-	// time
+	/* use ext
 	if d.isDateTime(offset) {
 		v, offset, err := d.asDateTime(offset, k)
 		if err != nil {
@@ -146,8 +146,18 @@ func (d *deserializer) asInterface(offset int, k reflect.Kind) (interface{}, int
 		}
 		return v, offset, nil
 	}
+	*/
 
-	// todo : ext
+	// ext
+	for i := range extFuncs {
+		if extFuncs[i].IsType(offset, &d.data) {
+			v, offset, err := extFuncs[i].AsValue(offset, k, &d.data)
+			if err != nil {
+				return nil, 0, err
+			}
+			return v, offset, nil
+		}
+	}
 
 	return nil, 0, d.errorTemplate(code, k)
 }
