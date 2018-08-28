@@ -8,8 +8,6 @@ import (
 	"github.com/shamaton/msgpack/ext"
 )
 
-// todo : default set to ext funcs
-
 var Encoder = new(timeEncoder)
 
 type timeEncoder struct {

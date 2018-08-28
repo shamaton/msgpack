@@ -1,7 +1,7 @@
 package msgpack
 
 import (
-	"github.com/shamaton/msgpack/serialize"
+	"github.com/shamaton/msgpack/internal/serialize"
 )
 
 func Serialize(v interface{}) ([]byte, error) {

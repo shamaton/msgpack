@@ -1,9 +1,9 @@
 package msgpack
 
 import (
-	"github.com/shamaton/msgpack/deserialize"
 	"github.com/shamaton/msgpack/ext"
-	"github.com/shamaton/msgpack/serialize"
+	"github.com/shamaton/msgpack/internal/deserialize"
+	"github.com/shamaton/msgpack/internal/serialize"
 )
 
 var asArray = false

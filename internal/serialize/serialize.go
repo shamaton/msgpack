@@ -5,7 +5,6 @@ import (
 	"math"
 	"reflect"
 	"runtime"
-	"time"
 
 	"github.com/shamaton/msgpack/def"
 )
@@ -14,8 +13,6 @@ type serializer struct {
 	d       []byte
 	asArray bool
 }
-
-var now = time.Now()
 
 func Exec(v interface{}, asArray bool) (b []byte, err error) {
 	s := serializer{asArray: asArray}

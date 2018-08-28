@@ -10,8 +10,6 @@ import (
 	"github.com/shamaton/msgpack/ext"
 )
 
-// todo : default set to ext funcs
-
 var zero = time.Unix(0, 0)
 
 var Decoder = new(timeDecoder)

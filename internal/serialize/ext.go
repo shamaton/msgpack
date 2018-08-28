@@ -10,15 +10,6 @@ import (
 var extFuncMaps = map[reflect.Type]ext.Encoder{reflect.TypeOf(time.Encoder): time.Encoder}
 var extFuncs = []ext.Encoder{time.Encoder}
 
-func createCacheFuncs() {
-	extFuncs = make([]ext.Encoder, len(extFuncMaps))
-	i := 0
-	for k := range extFuncMaps {
-		extFuncs[i] = extFuncMaps[k]
-		i++
-	}
-}
-
 func SetExtFunc(f ext.Encoder) {
 	t := reflect.TypeOf(f)
 	// ignore time
@@ -44,6 +35,15 @@ func UnsetExtFunc(f ext.Encoder) {
 	if ok {
 		delete(extFuncMaps, t)
 		createCacheFuncs()
+	}
+}
+
+func createCacheFuncs() {
+	extFuncs = make([]ext.Encoder, len(extFuncMaps))
+	i := 0
+	for k := range extFuncMaps {
+		extFuncs[i] = extFuncMaps[k]
+		i++
 	}
 }
 
