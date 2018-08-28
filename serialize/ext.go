@@ -4,11 +4,11 @@ import (
 	"reflect"
 
 	"github.com/shamaton/msgpack/ext"
-	"github.com/shamaton/msgpack/exttime"
+	"github.com/shamaton/msgpack/time"
 )
 
-var extFuncMaps = map[reflect.Type]ext.Encoder{reflect.TypeOf(exttime.Encoder): exttime.Encoder}
-var extFuncs = []ext.Encoder{exttime.Encoder}
+var extFuncMaps = map[reflect.Type]ext.Encoder{reflect.TypeOf(time.Encoder): time.Encoder}
+var extFuncs = []ext.Encoder{time.Encoder}
 
 func createCacheFuncs() {
 	extFuncs = make([]ext.Encoder, len(extFuncMaps))
@@ -22,7 +22,7 @@ func createCacheFuncs() {
 func SetExtFunc(f ext.Encoder) {
 	t := reflect.TypeOf(f)
 	// ignore time
-	if t == reflect.TypeOf(exttime.Encoder) {
+	if t == reflect.TypeOf(time.Encoder) {
 		return
 	}
 
@@ -36,7 +36,7 @@ func SetExtFunc(f ext.Encoder) {
 func UnsetExtFunc(f ext.Encoder) {
 	t := reflect.TypeOf(f)
 	// ignore time
-	if t == reflect.TypeOf(exttime.Encoder) {
+	if t == reflect.TypeOf(time.Encoder) {
 		return
 	}
 

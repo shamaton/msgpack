@@ -1,4 +1,4 @@
-package exttime
+package time
 
 import (
 	"reflect"
