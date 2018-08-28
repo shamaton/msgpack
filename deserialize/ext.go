@@ -10,6 +10,9 @@ import (
 var extFuncMaps = map[reflect.Type]ext.Decoder{reflect.TypeOf(exttime.Decoder): exttime.Decoder}
 var extFuncs = []ext.Decoder{exttime.Decoder}
 
+// todo : exttime -> time
+// todo : internal
+
 func createCacheFuncs() {
 	extFuncs = make([]ext.Decoder, len(extFuncMaps))
 	i := 0
