@@ -1,7 +1,7 @@
 package msgpack
 
 import (
-	"github.com/shamaton/msgpack/deserialize"
+	"github.com/shamaton/msgpack/internal/deserialize"
 )
 
 func Deserialize(data []byte, v interface{}) error {
