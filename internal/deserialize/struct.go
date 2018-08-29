@@ -108,50 +108,57 @@ func (d *deserializer) jumpOffset(offset int) int {
 	case d.isFixString(code):
 		offset += int(code - def.FixStr)
 	case code == def.Str8, code == def.Bin8:
-		b, offset := d.readSize1(offset)
-		offset += int(b)
+		b, o := d.readSize1(offset)
+		o += int(b)
+		offset = o
 	case code == def.Str16, code == def.Bin16:
-		bs, offset := d.readSize2(offset)
-		offset += int(binary.BigEndian.Uint16(bs))
+		bs, o := d.readSize2(offset)
+		o += int(binary.BigEndian.Uint16(bs))
+		offset = o
 	case code == def.Str32, code == def.Bin32:
-		bs, offset := d.readSize4(offset)
-		offset += int(binary.BigEndian.Uint32(bs))
+		bs, o := d.readSize4(offset)
+		o += int(binary.BigEndian.Uint32(bs))
+		offset = o
 
 	case d.isFixSlice(code):
-		l := int(code - def.FixStr)
+		l := int(code - def.FixArray)
 		for i := 0; i < l; i++ {
-			offset += d.jumpOffset(offset)
+			offset = d.jumpOffset(offset)
 		}
 	case code == def.Array16:
-		bs, offset := d.readSize2(offset)
+		bs, o := d.readSize2(offset)
 		l := int(binary.BigEndian.Uint16(bs))
 		for i := 0; i < l; i++ {
-			offset += d.jumpOffset(offset)
+			o = d.jumpOffset(o)
 		}
+		offset = o
 	case code == def.Array32:
-		bs, offset := d.readSize4(offset)
+		bs, o := d.readSize4(offset)
 		l := int(binary.BigEndian.Uint32(bs))
 		for i := 0; i < l; i++ {
-			offset += d.jumpOffset(offset)
+			o = d.jumpOffset(o)
 		}
+		offset = o
 
 	case d.isFixMap(code):
 		l := int(code - def.FixMap)
 		for i := 0; i < l*2; i++ {
-			offset += d.jumpOffset(offset)
+			offset = d.jumpOffset(offset)
 		}
 	case code == def.Map16:
-		bs, offset := d.readSize2(offset)
+		bs, o := d.readSize2(offset)
 		l := int(binary.BigEndian.Uint16(bs))
 		for i := 0; i < l*2; i++ {
-			offset += d.jumpOffset(offset)
+			o = d.jumpOffset(o)
 		}
+		offset = o
 	case code == def.Map32:
-		bs, offset := d.readSize4(offset)
+		bs, o := d.readSize4(offset)
 		l := int(binary.BigEndian.Uint32(bs))
 		for i := 0; i < l*2; i++ {
-			offset += d.jumpOffset(offset)
+			o = d.jumpOffset(o)
 		}
+		offset = o
 
 	case code == def.Fixext1:
 		offset += def.Byte1 + def.Byte1
@@ -165,14 +172,17 @@ func (d *deserializer) jumpOffset(offset int) int {
 		offset += def.Byte1 + def.Byte16
 
 	case code == def.Ext8:
-		b, offset := d.readSize1(offset)
-		offset += def.Byte1 + int(b)
+		b, o := d.readSize1(offset)
+		o += def.Byte1 + int(b)
+		offset = o
 	case code == def.Ext16:
-		bs, offset := d.readSize2(offset)
-		offset += def.Byte1 + int(binary.BigEndian.Uint16(bs))
+		bs, o := d.readSize2(offset)
+		o += def.Byte1 + int(binary.BigEndian.Uint16(bs))
+		offset = o
 	case code == def.Ext32:
-		bs, offset := d.readSize4(offset)
-		offset += def.Byte1 + int(binary.BigEndian.Uint32(bs))
+		bs, o := d.readSize4(offset)
+		o += def.Byte1 + int(binary.BigEndian.Uint32(bs))
+		offset = o
 
 	}
 	return offset
