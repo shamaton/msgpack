@@ -31,7 +31,7 @@ func (d *decoder) setStructFromArray(rv reflect.Value, offset int, k reflect.Kin
 	if !findCache {
 		scta = &structCacheTypeArray{}
 		for i := 0; i < rv.NumField(); i++ {
-			if ok, _ := d.checkField(rv.Type().Field(i)); ok {
+			if ok, _ := d.CheckField(rv.Type().Field(i)); ok {
 				scta.m = append(scta.m, i)
 			}
 		}
@@ -63,7 +63,7 @@ func (d *decoder) setStructFromMap(rv reflect.Value, offset int, k reflect.Kind)
 	if !cacheFind {
 		sctm = &structCacheTypeMap{m: map[string]int{}}
 		for i := 0; i < rv.NumField(); i++ {
-			if ok, name := d.checkField(rv.Type().Field(i)); ok {
+			if ok, name := d.CheckField(rv.Type().Field(i)); ok {
 				sctm.m[name] = i
 			}
 		}
@@ -186,23 +186,4 @@ func (d *decoder) jumpOffset(offset int) int {
 
 	}
 	return offset
-}
-
-// todo same method...
-func (d *decoder) checkField(field reflect.StructField) (bool, string) {
-	// A to Z
-	if d.isPublic(field.Name) {
-		if tag := field.Tag.Get("msgpack"); tag == "ignore" {
-			return false, ""
-		} else if len(tag) > 0 {
-			return true, tag
-		}
-		return true, field.Name
-	}
-	return false, ""
-}
-
-// todo same method...
-func (d *decoder) isPublic(name string) bool {
-	return 0x41 <= name[0] && name[0] <= 0x5a
 }

@@ -3,11 +3,14 @@ package decoding
 import (
 	"fmt"
 	"reflect"
+
+	"github.com/shamaton/msgpack/internal/common"
 )
 
 type decoder struct {
 	data    []byte
 	asArray bool
+	common.Common
 }
 
 func Decode(data []byte, holder interface{}, asArray bool) error {

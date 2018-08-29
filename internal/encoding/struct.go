@@ -6,11 +6,13 @@ import (
 	"reflect"
 
 	"github.com/shamaton/msgpack/def"
+	"github.com/shamaton/msgpack/internal/common"
 )
 
 type structCache struct {
 	indexes []int
 	names   []string
+	common.Common
 }
 
 var cachemap = map[reflect.Type]*structCache{}
@@ -23,7 +25,7 @@ func (e *encoder) calcStructArray(rv reflect.Value) (int, error) {
 		c = &structCache{}
 		for i := 0; i < rv.NumField(); i++ {
 			field := t.Field(i)
-			if ok, name := e.checkField(field); ok {
+			if ok, name := e.CheckField(field); ok {
 				size, err := e.calcSize(rv.Field(i))
 				if err != nil {
 					return 0, err
@@ -67,7 +69,7 @@ func (e *encoder) calcStructMap(rv reflect.Value) (int, error) {
 	if !find {
 		c = &structCache{}
 		for i := 0; i < rv.NumField(); i++ {
-			if ok, name := e.checkField(rv.Type().Field(i)); ok {
+			if ok, name := e.CheckField(rv.Type().Field(i)); ok {
 				keySize := def.Byte1 + e.calcString(name)
 				valueSize, err := e.calcSize(rv.Field(i))
 				if err != nil {
@@ -149,23 +151,4 @@ func (e *encoder) writeStructMap(rv reflect.Value, offset int) int {
 		offset = e.create(rv.Field(c.indexes[i]), offset)
 	}
 	return offset
-}
-
-// todo : common pacakge
-func (e *encoder) checkField(field reflect.StructField) (bool, string) {
-	// A to Z
-	if e.isPublic(field.Name) {
-		if tag := field.Tag.Get("msgpack"); tag == "ignore" {
-			return false, ""
-		} else if len(tag) > 0 {
-			return true, tag
-		}
-		return true, field.Name
-	}
-	return false, ""
-}
-
-// todo : common pacakge
-func (e *encoder) isPublic(name string) bool {
-	return 0x41 <= name[0] && name[0] <= 0x5a
 }
