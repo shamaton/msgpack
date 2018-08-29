@@ -6,7 +6,7 @@ import "reflect"
 type Common struct {
 }
 
-// CheckField returns flag that should encode/decode and field name
+// CheckField returns flag whether should encode/decode or not and field name
 func (c *Common) CheckField(field reflect.StructField) (bool, string) {
 	// A to Z
 	if c.isPublic(field.Name) {
