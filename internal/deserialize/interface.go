@@ -149,9 +149,9 @@ func (d *deserializer) asInterface(offset int, k reflect.Kind) (interface{}, int
 	*/
 
 	// ext
-	for i := range extFuncs {
-		if extFuncs[i].IsType(offset, &d.data) {
-			v, offset, err := extFuncs[i].AsValue(offset, k, &d.data)
+	for i := range extCoders {
+		if extCoders[i].IsType(offset, &d.data) {
+			v, offset, err := extCoders[i].AsValue(offset, k, &d.data)
 			if err != nil {
 				return nil, 0, err
 			}

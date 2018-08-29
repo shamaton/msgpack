@@ -244,9 +244,9 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 			}
 		*/
 
-		for i := range extFuncs {
-			if extFuncs[i].IsType(offset, &d.data) {
-				v, offset, err := extFuncs[i].AsValue(offset, k, &d.data)
+		for i := range extCoders {
+			if extCoders[i].IsType(offset, &d.data) {
+				v, offset, err := extCoders[i].AsValue(offset, k, &d.data)
 				if err != nil {
 					return 0, err
 				}

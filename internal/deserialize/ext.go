@@ -7,42 +7,42 @@ import (
 	"github.com/shamaton/msgpack/time"
 )
 
-var extFuncMaps = map[reflect.Type]ext.Decoder{reflect.TypeOf(time.Decoder): time.Decoder}
-var extFuncs = []ext.Decoder{time.Decoder}
+var extCoderMap = map[reflect.Type]ext.Decoder{reflect.TypeOf(time.Decoder): time.Decoder}
+var extCoders = []ext.Decoder{time.Decoder}
 
-func SetExtFunc(f ext.Decoder) {
+func AddExtDecoder(f ext.Decoder) {
 	t := reflect.TypeOf(f)
 	// ignore time
 	if t == reflect.TypeOf(time.Decoder) {
 		return
 	}
 
-	_, ok := extFuncMaps[t]
+	_, ok := extCoderMap[t]
 	if !ok {
-		extFuncMaps[t] = f
-		createCacheFuncs()
+		extCoderMap[t] = f
+		updateExtCoders()
 	}
 }
 
-func UnsetExtFunc(f ext.Decoder) {
+func RemoveExtDecoder(f ext.Decoder) {
 	t := reflect.TypeOf(f)
 	// ignore time
 	if t == reflect.TypeOf(time.Decoder) {
 		return
 	}
 
-	_, ok := extFuncMaps[t]
+	_, ok := extCoderMap[t]
 	if ok {
-		delete(extFuncMaps, t)
-		createCacheFuncs()
+		delete(extCoderMap, t)
+		updateExtCoders()
 	}
 }
 
-func createCacheFuncs() {
-	extFuncs = make([]ext.Decoder, len(extFuncMaps))
+func updateExtCoders() {
+	extCoders = make([]ext.Decoder, len(extCoderMap))
 	i := 0
-	for k := range extFuncMaps {
-		extFuncs[i] = extFuncMaps[k]
+	for k := range extCoderMap {
+		extCoders[i] = extCoderMap[k]
 		i++
 	}
 }

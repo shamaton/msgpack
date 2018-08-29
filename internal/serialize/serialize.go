@@ -203,9 +203,9 @@ func (s *serializer) calcSize(rv reflect.Value) (int, error) {
 			}
 		*/
 
-		for i := range extFuncs {
-			if extFuncs[i].IsType(rv) {
-				size, err := extFuncs[i].CalcByteSize(rv)
+		for i := range extCoders {
+			if extCoders[i].IsType(rv) {
+				size, err := extCoders[i].CalcByteSize(rv)
 				if err != nil {
 					return 0, err
 				}
@@ -345,9 +345,9 @@ func (s *serializer) create(rv reflect.Value, offset int) int {
 			}
 		*/
 
-		for i := range extFuncs {
-			if extFuncs[i].IsType(rv) {
-				return extFuncs[i].WriteToBytes(rv, offset, &s.d)
+		for i := range extCoders {
+			if extCoders[i].IsType(rv) {
+				return extCoders[i].WriteToBytes(rv, offset, &s.d)
 			}
 		}
 
