@@ -1,4 +1,4 @@
-package deserialize
+package decoding
 
 import (
 	"reflect"
@@ -50,7 +50,7 @@ func updateExtCoders() {
 /*
 var zero = time.Unix(0,0)
 
-func (d *deserializer) isDateTime(offset int) bool {
+func (d *decoder) isDateTime(offset int) bool {
 	code, offset := d.readSize1(offset)
 
 	if code == def.Fixext4 {
@@ -67,7 +67,7 @@ func (d *deserializer) isDateTime(offset int) bool {
 	return false
 }
 
-func (d *deserializer) asDateTime(offset int, k reflect.Kind) (time.Time, int, error) {
+func (d *decoder) asDateTime(offset int, k reflect.Kind) (time.Time, int, error) {
 	code, offset := d.readSize1(offset)
 
 	// TODO : In timestamp 64 and timestamp 96 formats, nanoseconds must not be larger than 999999999.

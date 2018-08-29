@@ -1,4 +1,4 @@
-package serialize
+package encoding
 
 import (
 	"fmt"
@@ -15,7 +15,7 @@ type structCache struct {
 
 var cachemap = map[reflect.Type]*structCache{}
 
-func (s *serializer) calcStructArray(rv reflect.Value) (int, error) {
+func (e *encoder) calcStructArray(rv reflect.Value) (int, error) {
 	ret := 0
 	t := rv.Type()
 	c, find := cachemap[t]
@@ -23,8 +23,8 @@ func (s *serializer) calcStructArray(rv reflect.Value) (int, error) {
 		c = &structCache{}
 		for i := 0; i < rv.NumField(); i++ {
 			field := t.Field(i)
-			if ok, name := s.checkField(field); ok {
-				size, err := s.calcSize(rv.Field(i))
+			if ok, name := e.checkField(field); ok {
+				size, err := e.calcSize(rv.Field(i))
 				if err != nil {
 					return 0, err
 				}
@@ -36,7 +36,7 @@ func (s *serializer) calcStructArray(rv reflect.Value) (int, error) {
 		cachemap[t] = c
 	} else {
 		for i := 0; i < len(c.indexes); i++ {
-			size, err := s.calcSize(rv.Field(c.indexes[i]))
+			size, err := e.calcSize(rv.Field(c.indexes[i]))
 			if err != nil {
 				return 0, err
 			}
@@ -60,16 +60,16 @@ func (s *serializer) calcStructArray(rv reflect.Value) (int, error) {
 	return ret, nil
 }
 
-func (s *serializer) calcStructMap(rv reflect.Value) (int, error) {
+func (e *encoder) calcStructMap(rv reflect.Value) (int, error) {
 	ret := 0
 	t := rv.Type()
 	c, find := cachemap[t]
 	if !find {
 		c = &structCache{}
 		for i := 0; i < rv.NumField(); i++ {
-			if ok, name := s.checkField(rv.Type().Field(i)); ok {
-				keySize := def.Byte1 + s.calcString(name)
-				valueSize, err := s.calcSize(rv.Field(i))
+			if ok, name := e.checkField(rv.Type().Field(i)); ok {
+				keySize := def.Byte1 + e.calcString(name)
+				valueSize, err := e.calcSize(rv.Field(i))
 				if err != nil {
 					return 0, err
 				}
@@ -81,8 +81,8 @@ func (s *serializer) calcStructMap(rv reflect.Value) (int, error) {
 		cachemap[t] = c
 	} else {
 		for i := 0; i < len(c.indexes); i++ {
-			keySize := def.Byte1 + s.calcString(c.names[i])
-			valueSize, err := s.calcSize(rv.Field(c.indexes[i]))
+			keySize := def.Byte1 + e.calcString(c.names[i])
+			valueSize, err := e.calcSize(rv.Field(c.indexes[i]))
 			if err != nil {
 				return 0, err
 			}
@@ -106,55 +106,55 @@ func (s *serializer) calcStructMap(rv reflect.Value) (int, error) {
 	return ret, nil
 }
 
-func (s *serializer) writeStructArray(rv reflect.Value, offset int) int {
+func (e *encoder) writeStructArray(rv reflect.Value, offset int) int {
 
 	c := cachemap[rv.Type()]
 
 	// write format
 	num := len(c.indexes)
 	if num <= 0x0f {
-		offset = s.setByte1Int(def.FixArray+num, offset)
+		offset = e.setByte1Int(def.FixArray+num, offset)
 	} else if num <= math.MaxUint16 {
-		offset = s.setByte1Int(def.Array16, offset)
-		offset = s.setByte2Int(num, offset)
+		offset = e.setByte1Int(def.Array16, offset)
+		offset = e.setByte2Int(num, offset)
 	} else if num <= math.MaxUint32 {
-		offset = s.setByte1Int(def.Array32, offset)
-		offset = s.setByte4Int(num, offset)
+		offset = e.setByte1Int(def.Array32, offset)
+		offset = e.setByte4Int(num, offset)
 	}
 
 	for i := 0; i < num; i++ {
-		offset = s.create(rv.Field(c.indexes[i]), offset)
+		offset = e.create(rv.Field(c.indexes[i]), offset)
 	}
 	return offset
 }
 
-func (s *serializer) writeStructMap(rv reflect.Value, offset int) int {
+func (e *encoder) writeStructMap(rv reflect.Value, offset int) int {
 
 	c := cachemap[rv.Type()]
 
 	// format size
 	num := len(c.indexes)
 	if num <= 0x0f {
-		offset = s.setByte1Int(def.FixMap+num, offset)
+		offset = e.setByte1Int(def.FixMap+num, offset)
 	} else if num <= math.MaxUint16 {
-		offset = s.setByte1Int(def.Map16, offset)
-		offset = s.setByte2Int(num, offset)
+		offset = e.setByte1Int(def.Map16, offset)
+		offset = e.setByte2Int(num, offset)
 	} else if num <= math.MaxUint32 {
-		offset = s.setByte1Int(def.Map32, offset)
-		offset = s.setByte4Int(num, offset)
+		offset = e.setByte1Int(def.Map32, offset)
+		offset = e.setByte4Int(num, offset)
 	}
 
 	for i := 0; i < num; i++ {
-		offset = s.writeString(c.names[i], offset)
-		offset = s.create(rv.Field(c.indexes[i]), offset)
+		offset = e.writeString(c.names[i], offset)
+		offset = e.create(rv.Field(c.indexes[i]), offset)
 	}
 	return offset
 }
 
 // todo : common pacakge
-func (s *serializer) checkField(field reflect.StructField) (bool, string) {
+func (e *encoder) checkField(field reflect.StructField) (bool, string) {
 	// A to Z
-	if s.isPublic(field.Name) {
+	if e.isPublic(field.Name) {
 		if tag := field.Tag.Get("msgpack"); tag == "ignore" {
 			return false, ""
 		} else if len(tag) > 0 {
@@ -166,6 +166,6 @@ func (s *serializer) checkField(field reflect.StructField) (bool, string) {
 }
 
 // todo : common pacakge
-func (s *serializer) isPublic(name string) bool {
+func (e *encoder) isPublic(name string) bool {
 	return 0x41 <= name[0] && name[0] <= 0x5a
 }

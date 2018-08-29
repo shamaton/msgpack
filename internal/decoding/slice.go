@@ -1,4 +1,4 @@
-package deserialize
+package decoding
 
 import (
 	"encoding/binary"
@@ -7,11 +7,11 @@ import (
 	"github.com/shamaton/msgpack/def"
 )
 
-func (d *deserializer) isFixSlice(v byte) bool {
+func (d *decoder) isFixSlice(v byte) bool {
 	return def.FixArray <= v && v <= def.FixArray+0x0f
 }
 
-func (d *deserializer) sliceLength(offset int, k reflect.Kind) (int, int, error) {
+func (d *decoder) sliceLength(offset int, k reflect.Kind) (int, int, error) {
 	code, offset := d.readSize1(offset)
 
 	switch {
@@ -27,7 +27,7 @@ func (d *deserializer) sliceLength(offset int, k reflect.Kind) (int, int, error)
 	return 0, 0, d.errorTemplate(code, k)
 }
 
-func (d *deserializer) asFixedSlice(rv reflect.Value, offset int, l int) (int, bool, error) {
+func (d *decoder) asFixedSlice(rv reflect.Value, offset int, l int) (int, bool, error) {
 	t := rv.Type()
 	k := t.Elem().Kind()
 

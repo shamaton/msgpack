@@ -1,17 +1,17 @@
-package deserialize
+package decoding
 
 import (
 	"fmt"
 	"reflect"
 )
 
-type deserializer struct {
+type decoder struct {
 	data    []byte
 	asArray bool
 }
 
-func Exec(data []byte, holder interface{}, asArray bool) error {
-	d := deserializer{data: data, asArray: asArray}
+func Decode(data []byte, holder interface{}, asArray bool) error {
+	d := decoder{data: data, asArray: asArray}
 
 	rv := reflect.ValueOf(holder)
 	if rv.Kind() != reflect.Ptr {
@@ -30,7 +30,7 @@ func Exec(data []byte, holder interface{}, asArray bool) error {
 	return err
 }
 
-func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
+func (d *decoder) deserialize(rv reflect.Value, offset int) (int, error) {
 	k := rv.Kind()
 	switch k {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -305,6 +305,6 @@ func (d *deserializer) deserialize(rv reflect.Value, offset int) (int, error) {
 	return offset, nil
 }
 
-func (d *deserializer) errorTemplate(code byte, k reflect.Kind) error {
+func (d *decoder) errorTemplate(code byte, k reflect.Kind) error {
 	return fmt.Errorf("msgpack : invalid code %x decoding %v", code, k)
 }

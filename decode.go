@@ -1,13 +1,11 @@
 package msgpack
 
-import (
-	"github.com/shamaton/msgpack/internal/deserialize"
-)
+import "github.com/shamaton/msgpack/internal/decoding"
 
 func DecodeStructAsMap(data []byte, v interface{}) error {
-	return deserialize.Exec(data, v, false)
+	return decoding.Decode(data, v, false)
 }
 
 func DecodeStructAsArray(data []byte, v interface{}) error {
-	return deserialize.Exec(data, v, true)
+	return decoding.Decode(data, v, true)
 }

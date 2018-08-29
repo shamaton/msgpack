@@ -1,4 +1,4 @@
-package deserialize
+package decoding
 
 import (
 	"encoding/binary"
@@ -7,7 +7,7 @@ import (
 	"github.com/shamaton/msgpack/def"
 )
 
-func (d *deserializer) isCodeBin(v byte) bool {
+func (d *decoder) isCodeBin(v byte) bool {
 	switch v {
 	case def.Bin8, def.Bin16, def.Bin32:
 		return true
@@ -15,7 +15,7 @@ func (d *deserializer) isCodeBin(v byte) bool {
 	return false
 }
 
-func (d *deserializer) asBin(offset int, k reflect.Kind) ([]byte, int, error) {
+func (d *decoder) asBin(offset int, k reflect.Kind) ([]byte, int, error) {
 	code, offset := d.readSize1(offset)
 
 	switch code {

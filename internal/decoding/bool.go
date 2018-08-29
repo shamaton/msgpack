@@ -1,4 +1,4 @@
-package deserialize
+package decoding
 
 import (
 	"reflect"
@@ -6,7 +6,7 @@ import (
 	"github.com/shamaton/msgpack/def"
 )
 
-func (d *deserializer) asBool(offset int, k reflect.Kind) (bool, int, error) {
+func (d *decoder) asBool(offset int, k reflect.Kind) (bool, int, error) {
 	code := d.data[offset]
 	offset++
 

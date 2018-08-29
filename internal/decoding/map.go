@@ -1,4 +1,4 @@
-package deserialize
+package decoding
 
 import (
 	"encoding/binary"
@@ -7,11 +7,11 @@ import (
 	"github.com/shamaton/msgpack/def"
 )
 
-func (d *deserializer) isFixMap(v byte) bool {
+func (d *decoder) isFixMap(v byte) bool {
 	return def.FixMap <= v && v <= def.FixMap+0x0f
 }
 
-func (d *deserializer) mapLength(offset int, k reflect.Kind) (int, int, error) {
+func (d *decoder) mapLength(offset int, k reflect.Kind) (int, int, error) {
 	code, offset := d.readSize1(offset)
 
 	switch {
@@ -27,7 +27,7 @@ func (d *deserializer) mapLength(offset int, k reflect.Kind) (int, int, error) {
 	return 0, 0, d.errorTemplate(code, k)
 }
 
-func (d *deserializer) asFixedMap(rv reflect.Value, offset int, l int) (int, bool, error) {
+func (d *decoder) asFixedMap(rv reflect.Value, offset int, l int) (int, bool, error) {
 	t := rv.Type()
 
 	// todo : refactor
