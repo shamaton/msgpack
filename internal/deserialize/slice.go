@@ -30,6 +30,8 @@ func (d *deserializer) sliceLength(offset int, k reflect.Kind) (int, int, error)
 func (d *deserializer) asFixedSlice(rv reflect.Value, offset int, l int) (int, bool, error) {
 	t := rv.Type()
 	k := t.Elem().Kind()
+
+	// todo : add types
 	switch t {
 	case typeIntSlice:
 		sli := make([]int, l)

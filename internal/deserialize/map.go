@@ -30,8 +30,11 @@ func (d *deserializer) mapLength(offset int, k reflect.Kind) (int, int, error) {
 func (d *deserializer) asFixedMap(rv reflect.Value, offset int, l int) (int, bool, error) {
 	t := rv.Type()
 
+	// todo : refactor
 	keyKind := rv.Type().Key().Kind()
 	valueKind := rv.Type().Elem().Kind()
+
+	// todo : add types
 	switch t {
 	case typeMapStringInt:
 		m := make(map[string]int, l)

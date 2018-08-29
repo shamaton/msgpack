@@ -8,6 +8,7 @@ import (
 )
 
 func (d *deserializer) isPositiveFixNum(v byte) bool {
+	// todo : refactor
 	if def.PositiveFixIntMin <= v && v <= def.PositiveFixIntMax {
 		return true
 	}
@@ -15,6 +16,7 @@ func (d *deserializer) isPositiveFixNum(v byte) bool {
 }
 
 func (d *deserializer) isNegativeFixNum(v byte) bool {
+	// todo : refactor
 	if def.NegativeFixintMin <= int8(v) && int8(v) <= def.NegativeFixintMax {
 		return true
 	}
@@ -25,6 +27,7 @@ func (d *deserializer) asInt(offset int, k reflect.Kind) (int64, int, error) {
 
 	code := d.data[offset]
 
+	// todo : use switch
 	if d.isPositiveFixNum(code) {
 		b, offset := d.readSize1(offset)
 		return int64(b), offset, nil

@@ -10,6 +10,7 @@ func (d *deserializer) asBool(offset int, k reflect.Kind) (bool, int, error) {
 	code := d.data[offset]
 	offset++
 
+	// todo : use switch
 	if code == def.True {
 		return true, offset, nil
 	} else if code == def.False {

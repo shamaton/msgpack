@@ -9,6 +9,7 @@ import (
 
 func (s *serializer) calcFixedSlice(rv reflect.Value) (int, bool) {
 	size := 0
+	// todo : add types
 	switch sli := rv.Interface().(type) {
 	case []int:
 		for _, v := range sli {
@@ -72,6 +73,7 @@ func (s *serializer) writeSliceLength(l int, offset int) int {
 }
 
 func (s *serializer) writeFixedSlice(rv reflect.Value, offset int) (int, bool) {
+	// todo : add types
 	switch sli := rv.Interface().(type) {
 	case []int:
 		for _, v := range sli {
