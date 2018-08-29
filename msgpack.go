@@ -17,11 +17,11 @@ func Decode(data []byte, v interface{}) error {
 }
 
 func AddExtCoder(e ext.Encoder, d ext.Decoder) {
-	serialize.SetExtFunc(e)
-	deserialize.SetExtFunc(d)
+	serialize.AddExtEncoder(e)
+	deserialize.AddExtDecoder(d)
 }
 
 func RemoveExtCoder(e ext.Encoder, d ext.Decoder) {
-	serialize.UnsetExtFunc(e)
-	deserialize.UnsetExtFunc(d)
+	serialize.RemoveExtEncoder(e)
+	deserialize.RemoveExtDecoder(d)
 }
