@@ -1,4 +1,4 @@
-package deserialize
+package decoding
 
 import (
 	"encoding/binary"
@@ -11,7 +11,7 @@ import (
 var emptyString = ""
 var emptyBytes = []byte{}
 
-func (d *deserializer) isCodeString(code byte) bool {
+func (d *decoder) isCodeString(code byte) bool {
 	// todo : refactor
 	switch {
 	case d.isFixString(code), code == def.Str8, code == def.Str16, code == def.Str32:
@@ -20,11 +20,11 @@ func (d *deserializer) isCodeString(code byte) bool {
 	return false
 }
 
-func (d *deserializer) isFixString(v byte) bool {
+func (d *decoder) isFixString(v byte) bool {
 	return def.FixStr <= v && v <= def.FixStr+0x1f
 }
 
-func (d *deserializer) stringByteLength(offset int, k reflect.Kind) (int, int, error) {
+func (d *decoder) stringByteLength(offset int, k reflect.Kind) (int, int, error) {
 	code := d.data[offset]
 	offset++
 
@@ -46,7 +46,7 @@ func (d *deserializer) stringByteLength(offset int, k reflect.Kind) (int, int, e
 	return 0, 0, d.errorTemplate(code, k)
 }
 
-func (d *deserializer) asString(offset int, k reflect.Kind) (string, int, error) {
+func (d *decoder) asString(offset int, k reflect.Kind) (string, int, error) {
 	l, offset, err := d.stringByteLength(offset, k)
 	if err != nil {
 		return emptyString, 0, err
@@ -55,7 +55,7 @@ func (d *deserializer) asString(offset int, k reflect.Kind) (string, int, error)
 	return *(*string)(unsafe.Pointer(&bs)), offset, nil
 }
 
-func (d *deserializer) asStringByte(offset int, l int, k reflect.Kind) ([]byte, int) {
+func (d *decoder) asStringByte(offset int, l int, k reflect.Kind) ([]byte, int) {
 	if l < 1 {
 		return emptyBytes, offset
 	}

@@ -1,4 +1,4 @@
-package deserialize
+package decoding
 
 import "reflect"
 

@@ -1,4 +1,4 @@
-package serialize
+package encoding
 
 import (
 	"fmt"
@@ -9,13 +9,13 @@ import (
 	"github.com/shamaton/msgpack/def"
 )
 
-type serializer struct {
+type encoder struct {
 	d       []byte
 	asArray bool
 }
 
-func Exec(v interface{}, asArray bool) (b []byte, err error) {
-	s := serializer{asArray: asArray}
+func Encode(v interface{}, asArray bool) (b []byte, err error) {
+	e := encoder{asArray: asArray}
 	/*
 		defer func() {
 			e := recover()
@@ -33,17 +33,17 @@ func Exec(v interface{}, asArray bool) (b []byte, err error) {
 			rv = rv.Elem()
 		}
 	}
-	size, err := s.calcSize(rv)
+	size, err := e.calcSize(rv)
 	if err != nil {
 		return nil, err
 	}
 
-	s.d = make([]byte, size)
-	last := s.create(rv, 0)
+	e.d = make([]byte, size)
+	last := e.create(rv, 0)
 	if size != last {
 		return nil, fmt.Errorf("failed serialization size=%d, lastIdx=%d", size, last)
 	}
-	return s.d, err
+	return e.d, err
 }
 
 func stackTrace() string {
@@ -58,26 +58,26 @@ func stackTrace() string {
 	return msg
 }
 
-func (s *serializer) calcSize(rv reflect.Value) (int, error) {
+func (e *encoder) calcSize(rv reflect.Value) (int, error) {
 	ret := def.Byte1
 
 	switch rv.Kind() {
 	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
 		v := rv.Uint()
-		ret += s.calcUint(v)
+		ret += e.calcUint(v)
 
 	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
 		v := rv.Int()
-		ret += s.calcInt(int64(v))
+		ret += e.calcInt(int64(v))
 
 	case reflect.Float32:
-		ret += s.calcFloat32(0)
+		ret += e.calcFloat32(0)
 
 	case reflect.Float64:
-		ret += s.calcFloat64(0)
+		ret += e.calcFloat64(0)
 
 	case reflect.String:
-		ret += s.calcString(rv.String())
+		ret += e.calcString(rv.String())
 
 	case reflect.Bool:
 		// do nothing
@@ -88,8 +88,8 @@ func (s *serializer) calcSize(rv reflect.Value) (int, error) {
 		}
 		l := rv.Len()
 		// bin format
-		if s.isByteSlice(rv) {
-			r, err := s.calcByteSlice(l)
+		if e.isByteSlice(rv) {
+			r, err := e.calcByteSlice(l)
 			if err != nil {
 				return 0, err
 			}
@@ -109,14 +109,14 @@ func (s *serializer) calcSize(rv reflect.Value) (int, error) {
 			return 0, fmt.Errorf("not support this array length : %d", l)
 		}
 
-		if size, find := s.calcFixedSlice(rv); find {
+		if size, find := e.calcFixedSlice(rv); find {
 			ret += size
 			return ret, nil
 		}
 
 		// objects size
 		for i := 0; i < l; i++ {
-			s, err := s.calcSize(rv.Index(i))
+			s, err := e.calcSize(rv.Index(i))
 			if err != nil {
 				return 0, err
 			}
@@ -126,8 +126,8 @@ func (s *serializer) calcSize(rv reflect.Value) (int, error) {
 	case reflect.Array:
 		l := rv.Len()
 		// bin format
-		if s.isByteSlice(rv) {
-			r, err := s.calcByteSlice(l)
+		if e.isByteSlice(rv) {
+			r, err := e.calcByteSlice(l)
 			if err != nil {
 				return 0, err
 			}
@@ -150,7 +150,7 @@ func (s *serializer) calcSize(rv reflect.Value) (int, error) {
 
 		// objects size
 		for i := 0; i < l; i++ {
-			s, err := s.calcSize(rv.Index(i))
+			s, err := e.calcSize(rv.Index(i))
 			if err != nil {
 				return 0, err
 			}
@@ -175,7 +175,7 @@ func (s *serializer) calcSize(rv reflect.Value) (int, error) {
 			return 0, fmt.Errorf("not support this map length : %d", l)
 		}
 
-		if size, find := s.calcFixedMap(rv); find {
+		if size, find := e.calcFixedMap(rv); find {
 			ret += size
 			return ret, nil
 		}
@@ -183,11 +183,11 @@ func (s *serializer) calcSize(rv reflect.Value) (int, error) {
 		// key-value
 		keys := rv.MapKeys()
 		for _, k := range keys {
-			keySize, err := s.calcSize(k)
+			keySize, err := e.calcSize(k)
 			if err != nil {
 				return 0, err
 			}
-			valueSize, err := s.calcSize(rv.MapIndex(k))
+			valueSize, err := e.calcSize(rv.MapIndex(k))
 			if err != nil {
 				return 0, err
 			}
@@ -196,8 +196,8 @@ func (s *serializer) calcSize(rv reflect.Value) (int, error) {
 
 	case reflect.Struct:
 		/*
-			if isTime, tm := s.isDateTime(rv); isTime {
-				size := s.calcTime(tm)
+			if isTime, tm := e.isDateTime(rv); isTime {
+				size := e.calcTime(tm)
 				ret += size
 				return ret, nil
 			}
@@ -216,10 +216,10 @@ func (s *serializer) calcSize(rv reflect.Value) (int, error) {
 
 		var size int
 		var err error
-		if s.asArray {
-			size, err = s.calcStructArray(rv)
+		if e.asArray {
+			size, err = e.calcStructArray(rv)
 		} else {
-			size, err = s.calcStructMap(rv)
+			size, err = e.calcStructMap(rv)
 		}
 		if err != nil {
 			return 0, err
@@ -230,14 +230,14 @@ func (s *serializer) calcSize(rv reflect.Value) (int, error) {
 		if rv.IsNil() {
 			return ret, nil
 		}
-		size, err := s.calcSize(rv.Elem())
+		size, err := e.calcSize(rv.Elem())
 		if err != nil {
 			return 0, err
 		}
 		ret = size
 
 	case reflect.Interface:
-		size, err := s.calcSize(rv.Elem())
+		size, err := e.calcSize(rv.Elem())
 		if err != nil {
 			return 0, err
 		}
@@ -252,123 +252,123 @@ func (s *serializer) calcSize(rv reflect.Value) (int, error) {
 	return ret, nil
 }
 
-func (s *serializer) create(rv reflect.Value, offset int) int {
+func (e *encoder) create(rv reflect.Value, offset int) int {
 
 	switch rv.Kind() {
 	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
 		v := rv.Uint()
-		offset = s.writeUint(v, offset)
+		offset = e.writeUint(v, offset)
 
 	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
 		v := rv.Int()
-		offset = s.writeInt(v, offset)
+		offset = e.writeInt(v, offset)
 
 	case reflect.Float32:
-		offset = s.writeFloat32(rv.Float(), offset)
+		offset = e.writeFloat32(rv.Float(), offset)
 
 	case reflect.Float64:
-		offset = s.writeFloat64(rv.Float(), offset)
+		offset = e.writeFloat64(rv.Float(), offset)
 
 	case reflect.Bool:
-		offset = s.writeBool(rv.Bool(), offset)
+		offset = e.writeBool(rv.Bool(), offset)
 
 	case reflect.String:
-		offset = s.writeString(rv.String(), offset)
+		offset = e.writeString(rv.String(), offset)
 
 	case reflect.Slice:
 		if rv.IsNil() {
-			return s.writeNil(offset)
+			return e.writeNil(offset)
 		}
 		l := rv.Len()
 		// bin format
-		if s.isByteSlice(rv) {
-			offset = s.writeByteSliceLength(l, offset)
-			offset = s.setBytes(rv.Bytes(), offset)
+		if e.isByteSlice(rv) {
+			offset = e.writeByteSliceLength(l, offset)
+			offset = e.setBytes(rv.Bytes(), offset)
 			return offset
 		}
 
 		// format
-		offset = s.writeSliceLength(l, offset)
+		offset = e.writeSliceLength(l, offset)
 
-		if offset, find := s.writeFixedSlice(rv, offset); find {
+		if offset, find := e.writeFixedSlice(rv, offset); find {
 			return offset
 		}
 
 		// objects
 		for i := 0; i < l; i++ {
-			offset = s.create(rv.Index(i), offset)
+			offset = e.create(rv.Index(i), offset)
 		}
 
 	case reflect.Array:
 		l := rv.Len()
 		// bin format
-		if s.isByteSlice(rv) {
-			offset = s.writeByteSliceLength(l, offset)
+		if e.isByteSlice(rv) {
+			offset = e.writeByteSliceLength(l, offset)
 			// objects
 			for i := 0; i < l; i++ {
-				offset = s.setByte1Uint64(rv.Index(i).Uint(), offset)
+				offset = e.setByte1Uint64(rv.Index(i).Uint(), offset)
 			}
 			return offset
 		}
 
 		// format
-		offset = s.writeSliceLength(l, offset)
+		offset = e.writeSliceLength(l, offset)
 
 		// objects
 		for i := 0; i < l; i++ {
-			offset = s.create(rv.Index(i), offset)
+			offset = e.create(rv.Index(i), offset)
 		}
 
 	case reflect.Map:
 		if rv.IsNil() {
-			return s.writeNil(offset)
+			return e.writeNil(offset)
 		}
 
 		l := rv.Len()
-		offset = s.writeMapLength(l, offset)
+		offset = e.writeMapLength(l, offset)
 
-		if offset, find := s.writeFixedMap(rv, offset); find {
+		if offset, find := e.writeFixedMap(rv, offset); find {
 			return offset
 		}
 
 		// key-value
 		keys := rv.MapKeys()
 		for _, k := range keys {
-			offset = s.create(k, offset)
-			offset = s.create(rv.MapIndex(k), offset)
+			offset = e.create(k, offset)
+			offset = e.create(rv.MapIndex(k), offset)
 		}
 
 	case reflect.Struct:
 		/*
-			if isTime, tm := s.isDateTime(rv); isTime {
-				return s.writeTime(tm, offset)
+			if isTime, tm := e.isDateTime(rv); isTime {
+				return e.writeTime(tm, offset)
 			}
 		*/
 
 		for i := range extCoders {
 			if extCoders[i].IsType(rv) {
-				return extCoders[i].WriteToBytes(rv, offset, &s.d)
+				return extCoders[i].WriteToBytes(rv, offset, &e.d)
 			}
 		}
 
-		if s.asArray {
-			offset = s.writeStructArray(rv, offset)
+		if e.asArray {
+			offset = e.writeStructArray(rv, offset)
 		} else {
-			offset = s.writeStructMap(rv, offset)
+			offset = e.writeStructMap(rv, offset)
 		}
 
 	case reflect.Ptr:
 		if rv.IsNil() {
-			return s.writeNil(offset)
+			return e.writeNil(offset)
 		}
 
-		offset = s.create(rv.Elem(), offset)
+		offset = e.create(rv.Elem(), offset)
 
 	case reflect.Interface:
-		offset = s.create(rv.Elem(), offset)
+		offset = e.create(rv.Elem(), offset)
 
 	case reflect.Invalid:
-		return s.writeNil(offset)
+		return e.writeNil(offset)
 
 	}
 	return offset

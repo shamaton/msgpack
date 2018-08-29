@@ -1,4 +1,4 @@
-package deserialize
+package decoding
 
 import (
 	"reflect"
@@ -6,7 +6,7 @@ import (
 	"github.com/shamaton/msgpack/def"
 )
 
-func (d *deserializer) asInterface(offset int, k reflect.Kind) (interface{}, int, error) {
+func (d *decoder) asInterface(offset int, k reflect.Kind) (interface{}, int, error) {
 	code := d.data[offset]
 
 	switch {

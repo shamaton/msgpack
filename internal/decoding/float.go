@@ -1,4 +1,4 @@
-package deserialize
+package decoding
 
 import (
 	"encoding/binary"
@@ -8,7 +8,7 @@ import (
 	"github.com/shamaton/msgpack/def"
 )
 
-func (d *deserializer) asFloat32(offset int, k reflect.Kind) (float32, int, error) {
+func (d *decoder) asFloat32(offset int, k reflect.Kind) (float32, int, error) {
 	code := d.data[offset]
 
 	switch {
@@ -39,7 +39,7 @@ func (d *deserializer) asFloat32(offset int, k reflect.Kind) (float32, int, erro
 	return 0, 0, d.errorTemplate(code, k)
 }
 
-func (d *deserializer) asFloat64(offset int, k reflect.Kind) (float64, int, error) {
+func (d *decoder) asFloat64(offset int, k reflect.Kind) (float64, int, error) {
 	code := d.data[offset]
 
 	switch {

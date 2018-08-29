@@ -1,4 +1,4 @@
-package deserialize
+package decoding
 
 import (
 	"encoding/binary"
@@ -19,7 +19,7 @@ type structCacheTypeArray struct {
 var mapSCTM = map[reflect.Type]*structCacheTypeMap{}
 var mapSCTA = map[reflect.Type]*structCacheTypeArray{}
 
-func (d *deserializer) setStructFromArray(rv reflect.Value, offset int, k reflect.Kind) (int, error) {
+func (d *decoder) setStructFromArray(rv reflect.Value, offset int, k reflect.Kind) (int, error) {
 	// get length
 	l, o, err := d.sliceLength(offset, k)
 	if err != nil {
@@ -51,7 +51,7 @@ func (d *deserializer) setStructFromArray(rv reflect.Value, offset int, k reflec
 	return o, nil
 }
 
-func (d *deserializer) setStructFromMap(rv reflect.Value, offset int, k reflect.Kind) (int, error) {
+func (d *decoder) setStructFromMap(rv reflect.Value, offset int, k reflect.Kind) (int, error) {
 	// get length
 	l, o, err := d.mapLength(offset, k)
 	if err != nil {
@@ -88,7 +88,7 @@ func (d *deserializer) setStructFromMap(rv reflect.Value, offset int, k reflect.
 	return o, nil
 }
 
-func (d *deserializer) jumpOffset(offset int) int {
+func (d *decoder) jumpOffset(offset int) int {
 	code, offset := d.readSize1(offset)
 	switch {
 	case code == def.True, code == def.False, code == def.Nil:
@@ -189,7 +189,7 @@ func (d *deserializer) jumpOffset(offset int) int {
 }
 
 // todo same method...
-func (d *deserializer) checkField(field reflect.StructField) (bool, string) {
+func (d *decoder) checkField(field reflect.StructField) (bool, string) {
 	// A to Z
 	if d.isPublic(field.Name) {
 		if tag := field.Tag.Get("msgpack"); tag == "ignore" {
@@ -203,6 +203,6 @@ func (d *deserializer) checkField(field reflect.StructField) (bool, string) {
 }
 
 // todo same method...
-func (d *deserializer) isPublic(name string) bool {
+func (d *decoder) isPublic(name string) bool {
 	return 0x41 <= name[0] && name[0] <= 0x5a
 }
