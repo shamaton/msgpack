@@ -70,8 +70,6 @@ func (d *decoder) isDateTime(offset int) bool {
 func (d *decoder) asDateTime(offset int, k reflect.Kind) (time.Time, int, error) {
 	code, offset := d.readSize1(offset)
 
-	// TODO : In timestamp 64 and timestamp 96 formats, nanoseconds must not be larger than 999999999.
-
 	switch code {
 	case def.Fixext4:
 		_, offset = d.readSize1(offset)
@@ -82,7 +80,11 @@ func (d *decoder) asDateTime(offset int, k reflect.Kind) (time.Time, int, error)
 		_, offset = d.readSize1(offset)
 		bs, offset := d.readSize8(offset)
 		data64 := binary.BigEndian.Uint64(bs)
-		return time.Unix(int64(data64&0x00000003ffffffff), int64(data64>>34)), offset, nil
+		nano := int64(data64 >> 34)
+		if nano > 999999999 {
+			return zero, 0, fmt.Errorf("In timestamp 64 formats, nanoseconds must not be larger than 999999999 : %d", nano)
+		}
+		return time.Unix(int64(data64&0x00000003ffffffff), nano), offset, nil
 
 	case def.Ext8:
 		_, offset = d.readSize1(offset)
@@ -90,6 +92,9 @@ func (d *decoder) asDateTime(offset int, k reflect.Kind) (time.Time, int, error)
 		nanobs, offset := d.readSize4(offset)
 		secbs, offset := d.readSize8(offset)
 		nano := binary.BigEndian.Uint32(nanobs)
+		if nano > 999999999 {
+			return zero, 0, fmt.Errorf("In timestamp 96 formats, nanoseconds must not be larger than 999999999 : %d", nano)
+		}
 		sec := binary.BigEndian.Uint64(secbs)
 		return time.Unix(int64(sec), int64(nano)), offset, nil
 	}

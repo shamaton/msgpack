@@ -7,11 +7,13 @@ import (
 	"runtime"
 
 	"github.com/shamaton/msgpack/def"
+	"github.com/shamaton/msgpack/internal/common"
 )
 
 type encoder struct {
 	d       []byte
 	asArray bool
+	common.Common
 }
 
 func Encode(v interface{}, asArray bool) (b []byte, err error) {
