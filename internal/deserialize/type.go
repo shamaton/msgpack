@@ -2,6 +2,7 @@ package deserialize
 
 import "reflect"
 
+// todo : move to slice or map
 var (
 	typeIntSlice   = reflect.TypeOf([]int{})
 	typeInt8Slice  = reflect.TypeOf([]int8{})

@@ -45,6 +45,7 @@ func (s *serializer) calcStructArray(rv reflect.Value) (int, error) {
 	}
 
 	// format size
+	// todo : create func
 	l := len(c.indexes)
 	if l <= 0x0f {
 		// format code only
@@ -90,6 +91,7 @@ func (s *serializer) calcStructMap(rv reflect.Value) (int, error) {
 	}
 
 	// format size
+	// todo : create func
 	l := len(c.indexes)
 	if l <= 0x0f {
 		// format code only
@@ -149,6 +151,7 @@ func (s *serializer) writeStructMap(rv reflect.Value, offset int) int {
 	return offset
 }
 
+// todo : common pacakge
 func (s *serializer) checkField(field reflect.StructField) (bool, string) {
 	// A to Z
 	if s.isPublic(field.Name) {
@@ -162,6 +165,7 @@ func (s *serializer) checkField(field reflect.StructField) (bool, string) {
 	return false, ""
 }
 
+// todo : common pacakge
 func (s *serializer) isPublic(name string) bool {
 	return 0x41 <= name[0] && name[0] <= 0x5a
 }

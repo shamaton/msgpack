@@ -10,6 +10,7 @@ import (
 func (s *serializer) calcFixedMap(rv reflect.Value) (int, bool) {
 	size := 0
 
+	// todo : add types
 	switch m := rv.Interface().(type) {
 	case map[string]int:
 		for k, v := range m {

@@ -11,6 +11,7 @@ func (d *deserializer) asUint(offset int, k reflect.Kind) (uint64, int, error) {
 
 	code := d.data[offset]
 
+	// todo : refactor
 	if d.isPositiveFixNum(code) {
 		b, offset := d.readSize1(offset)
 		return uint64(b), offset, nil

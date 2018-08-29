@@ -12,6 +12,7 @@ var emptyString = ""
 var emptyBytes = []byte{}
 
 func (d *deserializer) isCodeString(code byte) bool {
+	// todo : refactor
 	switch {
 	case d.isFixString(code), code == def.Str8, code == def.Str16, code == def.Str32:
 		return true

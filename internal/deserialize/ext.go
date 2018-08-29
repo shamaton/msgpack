@@ -48,6 +48,8 @@ func createCacheFuncs() {
 }
 
 /*
+var zero = time.Unix(0,0)
+
 func (d *deserializer) isDateTime(offset int) bool {
 	code, offset := d.readSize1(offset)
 
@@ -92,6 +94,6 @@ func (d *deserializer) asDateTime(offset int, k reflect.Kind) (time.Time, int, e
 		return time.Unix(int64(sec), int64(nano)), offset, nil
 	}
 
-	return time.Now(), 0, d.errorTemplate(code, k)
+	return zero, 0, d.errorTemplate(code, k)
 }
 */
