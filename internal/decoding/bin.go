@@ -3,6 +3,7 @@ package decoding
 import (
 	"encoding/binary"
 	"reflect"
+	"unsafe"
 
 	"github.com/shamaton/msgpack/def"
 )
@@ -34,4 +35,9 @@ func (d *decoder) asBin(offset int, k reflect.Kind) ([]byte, int, error) {
 	}
 
 	return emptyBytes, 0, d.errorTemplate(code, k)
+}
+
+func (d *decoder) asBinString(offset int, k reflect.Kind) (string, int, error) {
+	bs, offset, err := d.asBin(offset, k)
+	return *(*string)(unsafe.Pointer(&bs)), offset, err
 }

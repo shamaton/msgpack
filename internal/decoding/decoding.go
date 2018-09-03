@@ -69,6 +69,15 @@ func (d *decoder) deserialize(rv reflect.Value, offset int) (int, error) {
 		offset = o
 
 	case reflect.String:
+		// byte slice
+		if d.isCodeBin(d.data[offset]) {
+			v, offset, err := d.asBinString(offset, k)
+			if err != nil {
+				return 0, err
+			}
+			rv.SetString(v)
+			return offset, nil
+		}
 		v, o, err := d.asString(offset, k)
 		if err != nil {
 			return 0, err
