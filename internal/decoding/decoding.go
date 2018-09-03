@@ -162,6 +162,9 @@ func (d *decoder) deserialize(rv reflect.Value, offset int) (int, error) {
 			if err != nil {
 				return 0, err
 			}
+			if len(bs) > rv.Len() {
+				return 0, fmt.Errorf("%v len is %d, but msgpack has %d elements", rv.Type(), rv.Len(), len(bs))
+			}
 			for i, b := range bs {
 				rv.Index(i).SetUint(uint64(b))
 			}
