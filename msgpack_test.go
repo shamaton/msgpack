@@ -24,23 +24,6 @@ func init() {
 	now = time.Unix(n.Unix(), int64(n.Nanosecond()))
 }
 
-func encdec(v, r interface{}, j func(d byte) bool) error {
-	d, err := msgpack.Encode(v)
-	if err != nil {
-		return err
-	}
-	if !j(d[0]) {
-		return fmt.Errorf("different %s", hex.Dump(d))
-	}
-	if err := msgpack.Decode(d, r); err != nil {
-		return err
-	}
-	if err := equalCheck(v, r); err != nil {
-		return err
-	}
-	return nil
-}
-
 func TestInt(t *testing.T) {
 	{
 		var r int
@@ -570,10 +553,9 @@ func TestArray(t *testing.T) {
 }
 
 func TestTime(t *testing.T) {
-	now := time.Now()
 	{
 		var v, r time.Time
-		v = time.Unix(int64(now.Second()), 0)
+		v = time.Unix(now.Unix(), 0)
 		if err := encdec(v, &r, func(code byte) bool {
 			return code == def.Fixext4
 		}); err != nil {
@@ -582,17 +564,7 @@ func TestTime(t *testing.T) {
 	}
 	{
 		var v, r time.Time
-		v = time.Unix(int64(now.Second()), int64(now.Nanosecond()))
-		if err := encdec(v, &r, func(code byte) bool {
-			return code == def.Fixext8
-		}); err != nil {
-			t.Error(err)
-		}
-	}
-	{
-		var v, r time.Time
-		v = time.Now()
-		t.Log(v.Unix(), v.UnixNano(), now.Unix(), now.UnixNano())
+		v = time.Unix(now.Unix(), int64(now.Nanosecond()))
 		if err := encdec(v, &r, func(code byte) bool {
 			return code == def.Fixext8
 		}); err != nil {
@@ -602,283 +574,387 @@ func TestTime(t *testing.T) {
 }
 
 func TestMap(t *testing.T) {
+	{
+		var v, r map[int]int
+		v = map[int]int{1: 2, 3: 4, 5: 6, 7: 8, 9: 10}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	{
+		var v, r map[int]int
+		v = make(map[int]int, 1000)
+		for i := 0; i < 1000; i++ {
+			v[i] = i + 1
+		}
+		if err := encdec(v, &r, func(code byte) bool {
+			return code == def.Map16
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	{
+		var v, r map[int]int
+		v = make(map[int]int, math.MaxUint16+1)
+		for i := 0; i < math.MaxUint16+1; i++ {
+			v[i] = i + 1
+		}
+		if err := encdec(v, &r, func(code byte) bool {
+			return code == def.Map32
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	{
+		var v map[int]int
+		var r map[uint]uint
+		v = make(map[int]int, 100)
+		for i := 0; i < 100; i++ {
+			v[i] = i + 1
+		}
+		d, err := msgpack.Encode(v)
+		if err != nil {
+			t.Error(err)
+		}
+		if d[0] != def.Map16 {
+			t.Error("code diffenrent")
+		}
+		err = msgpack.Decode(d, &r)
+		if err != nil {
+			t.Error(err)
+		}
+		for k, vv := range v {
+			if rv, ok := r[uint(k)]; !ok || rv != uint(vv) {
+				t.Error("value diffrent")
+			}
+		}
+		if len(v) != len(r) {
+			t.Error("value different")
+		}
+	}
+	// error
+	{
+		var v map[string]int
+		var r map[int]int
+		v = make(map[string]int, 100)
+		for i := 0; i < 100; i++ {
+			v[fmt.Sprintf("%03d", i)] = i
+		}
+		d, err := msgpack.Encode(v)
+		if err != nil {
+			t.Error(err)
+		}
+		if d[0] != def.Map16 {
+			t.Error("code diffenrent")
+		}
+		err = msgpack.Decode(d, &r)
+		if err == nil || !strings.Contains(err.Error(), "invalid code a3 decoding") {
+			t.Error("error")
+		}
+	}
+	{
+		var v map[int]string
+		var r map[int]int
+		v = make(map[int]string, 100)
+		for i := 0; i < 100; i++ {
+			v[i] = fmt.Sprint(i % 10)
+		}
+		d, err := msgpack.Encode(v)
+		if err != nil {
+			t.Error(err)
+		}
+		if d[0] != def.Map16 {
+			t.Error("code diffenrent")
+		}
+		err = msgpack.Decode(d, &r)
+		if err == nil || !strings.Contains(err.Error(), "invalid code a1 decoding") {
+			t.Error("error", err)
+		}
+	}
 }
+func TestPointer(t *testing.T) {
+	{
+		var v, r *int
+		vv := 250
+		v = &vv
+		if err := encdec(v, &r, func(code byte) bool {
+			return code == def.Uint8
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	{
+		var v, r *int
+		d, err := msgpack.Encode(v)
+		if err != nil {
+			t.Error(err)
+		}
+		if d[0] != def.Nil {
+			t.Error("code diffenrent")
+		}
+		err = msgpack.Decode(d, &r)
+		if err != nil {
+			t.Error(err)
+		}
+		if v != r {
+			t.Error("value different")
+		}
+	}
+	// error
+	{
+		var v *int
+		var r int
+		if err := encdec(v, r, func(code byte) bool {
+			return code == def.Nil
+		}); err == nil || !strings.Contains(err.Error(), "holder must set pointer value. but got:") {
+			t.Error(err)
+		}
+	}
+}
+
+func TestUnsupported(t *testing.T) {
+	{
+		var v, r complex128
+		v = 1i
+		_, err := msgpack.Encode(v)
+		if !strings.Contains(err.Error(), "type(complex128) is unsupported") {
+			t.Error("test error")
+		}
+		err = msgpack.Decode([]byte{0xc0}, &r)
+		if !strings.Contains(err.Error(), "type(complex128) is unsupported") {
+			t.Error("test error")
+		}
+	}
+}
+
+/////////////////////////////////////////////////////////////////
+
 func TestStruct(t *testing.T) {
-	testStruct(t)
+	testSturctCode(t)
+	testStructTag(t)
+	testStructArray(t)
+
+	testStructUseCase(t)
 	msgpack.StructAsArray = true
-	testStruct(t)
+	testStructUseCase(t)
 }
-func TestMsgpack(t *testing.T) {
-	testSimple(t)
-	testStruct(t)
+
+func testStructTag(t *testing.T) {
+	type vSt struct {
+		One int     `msgpack:"Three"`
+		Two string  `msgpack:"four"`
+		Ten float32 `msgpack:"ignore"`
+	}
+	type rSt struct {
+		Three int
+		Four  string `msgpack:"four"`
+		Ten   float32
+	}
+
+	msgpack.StructAsArray = false
+
+	v := vSt{One: 1, Two: "2", Ten: 1.234}
+	r := rSt{}
+
+	d, err := msgpack.EncodeStructAsMap(v)
+	if err != nil {
+		t.Error(err)
+	}
+	if d[0] != def.FixMap+0x02 {
+		t.Error("code different")
+	}
+	err = msgpack.DecodeStructAsMap(d, &r)
+	if err != nil {
+		t.Error(err)
+	}
+	if v.One != r.Three || v.Two != r.Four || r.Ten != 0 {
+		t.Error("error:", v, r)
+	}
+}
+
+func testStructArray(t *testing.T) {
+	type vSt struct {
+		One  int
+		Two  string
+		Ten  float32
+		Skip float32
+	}
+	type rSt struct {
+		Three int
+		Four  string
+		Tem   float32
+	}
+
 	msgpack.StructAsArray = true
-	testSimple(t)
-	testStruct(t)
-}
-func testSimple(t *testing.T) {
-	{
-		uints := []uint64{1, math.MaxInt8, math.MaxUint8, math.MaxUint16, math.MaxUint32, math.MaxUint64}
 
-		for _, v := range uints {
-			var r1, r2 uint64
-			d1, d2, err := encode(t, v, false)
-			if err != nil {
-				t.Error(err)
-			}
-			err = decode(t, d1, d2, &r1, &r2, false)
-			if err != nil || !(v == r1 && r1 == r2) {
-				t.Error(err, v, r1, r2)
-			}
-		}
+	v := vSt{One: 1, Two: "2", Ten: 1.234}
+	r := rSt{}
+
+	d, err := msgpack.EncodeStructAsArray(v)
+	if err != nil {
+		t.Error(err)
 	}
-
-	{
-		ints := []int64{-1, -32, -33, math.MinInt8, math.MinInt16, math.MinInt32, math.MinInt64}
-
-		for _, v := range ints {
-			var r1, r2 int64
-			d1, d2, err := encode(t, v, false)
-			if err != nil {
-				t.Error(err)
-			}
-			err = decode(t, d1, d2, &r1, &r2, false)
-			if err != nil || !(v == r1 && r1 == r2) {
-				t.Error(err)
-			}
-		}
+	if d[0] != def.FixArray+0x04 {
+		t.Error("code different")
 	}
-
-	{
-		vs := []float64{0, -1, math.MaxFloat32, math.MaxFloat64, math.SmallestNonzeroFloat32, math.SmallestNonzeroFloat64}
-
-		for _, v := range vs {
-			var r1, r2 float64
-			d1, d2, err := encode(t, v, false)
-			if err != nil {
-				t.Error(err)
-			}
-			err = decode(t, d1, d2, &r1, &r2, false)
-			if err != nil || !(v == r1 && r1 == r2) {
-				t.Error(err)
-			}
-		}
+	err = msgpack.DecodeStructAsArray(d, &r)
+	if err != nil {
+		t.Error(err)
 	}
-	{
-		ls := []int{0, 32, math.MaxUint8, math.MaxUint16, math.MaxUint16 + 32}
-		base := "abcdefghijklmnopqrstuvwxyz12345"
-		for _, l := range ls {
-			v := strings.Repeat(base, l/len(base))
-			var r1, r2 string
-			d1, d2, err := encode(t, v, false)
-			if err != nil {
-				t.Error(err)
-			}
-			err = decode(t, d1, d2, &r1, &r2, false)
-			if err != nil || !(v == r1 && r1 == r2) {
-				t.Error(err)
-			}
-		}
-	}
-
-	{
-		vs := []bool{true, false}
-		for _, v := range vs {
-			var r1, r2 *bool
-			d1, d2, err := encode(t, v, false)
-			if err != nil {
-				t.Error(err)
-			}
-			err = decode(t, d1, d2, &r1, &r2, false)
-			if err != nil || !(v == *r1 && *r1 == *r2) {
-				t.Error(err)
-			}
-		}
-	}
-	{
-
-		v := now
-		var r1, r2 time.Time
-		d1, d2, err := encode(t, v, false)
-		if err != nil {
-			t.Error(err)
-		}
-		err = decode(t, d1, d2, &r1, &r2, false)
-		if err != nil {
-			t.Error(err)
-		}
-		if err := equalCheck(v, r1); err != nil {
-			t.Error(err)
-		}
-		if err := equalCheck(r1, r2); err != nil {
-			t.Error(err)
-		}
-	}
-	{
-		v := 1
-		var r1, r2 int
-		d1, d2, err := encode(t, v, false)
-		if err != nil {
-			t.Error(err)
-		}
-		err = decode(t, d1, d2, r1, r2, false)
-		if err == nil || !strings.Contains(err.Error(), "holder must set pointer value. but got:") {
-			t.Error(err)
-		}
-
+	if v.One != r.Three || v.Two != r.Four || v.Ten != r.Tem {
+		t.Error("error:", v, r)
 	}
 }
 
-func testStruct(t *testing.T) {
+func testSturctCode(t *testing.T) {
+	type st1 struct {
+		Int int
+	}
+	type st16 struct {
+		I1  int
+		I2  int
+		I3  int
+		I4  int
+		I5  int
+		I6  int
+		I7  int
+		I8  int
+		I9  int
+		I10 int
+		I11 int
+		I12 int
+		I13 int
+		I14 int
+		I15 int
+		I16 int
+	}
+	v1 := st1{Int: math.MinInt32}
+	v16 := st16{I1: 1, I2: 2, I3: 3, I4: 4, I5: 5, I6: 6, I7: 7, I8: 8, I9: 9, I10: 10,
+		I11: 11, I12: 12, I13: 13, I14: 14, I15: 15, I16: 16}
+
+	{
+		var r1 st1
+		var r16 st16
+		if err := encdec(v1, &r1, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+		if err := encdec(v16, &r16, func(code byte) bool {
+			return code == def.Map16
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	msgpack.StructAsArray = true
+	{
+		var r1 st1
+		var r16 st16
+		if err := encdec(v1, &r1, func(code byte) bool {
+			return def.FixArray <= code && code <= def.FixArray+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+		if err := encdec(v16, &r16, func(code byte) bool {
+			return code == def.Array16
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	msgpack.StructAsArray = false
+}
+
+func testStructUseCase(t *testing.T) {
 	type child3 struct {
 		Int int
 	}
 	type child2 struct {
-		Int2Uint   map[int]uint
-		Float2Bool map[float32]bool
-		//Duration2Struct map[time.Duration]child3
+		Int2Uint        map[int]uint
+		Float2Bool      map[float32]bool
+		Duration2Struct map[time.Duration]child3
 	}
 	type child struct {
-		IntArray    []int
-		UintArray   []uint
-		FloatArray  []float32
-		BoolArray   []bool
-		StringArray []string
-		TimeArray   []time.Time
-		Child       child2
+		IntArray      []int
+		UintArray     []uint
+		FloatArray    []float32
+		BoolArray     []bool
+		StringArray   []string
+		TimeArray     []time.Time
+		DurationArray []time.Duration
+		Child         child2
 	}
 	type st struct {
-		Int8   int8
-		Int16  int16
-		Int32  int32
-		Int64  int64
-		Uint8  byte
-		Uint16 uint16
-		Uint32 uint32
-		Uint64 uint64
-		Float  float32
-		Double float64
-		Bool   bool
-		String string
-		Time   time.Time
-		//Duration   time.Duration
-		Child child
+		Int8     int8
+		Int16    int16
+		Int32    int32
+		Int64    int64
+		Uint8    byte
+		Uint16   uint16
+		Uint32   uint32
+		Uint64   uint64
+		Float    float32
+		Double   float64
+		Bool     bool
+		String   string
+		Time     time.Time
+		Duration time.Duration
+		Child    child
 	}
-	vSt := &st{
-		Int32:  -32,
-		Int8:   -8,
-		Int16:  -16,
-		Int64:  -64,
-		Uint32: 32,
-		Uint8:  8,
-		Uint16: 16,
-		Uint64: 64,
-		Float:  1.23,
-		Double: 2.3456,
-		Bool:   true,
-		String: "Parent",
-		Time:   now,
-		//Duration:   time.Duration(123 * time.Second),
+	v := &st{
+		Int32:    -32,
+		Int8:     -8,
+		Int16:    -16,
+		Int64:    -64,
+		Uint32:   32,
+		Uint8:    8,
+		Uint16:   16,
+		Uint64:   64,
+		Float:    1.23,
+		Double:   2.3456,
+		Bool:     true,
+		String:   "Parent",
+		Time:     now,
+		Duration: time.Duration(123 * time.Second),
 
 		// child
 		Child: child{
-			IntArray:    []int{-1, -2, -3, -4, -5},
-			UintArray:   []uint{1, 2, 3, 4, 5},
-			FloatArray:  []float32{-1.2, -3.4, -5.6, -7.8},
-			BoolArray:   []bool{true, true, false, false, true},
-			StringArray: []string{"str", "ing", "arr", "ay"},
-			TimeArray:   []time.Time{now, now, now},
-			//DurationArray:   []time.Duration{time.Duration(1 * time.Nanosecond), time.Duration(2 * time.Nanosecond)},
+			IntArray:      []int{-1, -2, -3, -4, -5},
+			UintArray:     []uint{1, 2, 3, 4, 5},
+			FloatArray:    []float32{-1.2, -3.4, -5.6, -7.8},
+			BoolArray:     []bool{true, true, false, false, true},
+			StringArray:   []string{"str", "ing", "arr", "ay"},
+			TimeArray:     []time.Time{now, now, now},
+			DurationArray: []time.Duration{time.Duration(1 * time.Nanosecond), time.Duration(2 * time.Nanosecond)},
 
 			// childchild
 			Child: child2{
-				Int2Uint:   map[int]uint{-1: 2, -3: 4},
-				Float2Bool: map[float32]bool{-1.1: true, -2.2: false},
-				//Duration2Struct: map[time.Duration]child3{time.Duration(1 * time.Hour): child3{Int: 1}, time.Duration(2 * time.Hour): child3{Int: 2}},
+				Int2Uint:        map[int]uint{-1: 2, -3: 4},
+				Float2Bool:      map[float32]bool{-1.1: true, -2.2: false},
+				Duration2Struct: map[time.Duration]child3{time.Duration(1 * time.Hour): child3{Int: 1}, time.Duration(2 * time.Hour): child3{Int: 2}},
 			},
 		},
 	}
-	{
 
-		r1, r2 := st{}, st{}
-		d1, d2, err := encode(t, vSt, false)
-		if err != nil {
-			t.Error(err)
-		}
-		err = decode(t, d1, d2, &r1, &r2, false)
-		if err != nil {
-			t.Error(err)
-		}
-		if err := equalCheck(vSt, r1); err != nil {
-			t.Error(err)
-		}
-		if err := equalCheck(vSt, r2); err != nil {
-			t.Error(err)
-		}
+	r1, r2 := st{}, st{}
+	d1, d2, err := encSt(t, v, false)
+	if err != nil {
+		t.Error(err)
 	}
-
-	// pointer
-	{
-		r1, r2 := new(st), new(st)
-		d1, d2, err := encode(t, vSt, false)
-		if err != nil {
-			t.Error(err)
-		}
-		err = decode(t, d1, d2, &r1, &r2, false)
-		if err != nil {
-			t.Error(err)
-		}
-		if err := equalCheck(vSt, r1); err != nil {
-			t.Error(err)
-		}
-		if err := equalCheck(vSt, r2); err != nil {
-			t.Error(err)
-		}
+	err = decSt(t, d1, d2, &r1, &r2, false)
+	if err != nil {
+		t.Error(err)
+	}
+	if err := equalCheck(v, r1); err != nil {
+		t.Error(err)
+	}
+	if err := equalCheck(v, r2); err != nil {
+		t.Error(err)
 	}
 }
 
-func TestMsgpackExt(t *testing.T) {
-	msgpack.AddExtCoder(encoder, decoder)
-
-	{
-		v := ExtInt{V: 321}
-		var r1, r2 ExtInt
-		d1, d2, err := encode(t, v, true)
-		if err != nil {
-			t.Error(err)
-		}
-		err = decode(t, d1, d2, &r1, &r2, false)
-		if err != nil {
-			t.Error(err)
-		}
-		if err := equalCheck(v, r1); err != nil {
-			t.Error(err)
-		}
-		if err := equalCheck(r1, r2); err != nil {
-			t.Error(err)
-		}
-	}
-	msgpack.RemoveExtCoder(encoder, decoder)
-	{
-		v := ExtInt{V: 123}
-		var r1, r2 ExtInt
-		d1, d2, err := encode(t, v, true)
-		if err != nil {
-			t.Error(err)
-		}
-		err = decode(t, d1, d2, &r1, &r2, false)
-		if err != nil {
-			t.Error(err)
-		}
-		if err := equalCheck(v, r1); err != nil {
-			t.Error(err)
-		}
-		if err := equalCheck(r1, r2); err != nil {
-			t.Error(err)
-		}
-	}
-}
-
-func encode(t *testing.T, in interface{}, isDebug bool) ([]byte, []byte, error) {
+func encSt(t *testing.T, in interface{}, isDebug bool) ([]byte, []byte, error) {
 	var d1, d2 []byte
 	var err error
 	d1, err = msgpack.Encode(in)
@@ -902,7 +978,7 @@ func encode(t *testing.T, in interface{}, isDebug bool) ([]byte, []byte, error) 
 	return d1, d2, nil
 }
 
-func decode(t *testing.T, d1, d2 []byte, out1, out2 interface{}, isDebug bool) error {
+func decSt(t *testing.T, d1, d2 []byte, out1, out2 interface{}, isDebug bool) error {
 	if err := msgpack.Decode(d1, out1); err != nil {
 		return err
 	}
@@ -921,28 +997,49 @@ func decode(t *testing.T, d1, d2 []byte, out1, out2 interface{}, isDebug bool) e
 	return nil
 }
 
-// for check value
-func getValue(v interface{}) interface{} {
-	rv := reflect.ValueOf(v)
-	if rv.Kind() == reflect.Ptr {
-		rv = rv.Elem()
+/////////////////////////////////////////////////////////////
+func TestExt(t *testing.T) {
+	msgpack.AddExtCoder(encoder, decoder)
+
+	{
+		v := ExtInt{V: 321}
+		var r1, r2 ExtInt
+		d1, d2, err := encSt(t, v, false)
+		if err != nil {
+			t.Error(err)
+		}
+		err = decSt(t, d1, d2, &r1, &r2, false)
+		if err != nil {
+			t.Error(err)
+		}
+		if err := equalCheck(v, r1); err != nil {
+			t.Error(err)
+		}
+		if err := equalCheck(r1, r2); err != nil {
+			t.Error(err)
+		}
 	}
-	if rv.Kind() == reflect.Ptr {
-		rv = rv.Elem()
+	msgpack.RemoveExtCoder(encoder, decoder)
+	{
+		v := ExtInt{V: 123}
+		var r1, r2 ExtInt
+		d1, d2, err := encSt(t, v, false)
+		if err != nil {
+			t.Error(err)
+		}
+		err = decSt(t, d1, d2, &r1, &r2, false)
+		if err != nil {
+			t.Error(err)
+		}
+		if err := equalCheck(v, r1); err != nil {
+			t.Error(err)
+		}
+		if err := equalCheck(r1, r2); err != nil {
+			t.Error(err)
+		}
 	}
-	return rv.Interface()
 }
 
-func equalCheck(in, out interface{}) error {
-	i := getValue(in)
-	o := getValue(out)
-	if !reflect.DeepEqual(i, o) {
-		return errors.New(fmt.Sprint("value different \n[in]:", i, " \n[out]:", o))
-	}
-	return nil
-}
-
-///////
 type ExtStruct struct {
 	V int
 }
@@ -956,7 +1053,6 @@ type testDecoder struct {
 
 func (td *testDecoder) IsType(offset int, d *[]byte) bool {
 	code, offset := td.ReadSize1(offset, d)
-	fmt.Println("ok!!!!!!!!!!!!!")
 	if code == def.Fixext4 {
 		t, _ := td.ReadSize1(offset, d)
 		return int8(t) == -2
@@ -984,7 +1080,6 @@ type testEncoder struct {
 }
 
 func (s *testEncoder) IsType(value reflect.Value) bool {
-	fmt.Println("ok2!!!!!!!!!!!!!")
 	_, ok := value.Interface().(ExtInt)
 	return ok
 }
@@ -999,4 +1094,44 @@ func (s *testEncoder) WriteToBytes(value reflect.Value, offset int, bytes *[]byt
 	offset = s.SetByte1Int(-2, offset, bytes)
 	offset = s.SetByte4Int(t.V, offset, bytes)
 	return offset
+}
+
+/////////////////////////////////////////////////////////
+
+func encdec(v, r interface{}, j func(d byte) bool) error {
+	d, err := msgpack.Encode(v)
+	if err != nil {
+		return err
+	}
+	if !j(d[0]) {
+		return fmt.Errorf("different %s", hex.Dump(d))
+	}
+	if err := msgpack.Decode(d, r); err != nil {
+		return err
+	}
+	if err := equalCheck(v, r); err != nil {
+		return err
+	}
+	return nil
+}
+
+// for check value
+func getValue(v interface{}) interface{} {
+	rv := reflect.ValueOf(v)
+	if rv.Kind() == reflect.Ptr {
+		rv = rv.Elem()
+	}
+	if rv.Kind() == reflect.Ptr {
+		rv = rv.Elem()
+	}
+	return rv.Interface()
+}
+
+func equalCheck(in, out interface{}) error {
+	i := getValue(in)
+	o := getValue(out)
+	if !reflect.DeepEqual(i, o) {
+		return errors.New(fmt.Sprint("value different \n[in]:", i, " \n[out]:", o))
+	}
+	return nil
 }
