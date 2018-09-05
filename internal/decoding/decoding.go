@@ -315,7 +315,7 @@ func (d *decoder) deserialize(rv reflect.Value, offset int) (int, error) {
 		offset = o
 
 	default:
-		return 0, d.errorTemplate(d.data[offset], k)
+		return 0, fmt.Errorf("type(%v) is unsupported", rv.Kind())
 	}
 	return offset, nil
 }
