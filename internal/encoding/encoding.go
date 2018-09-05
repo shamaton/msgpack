@@ -248,7 +248,8 @@ func (e *encoder) calcSize(rv reflect.Value) (int, error) {
 	case reflect.Invalid:
 		// do nothing (return nil)
 
-		// todo : default
+	default:
+		return 0, fmt.Errorf("type(%v) is unsupported", rv.Kind())
 	}
 
 	return ret, nil
