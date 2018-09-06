@@ -23,7 +23,7 @@ func Decode(data []byte, holder interface{}, asArray bool) error {
 
 	rv = rv.Elem()
 
-	last, err := d.deserialize(rv, 0)
+	last, err := d.decode(rv, 0)
 	if err != nil {
 		return err
 	}
@@ -33,7 +33,7 @@ func Decode(data []byte, holder interface{}, asArray bool) error {
 	return err
 }
 
-func (d *decoder) deserialize(rv reflect.Value, offset int) (int, error) {
+func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
 	k := rv.Kind()
 	switch k {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -139,7 +139,7 @@ func (d *decoder) deserialize(rv reflect.Value, offset int) (int, error) {
 		tmpSlice := reflect.MakeSlice(rv.Type(), l, l)
 		for i := 0; i < l; i++ {
 			v := reflect.New(e).Elem()
-			o, err = d.deserialize(v, o)
+			o, err = d.decode(v, o)
 			if err != nil {
 				return 0, err
 			}
@@ -157,7 +157,6 @@ func (d *decoder) deserialize(rv reflect.Value, offset int) (int, error) {
 		}
 		// byte slice
 		if d.isCodeBin(d.data[offset]) {
-			// todo : length check
 			bs, offset, err := d.asBin(offset, k)
 			if err != nil {
 				return 0, err
@@ -198,7 +197,7 @@ func (d *decoder) deserialize(rv reflect.Value, offset int) (int, error) {
 
 		// create array dynamically
 		for i := 0; i < l; i++ {
-			o, err = d.deserialize(rv.Index(i), o)
+			o, err = d.decode(rv.Index(i), o)
 			if err != nil {
 				return 0, err
 			}
@@ -236,11 +235,11 @@ func (d *decoder) deserialize(rv reflect.Value, offset int) (int, error) {
 		for i := 0; i < l; i++ {
 			k := reflect.New(key).Elem()
 			v := reflect.New(value).Elem()
-			o, err = d.deserialize(k, o)
+			o, err = d.decode(k, o)
 			if err != nil {
 				return 0, err
 			}
-			o, err = d.deserialize(v, o)
+			o, err = d.decode(v, o)
 			if err != nil {
 				return 0, err
 			}
@@ -298,7 +297,7 @@ func (d *decoder) deserialize(rv reflect.Value, offset int) (int, error) {
 			rv.Set(n)
 		}
 
-		o, err := d.deserialize(rv.Elem(), offset)
+		o, err := d.decode(rv.Elem(), offset)
 		if err != nil {
 			return 0, err
 		}
