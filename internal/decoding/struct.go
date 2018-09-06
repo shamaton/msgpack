@@ -40,7 +40,7 @@ func (d *decoder) setStructFromArray(rv reflect.Value, offset int, k reflect.Kin
 	// set value
 	for i := 0; i < l; i++ {
 		if i < len(scta.m) {
-			o, err = d.deserialize(rv.Field(scta.m[i]), o)
+			o, err = d.decode(rv.Field(scta.m[i]), o)
 			if err != nil {
 				return 0, err
 			}
@@ -76,7 +76,7 @@ func (d *decoder) setStructFromMap(rv reflect.Value, offset int, k reflect.Kind)
 			return 0, err
 		}
 		if _, ok := sctm.m[key]; ok {
-			o2, err = d.deserialize(rv.Field(sctm.m[key]), o2)
+			o2, err = d.decode(rv.Field(sctm.m[key]), o2)
 			if err != nil {
 				return 0, err
 			}
