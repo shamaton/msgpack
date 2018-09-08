@@ -1,5 +1,6 @@
 # MessagePack for Golang
 
+[![GoDoc](https://godoc.org/github.com/shamaton/msgpack?status.svg)](https://godoc.org/github.com/shamaton/msgpack)
 [![Build Status](https://travis-ci.org/shamaton/msgpack.svg?branch=master)](https://travis-ci.org/shamaton/msgpack)
 [![Coverage Status](https://coveralls.io/repos/github/shamaton/msgpack/badge.svg)](https://coveralls.io/github/shamaton/msgpack)
 [![Releases](https://img.shields.io/github/release/shamaton/msgpack.svg)](https://github.com/shamaton/msgpack/releases)
