@@ -31,7 +31,7 @@ func main() {
 		panic(err)
 	}
 	r := Struct{}
-	err = msgpack.Decode(&r, d)
+	err = msgpack.Decode(d, &r)
 	if err != nil {
 		panic(err)
 	}
