@@ -17,6 +17,26 @@ type structCache struct {
 
 var cachemap = map[reflect.Type]*structCache{}
 
+func (e *encoder) calcStruct(rv reflect.Value) (int, error) {
+	/*
+		if isTime, tm := e.isDateTime(rv); isTime {
+			size := e.calcTime(tm)
+			return size, nil
+		}
+	*/
+
+	for i := range extCoders {
+		if extCoders[i].IsType(rv) {
+			return extCoders[i].CalcByteSize(rv)
+		}
+	}
+
+	if e.asArray {
+		return e.calcStructArray(rv)
+	}
+	return e.calcStructMap(rv)
+}
+
 func (e *encoder) calcStructArray(rv reflect.Value) (int, error) {
 	ret := 0
 	t := rv.Type()
@@ -106,6 +126,25 @@ func (e *encoder) calcStructMap(rv reflect.Value) (int, error) {
 		return 0, fmt.Errorf("not support this array length : %d", l)
 	}
 	return ret, nil
+}
+
+func (e *encoder) writeStruct(rv reflect.Value, offset int) int {
+	/*
+		if isTime, tm := e.isDateTime(rv); isTime {
+			return e.writeTime(tm, offset)
+		}
+	*/
+
+	for i := range extCoders {
+		if extCoders[i].IsType(rv) {
+			return extCoders[i].WriteToBytes(rv, offset, &e.d)
+		}
+	}
+
+	if e.asArray {
+		return e.writeStructArray(rv, offset)
+	}
+	return e.writeStructMap(rv, offset)
 }
 
 func (e *encoder) writeStructArray(rv reflect.Value, offset int) int {
