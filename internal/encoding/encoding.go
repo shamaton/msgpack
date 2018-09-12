@@ -118,11 +118,26 @@ func (e *encoder) calcSize(rv reflect.Value) (int, error) {
 
 		// objects size
 		for i := 0; i < l; i++ {
-			s, err := e.calcSize(rv.Index(i))
-			if err != nil {
-				return 0, err
+			rvv := rv.Index(i)
+			if rvv.Kind() != reflect.Struct {
+				s, err := e.calcSize(rvv)
+				if err != nil {
+					return 0, err
+				}
+				ret += s
+			} else {
+				var size int
+				var err error
+				if e.asArray {
+					size, err = e.calcStructArray(rvv)
+				} else {
+					size, err = e.calcStructMap(rvv)
+				}
+				if err != nil {
+					return 0, err
+				}
+				ret += def.Byte1 + size
 			}
-			ret += s
 		}
 
 	case reflect.Array:
@@ -299,7 +314,16 @@ func (e *encoder) create(rv reflect.Value, offset int) int {
 
 		// objects
 		for i := 0; i < l; i++ {
-			offset = e.create(rv.Index(i), offset)
+			rvv := rv.Index(i)
+			if rvv.Kind() != reflect.Struct {
+				offset = e.create(rvv.Index(i), offset)
+			} else {
+				if e.asArray {
+					offset = e.writeStructArray(rvv, offset)
+				} else {
+					offset = e.writeStructMap(rvv, offset)
+				}
+			}
 		}
 
 	case reflect.Array:
