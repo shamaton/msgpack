@@ -10,6 +10,7 @@ import (
 var extCoderMap = map[reflect.Type]ext.Decoder{reflect.TypeOf(time.Decoder): time.Decoder}
 var extCoders = []ext.Decoder{time.Decoder}
 
+// todo : change target encoding type
 func AddExtDecoder(f ext.Decoder) {
 	t := reflect.TypeOf(f)
 	// ignore time

@@ -17,16 +17,32 @@ type structCache struct {
 
 var cachemap = map[reflect.Type]*structCache{}
 
-func (e *encoder) calcStruct(rv reflect.Value) (int, error) {
-	/*
-		if isTime, tm := e.isDateTime(rv); isTime {
-			size := e.calcTime(tm)
-			return size, nil
+type structCalcFunc func(rv reflect.Value) (int, error)
+type structWriteFunc func(rv reflect.Value, offset int) int
+
+func (e *encoder) getStructCalc(typ reflect.Type) structCalcFunc {
+
+	for j := range extCoders {
+		if extCoders[j].IsType(typ) {
+			return extCoders[j].CalcByteSize
 		}
-	*/
+	}
+	if e.asArray {
+		return e.calcStructArray
+	}
+	return e.calcStructMap
+
+}
+
+func (e *encoder) calcStruct(rv reflect.Value) (int, error) {
+
+	//if isTime, tm := e.isDateTime(rv); isTime {
+	//	size := e.calcTime(tm)
+	//	return size, nil
+	//}
 
 	for i := range extCoders {
-		if extCoders[i].IsType(rv) {
+		if extCoders[i].IsType(rv.Type()) {
 			return extCoders[i].CalcByteSize(rv)
 		}
 	}
@@ -128,6 +144,22 @@ func (e *encoder) calcStructMap(rv reflect.Value) (int, error) {
 	return ret, nil
 }
 
+func (e *encoder) getStructWriter(typ reflect.Type) structWriteFunc {
+
+	for i := range extCoders {
+		if extCoders[i].IsType(typ) {
+			return func(rv reflect.Value, offset int) int {
+				return extCoders[i].WriteToBytes(rv, offset, &e.d)
+			}
+		}
+	}
+
+	if e.asArray {
+		return e.writeStructArray
+	}
+	return e.writeStructMap
+}
+
 func (e *encoder) writeStruct(rv reflect.Value, offset int) int {
 	/*
 		if isTime, tm := e.isDateTime(rv); isTime {
@@ -136,7 +168,7 @@ func (e *encoder) writeStruct(rv reflect.Value, offset int) int {
 	*/
 
 	for i := range extCoders {
-		if extCoders[i].IsType(rv) {
+		if extCoders[i].IsType(rv.Type()) {
 			return extCoders[i].WriteToBytes(rv, offset, &e.d)
 		}
 	}
