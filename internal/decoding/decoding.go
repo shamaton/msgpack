@@ -135,15 +135,12 @@ func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
 		}
 
 		// create slice dynamically
+		// TODO: check elem
 		tmpSlice := reflect.MakeSlice(rv.Type(), l, l)
 		for i := 0; i < l; i++ {
 			v := tmpSlice.Index(i)
 			if v.Kind() == reflect.Struct {
-				var r interface{}
-				r, o, err = d.setStruct(v, o, k)
-				if r != nil {
-					v.Set(reflect.ValueOf(r))
-				}
+				o, err = d.setStruct(v, o, k)
 			} else {
 				o, err = d.decode(v, o)
 			}
@@ -254,12 +251,9 @@ func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
 		offset = o
 
 	case reflect.Struct:
-		r, o, err := d.setStruct(rv, offset, k)
+		o, err := d.setStruct(rv, offset, k)
 		if err != nil {
 			return 0, err
-		}
-		if r != nil {
-			rv.Set(reflect.ValueOf(r))
 		}
 		offset = o
 
