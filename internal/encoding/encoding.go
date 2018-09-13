@@ -116,28 +116,23 @@ func (e *encoder) calcSize(rv reflect.Value) (int, error) {
 			return ret, nil
 		}
 
+		// func
+		elem := rv.Type().Elem()
+		var f structCalcFunc
+		if elem.Kind() == reflect.Struct {
+			f = e.getStructCalc(elem)
+			ret += def.Byte1 * l
+		} else {
+			f = e.calcSize
+		}
+
 		// objects size
 		for i := 0; i < l; i++ {
-			rvv := rv.Index(i)
-			if rvv.Kind() != reflect.Struct {
-				s, err := e.calcSize(rvv)
-				if err != nil {
-					return 0, err
-				}
-				ret += s
-			} else {
-				var size int
-				var err error
-				if e.asArray {
-					size, err = e.calcStructArray(rvv)
-				} else {
-					size, err = e.calcStructMap(rvv)
-				}
-				if err != nil {
-					return 0, err
-				}
-				ret += def.Byte1 + size
+			size, err := f(rv.Index(i))
+			if err != nil {
+				return 0, err
 			}
+			ret += size
 		}
 
 	case reflect.Array:
@@ -287,18 +282,18 @@ func (e *encoder) create(rv reflect.Value, offset int) int {
 			return offset
 		}
 
+		// func
+		elem := rv.Type().Elem()
+		var f structWriteFunc
+		if elem.Kind() == reflect.Struct {
+			f = e.getStructWriter(elem)
+		} else {
+			f = e.create
+		}
+
 		// objects
 		for i := 0; i < l; i++ {
-			rvv := rv.Index(i)
-			if rvv.Kind() != reflect.Struct {
-				offset = e.create(rvv, offset)
-			} else {
-				if e.asArray {
-					offset = e.writeStructArray(rvv, offset)
-				} else {
-					offset = e.writeStructMap(rvv, offset)
-				}
-			}
+			offset = f(rv.Index(i), offset)
 		}
 
 	case reflect.Array:

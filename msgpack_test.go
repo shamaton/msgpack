@@ -1,7 +1,6 @@
 package msgpack_test
 
 import (
-	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -14,7 +13,6 @@ import (
 
 	"github.com/shamaton/msgpack"
 	"github.com/shamaton/msgpack/def"
-	"github.com/shamaton/msgpack/ext"
 )
 
 var now time.Time
@@ -886,21 +884,22 @@ func testStructUseCase(t *testing.T) {
 		Child         child2
 	}
 	type st struct {
-		Int8     int8
-		Int16    int16
-		Int32    int32
-		Int64    int64
-		Uint8    byte
-		Uint16   uint16
-		Uint32   uint32
-		Uint64   uint64
-		Float    float32
-		Double   float64
-		Bool     bool
-		String   string
-		Time     time.Time
-		Duration time.Duration
-		Child    child
+		Int8        int8
+		Int16       int16
+		Int32       int32
+		Int64       int64
+		Uint8       byte
+		Uint16      uint16
+		Uint32      uint32
+		Uint64      uint64
+		Float       float32
+		Double      float64
+		Bool        bool
+		String      string
+		Time        time.Time
+		Duration    time.Duration
+		Child       child
+		Child3Array []child3
 	}
 	v := &st{
 		Int32:    -32,
@@ -935,6 +934,8 @@ func testStructUseCase(t *testing.T) {
 				Duration2Struct: map[time.Duration]child3{time.Duration(1 * time.Hour): child3{Int: 1}, time.Duration(2 * time.Hour): child3{Int: 2}},
 			},
 		},
+
+		Child3Array: []child3{child3{Int: 100}, child3{Int: 1000000}, child3{Int: 100000000}},
 	}
 
 	r1, r2 := st{}, st{}
@@ -998,6 +999,7 @@ func decSt(t *testing.T, d1, d2 []byte, out1, out2 interface{}, isDebug bool) er
 }
 
 /////////////////////////////////////////////////////////////
+/*
 func TestExt(t *testing.T) {
 	msgpack.AddExtCoder(encoder, decoder)
 
@@ -1095,6 +1097,7 @@ func (s *testEncoder) WriteToBytes(value reflect.Value, offset int, bytes *[]byt
 	offset = s.SetByte4Int(t.V, offset, bytes)
 	return offset
 }
+*/
 
 /////////////////////////////////////////////////////////
 

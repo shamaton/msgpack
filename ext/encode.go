@@ -5,7 +5,7 @@ import (
 )
 
 type Encoder interface {
-	IsType(value reflect.Value) bool
+	IsType(typ reflect.Type) bool
 	CalcByteSize(value reflect.Value) (int, error)
 	WriteToBytes(value reflect.Value, offset int, bytes *[]byte) int
 }
