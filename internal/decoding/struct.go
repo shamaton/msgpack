@@ -19,7 +19,7 @@ type structCacheTypeArray struct {
 var mapSCTM = map[reflect.Type]*structCacheTypeMap{}
 var mapSCTA = map[reflect.Type]*structCacheTypeArray{}
 
-func (d *decoder) setStruct(rv reflect.Value, offset int, k reflect.Kind) (interface{}, int, error) {
+func (d *decoder) setStruct(rv reflect.Value, offset int, k reflect.Kind) (int, error) {
 	/*
 		if d.isDateTime(offset) {
 			dt, offset, err := d.asDateTime(offset, k)
@@ -35,18 +35,17 @@ func (d *decoder) setStruct(rv reflect.Value, offset int, k reflect.Kind) (inter
 		if extCoders[i].IsType(offset, &d.data) {
 			v, offset, err := extCoders[i].AsValue(offset, k, &d.data)
 			if err != nil {
-				return nil, 0, err
+				return 0, err
 			}
-			return v, offset, nil
+			rv.Set(reflect.ValueOf(v))
+			return offset, nil
 		}
 	}
 
 	if d.asArray {
-		o, err := d.setStructFromArray(rv, offset, k)
-		return nil, o, err
+		return d.setStructFromArray(rv, offset, k)
 	}
-	o, err := d.setStructFromMap(rv, offset, k)
-	return nil, o, err
+	return d.setStructFromMap(rv, offset, k)
 }
 
 func (d *decoder) setStructFromArray(rv reflect.Value, offset int, k reflect.Kind) (int, error) {
