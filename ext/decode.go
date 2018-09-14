@@ -7,6 +7,7 @@ import (
 )
 
 type Decoder interface {
+	Code() int8
 	IsType(offset int, d *[]byte) bool
 	AsValue(offset int, k reflect.Kind, d *[]byte) (interface{}, int, error)
 }

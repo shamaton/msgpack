@@ -1,6 +1,7 @@
 package msgpack_test
 
 import (
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/shamaton/msgpack"
 	"github.com/shamaton/msgpack/def"
+	"github.com/shamaton/msgpack/ext"
 )
 
 var now time.Time
@@ -999,7 +1001,7 @@ func decSt(t *testing.T, d1, d2 []byte, out1, out2 interface{}, isDebug bool) er
 }
 
 /////////////////////////////////////////////////////////////
-/*
+
 func TestExt(t *testing.T) {
 	msgpack.AddExtCoder(encoder, decoder)
 
@@ -1053,11 +1055,15 @@ type testDecoder struct {
 	ext.DecoderCommon
 }
 
+func (td *testDecoder) Code() int8 {
+	return -2
+}
+
 func (td *testDecoder) IsType(offset int, d *[]byte) bool {
 	code, offset := td.ReadSize1(offset, d)
 	if code == def.Fixext4 {
 		t, _ := td.ReadSize1(offset, d)
-		return int8(t) == -2
+		return int8(t) == td.Code()
 	}
 	return false
 }
@@ -1081,9 +1087,12 @@ type testEncoder struct {
 	ext.EncoderCommon
 }
 
-func (s *testEncoder) IsType(value reflect.Value) bool {
-	_, ok := value.Interface().(ExtInt)
-	return ok
+func (s testEncoder) code() int {
+	return -2
+}
+
+func (s *testEncoder) Type() reflect.Type {
+	return reflect.TypeOf(ExtInt{})
 }
 
 func (s *testEncoder) CalcByteSize(value reflect.Value) (int, error) {
@@ -1093,11 +1102,10 @@ func (s *testEncoder) CalcByteSize(value reflect.Value) (int, error) {
 func (s *testEncoder) WriteToBytes(value reflect.Value, offset int, bytes *[]byte) int {
 	t := value.Interface().(ExtInt)
 	offset = s.SetByte1Int(def.Fixext4, offset, bytes)
-	offset = s.SetByte1Int(-2, offset, bytes)
+	offset = s.SetByte1Int(s.code(), offset, bytes)
 	offset = s.SetByte4Int(t.V, offset, bytes)
 	return offset
 }
-*/
 
 /////////////////////////////////////////////////////////
 
