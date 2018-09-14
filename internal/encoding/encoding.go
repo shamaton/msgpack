@@ -160,13 +160,23 @@ func (e *encoder) calcSize(rv reflect.Value) (int, error) {
 			return 0, fmt.Errorf("not support this array length : %d", l)
 		}
 
+		// func
+		elem := rv.Type().Elem()
+		var f structCalcFunc
+		if elem.Kind() == reflect.Struct {
+			f = e.getStructCalc(elem)
+			ret += def.Byte1 * l
+		} else {
+			f = e.calcSize
+		}
+
 		// objects size
 		for i := 0; i < l; i++ {
-			s, err := e.calcSize(rv.Index(i))
+			size, err := f(rv.Index(i))
 			if err != nil {
 				return 0, err
 			}
-			ret += s
+			ret += size
 		}
 
 	case reflect.Map:
@@ -311,9 +321,18 @@ func (e *encoder) create(rv reflect.Value, offset int) int {
 		// format
 		offset = e.writeSliceLength(l, offset)
 
+		// func
+		elem := rv.Type().Elem()
+		var f structWriteFunc
+		if elem.Kind() == reflect.Struct {
+			f = e.getStructWriter(elem)
+		} else {
+			f = e.create
+		}
+
 		// objects
 		for i := 0; i < l; i++ {
-			offset = e.create(rv.Index(i), offset)
+			offset = f(rv.Index(i), offset)
 		}
 
 	case reflect.Map:
