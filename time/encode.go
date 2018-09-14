@@ -16,8 +16,8 @@ type timeEncoder struct {
 
 var typeOf = reflect.TypeOf(time.Time{})
 
-func (s *timeEncoder) IsType(typ reflect.Type) bool {
-	return typeOf == typ
+func (s *timeEncoder) Type() reflect.Type {
+	return typeOf
 }
 
 func (s *timeEncoder) CalcByteSize(value reflect.Value) (int, error) {

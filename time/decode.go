@@ -18,19 +18,23 @@ type timeDecoder struct {
 	ext.DecoderCommon
 }
 
+func (td *timeDecoder) Code() int8 {
+	return def.TimeStamp
+}
+
 func (td *timeDecoder) IsType(offset int, d *[]byte) bool {
 	code, offset := td.ReadSize1(offset, d)
 
 	if code == def.Fixext4 {
 		t, _ := td.ReadSize1(offset, d)
-		return int8(t) == def.TimeStamp
+		return int8(t) == td.Code()
 	} else if code == def.Fixext8 {
 		t, _ := td.ReadSize1(offset, d)
-		return int8(t) == def.TimeStamp
+		return int8(t) == td.Code()
 	} else if code == def.Ext8 {
 		l, offset := td.ReadSize1(offset, d)
 		t, _ := td.ReadSize1(offset, d)
-		return l == 12 && int8(t) == def.TimeStamp
+		return l == 12 && int8(t) == td.Code()
 	}
 	return false
 }

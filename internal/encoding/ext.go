@@ -7,34 +7,31 @@ import (
 	"github.com/shamaton/msgpack/time"
 )
 
-var extCoderMap = map[reflect.Type]ext.Encoder{reflect.TypeOf(time.Encoder): time.Encoder}
+var extCoderMap = map[reflect.Type]ext.Encoder{time.Encoder.Type(): time.Encoder}
 var extCoders = []ext.Encoder{time.Encoder}
 
-// todo : change target encoding type
 func AddExtEncoder(f ext.Encoder) {
-	t := reflect.TypeOf(f)
 	// ignore time
-	if t == reflect.TypeOf(time.Encoder) {
+	if f.Type() == time.Encoder.Type() {
 		return
 	}
 
-	_, ok := extCoderMap[t]
+	_, ok := extCoderMap[f.Type()]
 	if !ok {
-		extCoderMap[t] = f
+		extCoderMap[f.Type()] = f
 		updateExtCoders()
 	}
 }
 
 func RemoveExtEncoder(f ext.Encoder) {
-	t := reflect.TypeOf(f)
 	// ignore time
-	if t == reflect.TypeOf(time.Encoder) {
+	if f.Type() == time.Encoder.Type() {
 		return
 	}
 
-	_, ok := extCoderMap[t]
+	_, ok := extCoderMap[f.Type()]
 	if ok {
-		delete(extCoderMap, t)
+		delete(extCoderMap, f.Type())
 		updateExtCoders()
 	}
 }
