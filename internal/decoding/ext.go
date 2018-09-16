@@ -1,39 +1,36 @@
 package decoding
 
 import (
-	"reflect"
-
 	"github.com/shamaton/msgpack/ext"
 	"github.com/shamaton/msgpack/time"
 )
 
-var extCoderMap = map[reflect.Type]ext.Decoder{reflect.TypeOf(time.Decoder): time.Decoder}
+var extCoderMap = map[int8]ext.Decoder{time.Decoder.Code(): time.Decoder}
 var extCoders = []ext.Decoder{time.Decoder}
 
+// todo : change target encoding type
 func AddExtDecoder(f ext.Decoder) {
-	t := reflect.TypeOf(f)
 	// ignore time
-	if t == reflect.TypeOf(time.Decoder) {
+	if f.Code() == time.Decoder.Code() {
 		return
 	}
 
-	_, ok := extCoderMap[t]
+	_, ok := extCoderMap[f.Code()]
 	if !ok {
-		extCoderMap[t] = f
+		extCoderMap[f.Code()] = f
 		updateExtCoders()
 	}
 }
 
 func RemoveExtDecoder(f ext.Decoder) {
-	t := reflect.TypeOf(f)
 	// ignore time
-	if t == reflect.TypeOf(time.Decoder) {
+	if f.Code() == time.Decoder.Code() {
 		return
 	}
 
-	_, ok := extCoderMap[t]
+	_, ok := extCoderMap[f.Code()]
 	if ok {
-		delete(extCoderMap, t)
+		delete(extCoderMap, f.Code())
 		updateExtCoders()
 	}
 }

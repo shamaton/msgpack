@@ -135,16 +135,18 @@ func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
 		}
 
 		// create slice dynamically
-		e := rv.Type().Elem()
+		// TODO: check elem
 		tmpSlice := reflect.MakeSlice(rv.Type(), l, l)
 		for i := 0; i < l; i++ {
-			v := reflect.New(e).Elem()
-			o, err = d.decode(v, o)
+			v := tmpSlice.Index(i)
+			if v.Kind() == reflect.Struct {
+				o, err = d.setStruct(v, o, k)
+			} else {
+				o, err = d.decode(v, o)
+			}
 			if err != nil {
 				return 0, err
 			}
-
-			tmpSlice.Index(i).Set(v)
 		}
 		rv.Set(tmpSlice)
 		offset = o
@@ -249,41 +251,11 @@ func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
 		offset = o
 
 	case reflect.Struct:
-		/*
-			if d.isDateTime(offset) {
-				dt, offset, err := d.asDateTime(offset, k)
-				if err != nil {
-					return 0, err
-				}
-				rv.Set(reflect.ValueOf(dt))
-				return offset, nil
-			}
-		*/
-
-		for i := range extCoders {
-			if extCoders[i].IsType(offset, &d.data) {
-				v, offset, err := extCoders[i].AsValue(offset, k, &d.data)
-				if err != nil {
-					return 0, err
-				}
-				rv.Set(reflect.ValueOf(v))
-				return offset, nil
-			}
+		o, err := d.setStruct(rv, offset, k)
+		if err != nil {
+			return 0, err
 		}
-
-		if d.asArray {
-			o, err := d.setStructFromArray(rv, offset, k)
-			if err != nil {
-				return 0, err
-			}
-			offset = o
-		} else {
-			o, err := d.setStructFromMap(rv, offset, k)
-			if err != nil {
-				return 0, err
-			}
-			offset = o
-		}
+		offset = o
 
 	case reflect.Ptr:
 		// nil

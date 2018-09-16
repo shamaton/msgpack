@@ -886,21 +886,22 @@ func testStructUseCase(t *testing.T) {
 		Child         child2
 	}
 	type st struct {
-		Int8     int8
-		Int16    int16
-		Int32    int32
-		Int64    int64
-		Uint8    byte
-		Uint16   uint16
-		Uint32   uint32
-		Uint64   uint64
-		Float    float32
-		Double   float64
-		Bool     bool
-		String   string
-		Time     time.Time
-		Duration time.Duration
-		Child    child
+		Int8        int8
+		Int16       int16
+		Int32       int32
+		Int64       int64
+		Uint8       byte
+		Uint16      uint16
+		Uint32      uint32
+		Uint64      uint64
+		Float       float32
+		Double      float64
+		Bool        bool
+		String      string
+		Time        time.Time
+		Duration    time.Duration
+		Child       child
+		Child3Array []child3
 	}
 	v := &st{
 		Int32:    -32,
@@ -935,6 +936,8 @@ func testStructUseCase(t *testing.T) {
 				Duration2Struct: map[time.Duration]child3{time.Duration(1 * time.Hour): child3{Int: 1}, time.Duration(2 * time.Hour): child3{Int: 2}},
 			},
 		},
+
+		Child3Array: []child3{child3{Int: 100}, child3{Int: 1000000}, child3{Int: 100000000}},
 	}
 
 	r1, r2 := st{}, st{}
@@ -998,6 +1001,7 @@ func decSt(t *testing.T, d1, d2 []byte, out1, out2 interface{}, isDebug bool) er
 }
 
 /////////////////////////////////////////////////////////////
+
 func TestExt(t *testing.T) {
 	msgpack.AddExtCoder(encoder, decoder)
 
@@ -1051,11 +1055,15 @@ type testDecoder struct {
 	ext.DecoderCommon
 }
 
+func (td *testDecoder) Code() int8 {
+	return -2
+}
+
 func (td *testDecoder) IsType(offset int, d *[]byte) bool {
 	code, offset := td.ReadSize1(offset, d)
 	if code == def.Fixext4 {
 		t, _ := td.ReadSize1(offset, d)
-		return int8(t) == -2
+		return int8(t) == td.Code()
 	}
 	return false
 }
@@ -1079,9 +1087,12 @@ type testEncoder struct {
 	ext.EncoderCommon
 }
 
-func (s *testEncoder) IsType(value reflect.Value) bool {
-	_, ok := value.Interface().(ExtInt)
-	return ok
+func (s testEncoder) code() int {
+	return -2
+}
+
+func (s *testEncoder) Type() reflect.Type {
+	return reflect.TypeOf(ExtInt{})
 }
 
 func (s *testEncoder) CalcByteSize(value reflect.Value) (int, error) {
@@ -1091,7 +1102,7 @@ func (s *testEncoder) CalcByteSize(value reflect.Value) (int, error) {
 func (s *testEncoder) WriteToBytes(value reflect.Value, offset int, bytes *[]byte) int {
 	t := value.Interface().(ExtInt)
 	offset = s.SetByte1Int(def.Fixext4, offset, bytes)
-	offset = s.SetByte1Int(-2, offset, bytes)
+	offset = s.SetByte1Int(s.code(), offset, bytes)
 	offset = s.SetByte4Int(t.V, offset, bytes)
 	return offset
 }
