@@ -14,9 +14,10 @@ type timeEncoder struct {
 	ext.EncoderCommon
 }
 
-func (s *timeEncoder) IsType(value reflect.Value) bool {
-	_, ok := value.Interface().(time.Time)
-	return ok
+var typeOf = reflect.TypeOf(time.Time{})
+
+func (s *timeEncoder) Type() reflect.Type {
+	return typeOf
 }
 
 func (s *timeEncoder) CalcByteSize(value reflect.Value) (int, error) {

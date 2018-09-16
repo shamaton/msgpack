@@ -116,13 +116,23 @@ func (e *encoder) calcSize(rv reflect.Value) (int, error) {
 			return ret, nil
 		}
 
+		// func
+		elem := rv.Type().Elem()
+		var f structCalcFunc
+		if elem.Kind() == reflect.Struct {
+			f = e.getStructCalc(elem)
+			ret += def.Byte1 * l
+		} else {
+			f = e.calcSize
+		}
+
 		// objects size
 		for i := 0; i < l; i++ {
-			s, err := e.calcSize(rv.Index(i))
+			size, err := f(rv.Index(i))
 			if err != nil {
 				return 0, err
 			}
-			ret += s
+			ret += size
 		}
 
 	case reflect.Array:
@@ -150,13 +160,23 @@ func (e *encoder) calcSize(rv reflect.Value) (int, error) {
 			return 0, fmt.Errorf("not support this array length : %d", l)
 		}
 
+		// func
+		elem := rv.Type().Elem()
+		var f structCalcFunc
+		if elem.Kind() == reflect.Struct {
+			f = e.getStructCalc(elem)
+			ret += def.Byte1 * l
+		} else {
+			f = e.calcSize
+		}
+
 		// objects size
 		for i := 0; i < l; i++ {
-			s, err := e.calcSize(rv.Index(i))
+			size, err := f(rv.Index(i))
 			if err != nil {
 				return 0, err
 			}
-			ret += s
+			ret += size
 		}
 
 	case reflect.Map:
@@ -197,32 +217,7 @@ func (e *encoder) calcSize(rv reflect.Value) (int, error) {
 		}
 
 	case reflect.Struct:
-		/*
-			if isTime, tm := e.isDateTime(rv); isTime {
-				size := e.calcTime(tm)
-				ret += size
-				return ret, nil
-			}
-		*/
-
-		for i := range extCoders {
-			if extCoders[i].IsType(rv) {
-				size, err := extCoders[i].CalcByteSize(rv)
-				if err != nil {
-					return 0, err
-				}
-				ret += size
-				return ret, nil
-			}
-		}
-
-		var size int
-		var err error
-		if e.asArray {
-			size, err = e.calcStructArray(rv)
-		} else {
-			size, err = e.calcStructMap(rv)
-		}
+		size, err := e.calcStruct(rv)
 		if err != nil {
 			return 0, err
 		}
@@ -297,9 +292,18 @@ func (e *encoder) create(rv reflect.Value, offset int) int {
 			return offset
 		}
 
+		// func
+		elem := rv.Type().Elem()
+		var f structWriteFunc
+		if elem.Kind() == reflect.Struct {
+			f = e.getStructWriter(elem)
+		} else {
+			f = e.create
+		}
+
 		// objects
 		for i := 0; i < l; i++ {
-			offset = e.create(rv.Index(i), offset)
+			offset = f(rv.Index(i), offset)
 		}
 
 	case reflect.Array:
@@ -317,9 +321,18 @@ func (e *encoder) create(rv reflect.Value, offset int) int {
 		// format
 		offset = e.writeSliceLength(l, offset)
 
+		// func
+		elem := rv.Type().Elem()
+		var f structWriteFunc
+		if elem.Kind() == reflect.Struct {
+			f = e.getStructWriter(elem)
+		} else {
+			f = e.create
+		}
+
 		// objects
 		for i := 0; i < l; i++ {
-			offset = e.create(rv.Index(i), offset)
+			offset = f(rv.Index(i), offset)
 		}
 
 	case reflect.Map:
@@ -342,23 +355,7 @@ func (e *encoder) create(rv reflect.Value, offset int) int {
 		}
 
 	case reflect.Struct:
-		/*
-			if isTime, tm := e.isDateTime(rv); isTime {
-				return e.writeTime(tm, offset)
-			}
-		*/
-
-		for i := range extCoders {
-			if extCoders[i].IsType(rv) {
-				return extCoders[i].WriteToBytes(rv, offset, &e.d)
-			}
-		}
-
-		if e.asArray {
-			offset = e.writeStructArray(rv, offset)
-		} else {
-			offset = e.writeStructMap(rv, offset)
-		}
+		offset = e.writeStruct(rv, offset)
 
 	case reflect.Ptr:
 		if rv.IsNil() {
