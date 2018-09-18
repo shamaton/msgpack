@@ -148,7 +148,6 @@ func (e *encoder) calcSize(rv reflect.Value) (int, error) {
 		}
 
 		// format size
-		// todo : func
 		if l <= 0x0f {
 			// format code only
 		} else if l <= math.MaxUint16 {
