@@ -7,6 +7,14 @@ import (
 	"github.com/shamaton/msgpack/def"
 )
 
+var (
+	typeIntSlice   = reflect.TypeOf([]int{})
+	typeInt8Slice  = reflect.TypeOf([]int8{})
+	typeInt16Slice = reflect.TypeOf([]int16{})
+	typeInt32Slice = reflect.TypeOf([]int32{})
+	typeInt64Slice = reflect.TypeOf([]int64{})
+)
+
 func (d *decoder) isFixSlice(v byte) bool {
 	return def.FixArray <= v && v <= def.FixArray+0x0f
 }
