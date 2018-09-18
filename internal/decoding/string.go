@@ -12,12 +12,7 @@ var emptyString = ""
 var emptyBytes = []byte{}
 
 func (d *decoder) isCodeString(code byte) bool {
-	// todo : refactor
-	switch {
-	case d.isFixString(code), code == def.Str8, code == def.Str16, code == def.Str32:
-		return true
-	}
-	return false
+	return d.isFixString(code) || code == def.Str8 || code == def.Str16 || code == def.Str32
 }
 
 func (d *decoder) isFixString(v byte) bool {
