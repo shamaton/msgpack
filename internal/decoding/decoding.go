@@ -135,7 +135,6 @@ func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
 		}
 
 		// create slice dynamically
-		// TODO: check elem
 		tmpSlice := reflect.MakeSlice(rv.Type(), l, l)
 		for i := 0; i < l; i++ {
 			v := tmpSlice.Index(i)

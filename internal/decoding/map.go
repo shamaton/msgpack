@@ -7,6 +7,10 @@ import (
 	"github.com/shamaton/msgpack/def"
 )
 
+var (
+	typeMapStringInt = reflect.TypeOf(map[string]int{})
+)
+
 func (d *decoder) isFixMap(v byte) bool {
 	return def.FixMap <= v && v <= def.FixMap+0x0f
 }
@@ -30,9 +34,8 @@ func (d *decoder) mapLength(offset int, k reflect.Kind) (int, int, error) {
 func (d *decoder) asFixedMap(rv reflect.Value, offset int, l int) (int, bool, error) {
 	t := rv.Type()
 
-	// todo : refactor
-	keyKind := rv.Type().Key().Kind()
-	valueKind := rv.Type().Elem().Kind()
+	keyKind := t.Key().Kind()
+	valueKind := t.Elem().Kind()
 
 	// todo : add types
 	switch t {
