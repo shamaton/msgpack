@@ -231,7 +231,7 @@ func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
 		key := rv.Type().Key()
 		value := rv.Type().Elem()
 		if rv.IsNil() {
-			rv.Set(reflect.MakeMap(rv.Type()))
+			rv.Set(reflect.MakeMapWithSize(rv.Type(), l))
 		}
 		for i := 0; i < l; i++ {
 			k := reflect.New(key).Elem()
