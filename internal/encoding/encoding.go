@@ -14,6 +14,8 @@ type encoder struct {
 	d       []byte
 	asArray bool
 	common.Common
+	mk map[uintptr][]reflect.Value
+	mv map[uintptr][]reflect.Value
 }
 
 func Encode(v interface{}, asArray bool) (b []byte, err error) {
@@ -201,19 +203,30 @@ func (e *encoder) calcSize(rv reflect.Value) (int, error) {
 			return ret, nil
 		}
 
+		if e.mk == nil {
+			e.mk = map[uintptr][]reflect.Value{}
+			e.mv = map[uintptr][]reflect.Value{}
+		}
+
 		// key-value
 		keys := rv.MapKeys()
+		mv := make([]reflect.Value, len(keys))
+		i := 0
 		for _, k := range keys {
 			keySize, err := e.calcSize(k)
 			if err != nil {
 				return 0, err
 			}
-			valueSize, err := e.calcSize(rv.MapIndex(k))
+			value := rv.MapIndex(k)
+			valueSize, err := e.calcSize(value)
 			if err != nil {
 				return 0, err
 			}
 			ret += keySize + valueSize
+			mv[i] = value
+			i++
 		}
+		e.mk[rv.Pointer()], e.mv[rv.Pointer()] = keys, mv
 
 	case reflect.Struct:
 		size, err := e.calcStruct(rv)
@@ -347,10 +360,10 @@ func (e *encoder) create(rv reflect.Value, offset int) int {
 		}
 
 		// key-value
-		keys := rv.MapKeys()
-		for _, k := range keys {
-			offset = e.create(k, offset)
-			offset = e.create(rv.MapIndex(k), offset)
+		p := rv.Pointer()
+		for i := range e.mk[p] {
+			offset = e.create(e.mk[p][i], offset)
+			offset = e.create(e.mv[p][i], offset)
 		}
 
 	case reflect.Struct:
