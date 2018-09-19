@@ -83,7 +83,6 @@ func (e *encoder) calcStructArray(rv reflect.Value) (int, error) {
 	}
 
 	// format size
-	// todo : create func
 	l := len(c.indexes)
 	if l <= 0x0f {
 		// format code only
@@ -129,7 +128,6 @@ func (e *encoder) calcStructMap(rv reflect.Value) (int, error) {
 	}
 
 	// format size
-	// todo : create func
 	l := len(c.indexes)
 	if l <= 0x0f {
 		// format code only

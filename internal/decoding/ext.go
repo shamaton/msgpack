@@ -8,7 +8,6 @@ import (
 var extCoderMap = map[int8]ext.Decoder{time.Decoder.Code(): time.Decoder}
 var extCoders = []ext.Decoder{time.Decoder}
 
-// todo : change target encoding type
 func AddExtDecoder(f ext.Decoder) {
 	// ignore time
 	if f.Code() == time.Decoder.Code() {
