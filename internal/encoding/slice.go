@@ -9,7 +9,7 @@ import (
 
 func (e *encoder) calcFixedSlice(rv reflect.Value) (int, bool) {
 	size := 0
-	// todo : add types
+
 	switch sli := rv.Interface().(type) {
 	case []int:
 		for _, v := range sli {
@@ -46,13 +46,52 @@ func (e *encoder) calcFixedSlice(rv reflect.Value) (int, bool) {
 		return size, true
 
 	case []int8:
+		for _, v := range sli {
+			size += def.Byte1 + e.calcInt(int64(v))
+		}
+		return size, true
+
 	case []int16:
+		for _, v := range sli {
+			size += def.Byte1 + e.calcInt(int64(v))
+		}
+		return size, true
+
 	case []int32:
+		for _, v := range sli {
+			size += def.Byte1 + e.calcInt(int64(v))
+		}
+		return size, true
+
 	case []int64:
+		for _, v := range sli {
+			size += def.Byte1 + e.calcInt(v)
+		}
+		return size, true
+
 	case []uint8:
+		for _, v := range sli {
+			size += def.Byte1 + e.calcUint(uint64(v))
+		}
+		return size, true
+
 	case []uint16:
+		for _, v := range sli {
+			size += def.Byte1 + e.calcUint(uint64(v))
+		}
+		return size, true
+
 	case []uint32:
+		for _, v := range sli {
+			size += def.Byte1 + e.calcUint(uint64(v))
+		}
+		return size, true
+
 	case []uint64:
+		for _, v := range sli {
+			size += def.Byte1 + e.calcUint(v)
+		}
+		return size, true
 	}
 
 	return size, false
@@ -73,7 +112,7 @@ func (e *encoder) writeSliceLength(l int, offset int) int {
 }
 
 func (e *encoder) writeFixedSlice(rv reflect.Value, offset int) (int, bool) {
-	// todo : add types
+
 	switch sli := rv.Interface().(type) {
 	case []int:
 		for _, v := range sli {
@@ -112,13 +151,52 @@ func (e *encoder) writeFixedSlice(rv reflect.Value, offset int) (int, bool) {
 		return offset, true
 
 	case []int8:
+		for _, v := range sli {
+			offset = e.writeInt(int64(v), offset)
+		}
+		return offset, true
+
 	case []int16:
+		for _, v := range sli {
+			offset = e.writeInt(int64(v), offset)
+		}
+		return offset, true
+
 	case []int32:
+		for _, v := range sli {
+			offset = e.writeInt(int64(v), offset)
+		}
+		return offset, true
+
 	case []int64:
+		for _, v := range sli {
+			offset = e.writeInt(v, offset)
+		}
+		return offset, true
+
 	case []uint8:
+		for _, v := range sli {
+			offset = e.writeUint(uint64(v), offset)
+		}
+		return offset, true
+
 	case []uint16:
+		for _, v := range sli {
+			offset = e.writeUint(uint64(v), offset)
+		}
+		return offset, true
+
 	case []uint32:
+		for _, v := range sli {
+			offset = e.writeUint(uint64(v), offset)
+		}
+		return offset, true
+
 	case []uint64:
+		for _, v := range sli {
+			offset = e.writeUint(v, offset)
+		}
+		return offset, true
 	}
 
 	return offset, false
