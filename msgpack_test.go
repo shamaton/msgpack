@@ -552,6 +552,136 @@ func TestArray(t *testing.T) {
 	}
 }
 
+func TestFixedSlice(t *testing.T) {
+	{
+		var v, r []int
+		v = []int{-1, 1}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixArray <= code && code <= def.FixArray+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	{
+		var v, r []uint
+		v = []uint{0, 100}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixArray <= code && code <= def.FixArray+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	{
+		var v, r []int8
+		v = []int8{math.MinInt8, math.MaxInt8}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixArray <= code && code <= def.FixArray+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	{
+		var v, r []int16
+		v = []int16{math.MinInt16, math.MaxInt16}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixArray <= code && code <= def.FixArray+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	{
+		var v, r []int32
+		v = []int32{math.MinInt32, math.MaxInt32}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixArray <= code && code <= def.FixArray+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	{
+		var v, r []int64
+		v = []int64{math.MinInt64, math.MaxInt64}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixArray <= code && code <= def.FixArray+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	{
+		// byte array
+		var v, r []uint8
+		v = []uint8{0, math.MaxUint8}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.Bin8 == code
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	{
+		var v, r []uint16
+		v = []uint16{0, math.MaxUint16}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixArray <= code && code <= def.FixArray+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	{
+		var v, r []uint32
+		v = []uint32{0, math.MaxUint32}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixArray <= code && code <= def.FixArray+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	{
+		var v, r []uint64
+		v = []uint64{0, math.MaxUint64}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixArray <= code && code <= def.FixArray+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	{
+		var v, r []float32
+		v = []float32{math.SmallestNonzeroFloat32, math.MaxFloat32}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixArray <= code && code <= def.FixArray+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	{
+		var v, r []float64
+		v = []float64{math.SmallestNonzeroFloat64, math.MaxFloat64}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixArray <= code && code <= def.FixArray+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	{
+		var v, r []string
+		v = []string{"aaa", "bbb"}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixArray <= code && code <= def.FixArray+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	{
+		var v, r []bool
+		v = []bool{true, false}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixArray <= code && code <= def.FixArray+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+}
+
 func TestTime(t *testing.T) {
 	{
 		var v, r time.Time
