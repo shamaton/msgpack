@@ -552,6 +552,518 @@ func TestArray(t *testing.T) {
 	}
 }
 
+func TestFixedSlice(t *testing.T) {
+	{
+		var v, r []int
+		v = []int{-1, 1}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixArray <= code && code <= def.FixArray+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	{
+		var v, r []uint
+		v = []uint{0, 100}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixArray <= code && code <= def.FixArray+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	{
+		var v, r []int8
+		v = []int8{math.MinInt8, math.MaxInt8}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixArray <= code && code <= def.FixArray+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	{
+		var v, r []int16
+		v = []int16{math.MinInt16, math.MaxInt16}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixArray <= code && code <= def.FixArray+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	{
+		var v, r []int32
+		v = []int32{math.MinInt32, math.MaxInt32}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixArray <= code && code <= def.FixArray+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	{
+		var v, r []int64
+		v = []int64{math.MinInt64, math.MaxInt64}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixArray <= code && code <= def.FixArray+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	{
+		// byte array
+		var v, r []uint8
+		v = []uint8{0, math.MaxUint8}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.Bin8 == code
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	{
+		var v, r []uint16
+		v = []uint16{0, math.MaxUint16}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixArray <= code && code <= def.FixArray+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	{
+		var v, r []uint32
+		v = []uint32{0, math.MaxUint32}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixArray <= code && code <= def.FixArray+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	{
+		var v, r []uint64
+		v = []uint64{0, math.MaxUint64}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixArray <= code && code <= def.FixArray+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	{
+		var v, r []float32
+		v = []float32{math.SmallestNonzeroFloat32, math.MaxFloat32}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixArray <= code && code <= def.FixArray+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	{
+		var v, r []float64
+		v = []float64{math.SmallestNonzeroFloat64, math.MaxFloat64}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixArray <= code && code <= def.FixArray+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	{
+		var v, r []string
+		v = []string{"aaa", "bbb"}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixArray <= code && code <= def.FixArray+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	{
+		var v, r []bool
+		v = []bool{true, false}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixArray <= code && code <= def.FixArray+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+}
+
+func TestFixedMap(t *testing.T) {
+	{
+		var v, r map[string]int
+		v = map[string]int{"a": 1, "b": 2}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	{
+		var v, r map[string]uint
+		v = map[string]uint{"a": math.MaxUint32, "b": 0}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[string]string
+		v = map[string]string{"a": "12345", "abcdefghijklmnopqrstuvwxyz": "abcdefghijklmnopqrstuvwxyz"}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[string]float32
+		v = map[string]float32{"a": math.MaxFloat32, "b": math.SmallestNonzeroFloat32}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[string]float64
+		v = map[string]float64{"a": math.MaxFloat64, "b": math.SmallestNonzeroFloat64}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[string]bool
+		v = map[string]bool{"a": true, "b": false}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[string]int8
+		v = map[string]int8{"a": math.MinInt8, "b": math.MaxInt8}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[string]int16
+		v = map[string]int16{"a": math.MaxInt16, "b": math.MinInt16}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[string]int32
+		v = map[string]int32{"a": math.MaxInt32, "b": math.MinInt32}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[string]int64
+		v = map[string]int64{"a": math.MinInt64, "b": math.MaxInt64}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[string]uint8
+		v = map[string]uint8{"a": 0, "b": math.MaxUint8}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[string]uint16
+		v = map[string]uint16{"a": 0, "b": math.MaxUint16}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[string]uint32
+		v = map[string]uint32{"a": 0, "b": math.MaxUint32}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[string]uint64
+		v = map[string]uint64{"a": 0, "b": math.MaxUint64}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[int]string
+		v = map[int]string{0: "a", 1: "b"}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[int]bool
+		v = map[int]bool{1: true, 2: false}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[uint]string
+		v = map[uint]string{0: "a", 1: "b"}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[uint]bool
+		v = map[uint]bool{0: true, 255: false}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[float32]string
+		v = map[float32]string{math.MaxFloat32: "a", math.SmallestNonzeroFloat32: "b"}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[float32]bool
+		v = map[float32]bool{math.SmallestNonzeroFloat32: true, math.MaxFloat32: false}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[float64]string
+		v = map[float64]string{math.MaxFloat64: "a", math.SmallestNonzeroFloat64: "b"}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[float64]bool
+		v = map[float64]bool{math.SmallestNonzeroFloat64: true, math.MaxFloat64: false}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[int8]string
+		v = map[int8]string{math.MinInt8: "a", math.MaxInt8: "b"}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[int8]bool
+		v = map[int8]bool{math.MinInt8: true, math.MaxInt8: false}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[int16]string
+		v = map[int16]string{math.MaxInt16: "a", math.MinInt16: "b"}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[int16]bool
+		v = map[int16]bool{math.MaxInt16: true, math.MinInt16: false}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[int32]string
+		v = map[int32]string{math.MinInt32: "a", math.MaxInt32: "b"}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[int32]bool
+		v = map[int32]bool{math.MinInt32: true, math.MaxInt32: false}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[int64]string
+		v = map[int64]string{math.MaxInt64: "a", math.MinInt64: "b"}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[int64]bool
+		v = map[int64]bool{math.MaxInt64: true, math.MinInt64: false}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[uint8]string
+		v = map[uint8]string{0: "a", math.MaxUint8: "b"}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[uint8]bool
+		v = map[uint8]bool{0: true, math.MaxUint8: false}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[uint16]string
+		v = map[uint16]string{0: "a", math.MaxUint16: "b"}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[uint16]bool
+		v = map[uint16]bool{0: true, math.MaxUint16: false}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[uint32]string
+		v = map[uint32]string{0: "a", math.MaxUint32: "b"}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[uint32]bool
+		v = map[uint32]bool{0: true, math.MaxUint32: false}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[uint64]string
+		v = map[uint64]string{0: "a", math.MaxUint64: "b"}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+	{
+		var v, r map[uint64]bool
+		v = map[uint64]bool{0: true, math.MaxUint64: false}
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.FixMap <= code && code <= def.FixMap+0x0f
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+
+}
+
 func TestTime(t *testing.T) {
 	{
 		var v, r time.Time
