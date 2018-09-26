@@ -5,6 +5,7 @@ import (
 )
 
 type Encoder interface {
+	Code() int8
 	Type() reflect.Type
 	CalcByteSize(value reflect.Value) (int, error)
 	WriteToBytes(value reflect.Value, offset int, bytes *[]byte) int
