@@ -1515,7 +1515,10 @@ func decSt(t *testing.T, d1, d2 []byte, out1, out2 interface{}, isDebug bool) er
 /////////////////////////////////////////////////////////////
 
 func TestExt(t *testing.T) {
-	msgpack.AddExtCoder(encoder, decoder)
+	err := msgpack.AddExtCoder(encoder, decoder)
+	if err != nil {
+		t.Error(err)
+	}
 
 	{
 		v := ExtInt{V: 321}
@@ -1535,7 +1538,10 @@ func TestExt(t *testing.T) {
 			t.Error(err)
 		}
 	}
-	msgpack.RemoveExtCoder(encoder, decoder)
+	err = msgpack.RemoveExtCoder(encoder, decoder)
+	if err != nil {
+		t.Error(err)
+	}
 	{
 		v := ExtInt{V: 123}
 		var r1, r2 ExtInt
@@ -1567,8 +1573,10 @@ type testDecoder struct {
 	ext.DecoderCommon
 }
 
+var extIntCode = int8(-2)
+
 func (td *testDecoder) Code() int8 {
-	return -2
+	return extIntCode
 }
 
 func (td *testDecoder) IsType(offset int, d *[]byte) bool {
@@ -1599,8 +1607,8 @@ type testEncoder struct {
 	ext.EncoderCommon
 }
 
-func (s testEncoder) code() int {
-	return -2
+func (s *testEncoder) Code() int8 {
+	return extIntCode
 }
 
 func (s *testEncoder) Type() reflect.Type {
@@ -1614,7 +1622,7 @@ func (s *testEncoder) CalcByteSize(value reflect.Value) (int, error) {
 func (s *testEncoder) WriteToBytes(value reflect.Value, offset int, bytes *[]byte) int {
 	t := value.Interface().(ExtInt)
 	offset = s.SetByte1Int(def.Fixext4, offset, bytes)
-	offset = s.SetByte1Int(s.code(), offset, bytes)
+	offset = s.SetByte1Int(int(s.Code()), offset, bytes)
 	offset = s.SetByte4Int(t.V, offset, bytes)
 	return offset
 }
