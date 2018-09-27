@@ -1560,6 +1560,21 @@ func TestExt(t *testing.T) {
 			t.Error(err)
 		}
 	}
+
+	// error
+	enc2, dec2 := new(testExt2Encoder), new(testExt2Decoder)
+	err = msgpack.AddExtCoder(enc2, dec2)
+	if err != nil && strings.Contains(err.Error(), "code different") {
+		// ok
+	} else {
+		t.Error("unreachable", err)
+	}
+	err = msgpack.RemoveExtCoder(enc2, dec2)
+	if err != nil && strings.Contains(err.Error(), "code different") {
+		// ok
+	} else {
+		t.Error("unreachable", err)
+	}
 }
 
 type ExtStruct struct {
@@ -1624,6 +1639,49 @@ func (s *testEncoder) WriteToBytes(value reflect.Value, offset int, bytes *[]byt
 	offset = s.SetByte1Int(def.Fixext4, offset, bytes)
 	offset = s.SetByte1Int(int(s.Code()), offset, bytes)
 	offset = s.SetByte4Int(t.V, offset, bytes)
+	return offset
+}
+
+/////////////////////////////////////////////////////////
+
+type Ext2Struct struct {
+	V int
+}
+type Ext2Int Ext2Struct
+
+type testExt2Decoder struct {
+	ext.DecoderCommon
+}
+
+func (td *testExt2Decoder) Code() int8 {
+	return 3
+}
+
+func (td *testExt2Decoder) IsType(offset int, d *[]byte) bool {
+	return false
+}
+
+func (td *testExt2Decoder) AsValue(offset int, k reflect.Kind, d *[]byte) (interface{}, int, error) {
+	return Ext2Int{}, 0, fmt.Errorf("should not reach this line!! code %x decoding %v", 3, k)
+}
+
+type testExt2Encoder struct {
+	ext.EncoderCommon
+}
+
+func (s *testExt2Encoder) Code() int8 {
+	return -3
+}
+
+func (s *testExt2Encoder) Type() reflect.Type {
+	return reflect.TypeOf(ExtInt{})
+}
+
+func (s *testExt2Encoder) CalcByteSize(value reflect.Value) (int, error) {
+	return 0, nil
+}
+
+func (s *testExt2Encoder) WriteToBytes(value reflect.Value, offset int, bytes *[]byte) int {
 	return offset
 }
 
