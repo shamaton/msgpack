@@ -275,14 +275,22 @@ func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
 		offset = o
 
 	case reflect.Interface:
-		v, o, err := d.asInterface(offset, k)
-		if err != nil {
-			return 0, err
+		if rv.Elem().Kind() == reflect.Ptr {
+			o, err := d.decode(rv.Elem(), offset)
+			if err != nil {
+				return 0, err
+			}
+			offset = o
+		} else {
+			v, o, err := d.asInterface(offset, k)
+			if err != nil {
+				return 0, err
+			}
+			if v != nil {
+				rv.Set(reflect.ValueOf(v))
+			}
+			offset = o
 		}
-		if v != nil {
-			rv.Set(reflect.ValueOf(v))
-		}
-		offset = o
 
 	default:
 		return 0, fmt.Errorf("type(%v) is unsupported", rv.Kind())

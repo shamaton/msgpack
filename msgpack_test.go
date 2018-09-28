@@ -1515,7 +1515,10 @@ func decSt(t *testing.T, d1, d2 []byte, out1, out2 interface{}, isDebug bool) er
 /////////////////////////////////////////////////////////////
 
 func TestExt(t *testing.T) {
-	msgpack.AddExtCoder(encoder, decoder)
+	err := msgpack.AddExtCoder(encoder, decoder)
+	if err != nil {
+		t.Error(err)
+	}
 
 	{
 		v := ExtInt{V: 321}
@@ -1535,7 +1538,10 @@ func TestExt(t *testing.T) {
 			t.Error(err)
 		}
 	}
-	msgpack.RemoveExtCoder(encoder, decoder)
+	err = msgpack.RemoveExtCoder(encoder, decoder)
+	if err != nil {
+		t.Error(err)
+	}
 	{
 		v := ExtInt{V: 123}
 		var r1, r2 ExtInt
@@ -1554,6 +1560,21 @@ func TestExt(t *testing.T) {
 			t.Error(err)
 		}
 	}
+
+	// error
+	enc2, dec2 := new(testExt2Encoder), new(testExt2Decoder)
+	err = msgpack.AddExtCoder(enc2, dec2)
+	if err != nil && strings.Contains(err.Error(), "code different") {
+		// ok
+	} else {
+		t.Error("unreachable", err)
+	}
+	err = msgpack.RemoveExtCoder(enc2, dec2)
+	if err != nil && strings.Contains(err.Error(), "code different") {
+		// ok
+	} else {
+		t.Error("unreachable", err)
+	}
 }
 
 type ExtStruct struct {
@@ -1567,8 +1588,10 @@ type testDecoder struct {
 	ext.DecoderCommon
 }
 
+var extIntCode = int8(-2)
+
 func (td *testDecoder) Code() int8 {
-	return -2
+	return extIntCode
 }
 
 func (td *testDecoder) IsType(offset int, d *[]byte) bool {
@@ -1599,8 +1622,8 @@ type testEncoder struct {
 	ext.EncoderCommon
 }
 
-func (s testEncoder) code() int {
-	return -2
+func (s *testEncoder) Code() int8 {
+	return extIntCode
 }
 
 func (s *testEncoder) Type() reflect.Type {
@@ -1614,8 +1637,51 @@ func (s *testEncoder) CalcByteSize(value reflect.Value) (int, error) {
 func (s *testEncoder) WriteToBytes(value reflect.Value, offset int, bytes *[]byte) int {
 	t := value.Interface().(ExtInt)
 	offset = s.SetByte1Int(def.Fixext4, offset, bytes)
-	offset = s.SetByte1Int(s.code(), offset, bytes)
+	offset = s.SetByte1Int(int(s.Code()), offset, bytes)
 	offset = s.SetByte4Int(t.V, offset, bytes)
+	return offset
+}
+
+/////////////////////////////////////////////////////////
+
+type Ext2Struct struct {
+	V int
+}
+type Ext2Int Ext2Struct
+
+type testExt2Decoder struct {
+	ext.DecoderCommon
+}
+
+func (td *testExt2Decoder) Code() int8 {
+	return 3
+}
+
+func (td *testExt2Decoder) IsType(offset int, d *[]byte) bool {
+	return false
+}
+
+func (td *testExt2Decoder) AsValue(offset int, k reflect.Kind, d *[]byte) (interface{}, int, error) {
+	return Ext2Int{}, 0, fmt.Errorf("should not reach this line!! code %x decoding %v", 3, k)
+}
+
+type testExt2Encoder struct {
+	ext.EncoderCommon
+}
+
+func (s *testExt2Encoder) Code() int8 {
+	return -3
+}
+
+func (s *testExt2Encoder) Type() reflect.Type {
+	return reflect.TypeOf(ExtInt{})
+}
+
+func (s *testExt2Encoder) CalcByteSize(value reflect.Value) (int, error) {
+	return 0, nil
+}
+
+func (s *testExt2Encoder) WriteToBytes(value reflect.Value, offset int, bytes *[]byte) int {
 	return offset
 }
 
