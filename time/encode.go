@@ -16,6 +16,10 @@ type timeEncoder struct {
 
 var typeOf = reflect.TypeOf(time.Time{})
 
+func (td *timeEncoder) Code() int8 {
+	return def.TimeStamp
+}
+
 func (s *timeEncoder) Type() reflect.Type {
 	return typeOf
 }
