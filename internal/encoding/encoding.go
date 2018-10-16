@@ -18,6 +18,7 @@ type encoder struct {
 	mv map[uintptr][]reflect.Value
 }
 
+// Encode returns the MessagePack-encoded byte array of v.
 func Encode(v interface{}, asArray bool) (b []byte, err error) {
 	e := encoder{asArray: asArray}
 	/*

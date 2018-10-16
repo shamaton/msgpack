@@ -13,12 +13,14 @@ type decoder struct {
 	common.Common
 }
 
-func Decode(data []byte, holder interface{}, asArray bool) error {
+// Decode analyzes the MessagePack-encoded data and stores
+// the result into the pointer of v.
+func Decode(data []byte, v interface{}, asArray bool) error {
 	d := decoder{data: data, asArray: asArray}
 
-	rv := reflect.ValueOf(holder)
+	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr {
-		return fmt.Errorf("holder must set pointer value. but got: %t", holder)
+		return fmt.Errorf("holder must set pointer value. but got: %t", v)
 	}
 
 	rv = rv.Elem()
