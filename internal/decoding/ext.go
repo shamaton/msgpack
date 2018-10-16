@@ -8,6 +8,7 @@ import (
 var extCoderMap = map[int8]ext.Decoder{time.Decoder.Code(): time.Decoder}
 var extCoders = []ext.Decoder{time.Decoder}
 
+// AddExtDecoder adds decoders for extension types.
 func AddExtDecoder(f ext.Decoder) {
 	// ignore time
 	if f.Code() == time.Decoder.Code() {
@@ -21,6 +22,7 @@ func AddExtDecoder(f ext.Decoder) {
 	}
 }
 
+// RemoveExtDecoder removes decoders for extension types.
 func RemoveExtDecoder(f ext.Decoder) {
 	// ignore time
 	if f.Code() == time.Decoder.Code() {

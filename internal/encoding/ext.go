@@ -10,6 +10,7 @@ import (
 var extCoderMap = map[reflect.Type]ext.Encoder{time.Encoder.Type(): time.Encoder}
 var extCoders = []ext.Encoder{time.Encoder}
 
+// AddExtEncoder adds encoders for extension types.
 func AddExtEncoder(f ext.Encoder) {
 	// ignore time
 	if f.Type() == time.Encoder.Type() {
@@ -23,6 +24,7 @@ func AddExtEncoder(f ext.Encoder) {
 	}
 }
 
+// RemoveExtEncoder removes encoders for extension types.
 func RemoveExtEncoder(f ext.Encoder) {
 	// ignore time
 	if f.Type() == time.Encoder.Type() {
