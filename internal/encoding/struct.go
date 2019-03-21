@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"sync"
 
 	"github.com/shamaton/msgpack/def"
 	"github.com/shamaton/msgpack/internal/common"
@@ -15,7 +16,7 @@ type structCache struct {
 	common.Common
 }
 
-var cachemap = map[reflect.Type]*structCache{}
+var cachemap = sync.Map{}
 
 type structCalcFunc func(rv reflect.Value) (int, error)
 type structWriteFunc func(rv reflect.Value, offset int) int
@@ -56,9 +57,9 @@ func (e *encoder) calcStruct(rv reflect.Value) (int, error) {
 func (e *encoder) calcStructArray(rv reflect.Value) (int, error) {
 	ret := 0
 	t := rv.Type()
-	c, find := cachemap[t]
+	cache, find := cachemap.Load(t)
+	c := &structCache{}
 	if !find {
-		c = &structCache{}
 		for i := 0; i < rv.NumField(); i++ {
 			field := t.Field(i)
 			if ok, name := e.CheckField(field); ok {
@@ -71,8 +72,9 @@ func (e *encoder) calcStructArray(rv reflect.Value) (int, error) {
 				c.names = append(c.names, name)
 			}
 		}
-		cachemap[t] = c
+		cachemap.Store(t, c)
 	} else {
+		c = cache.(*structCache)
 		for i := 0; i < len(c.indexes); i++ {
 			size, err := e.calcSize(rv.Field(c.indexes[i]))
 			if err != nil {
@@ -100,9 +102,9 @@ func (e *encoder) calcStructArray(rv reflect.Value) (int, error) {
 func (e *encoder) calcStructMap(rv reflect.Value) (int, error) {
 	ret := 0
 	t := rv.Type()
-	c, find := cachemap[t]
+	cache, find := cachemap.Load(t)
+	c := &structCache{}
 	if !find {
-		c = &structCache{}
 		for i := 0; i < rv.NumField(); i++ {
 			if ok, name := e.CheckField(rv.Type().Field(i)); ok {
 				keySize := def.Byte1 + e.calcString(name)
@@ -115,8 +117,9 @@ func (e *encoder) calcStructMap(rv reflect.Value) (int, error) {
 				c.names = append(c.names, name)
 			}
 		}
-		cachemap[t] = c
+		cachemap.Store(t, c)
 	} else {
+		c = cache.(*structCache)
 		for i := 0; i < len(c.indexes); i++ {
 			keySize := def.Byte1 + e.calcString(c.names[i])
 			valueSize, err := e.calcSize(rv.Field(c.indexes[i]))
@@ -179,7 +182,8 @@ func (e *encoder) writeStruct(rv reflect.Value, offset int) int {
 
 func (e *encoder) writeStructArray(rv reflect.Value, offset int) int {
 
-	c := cachemap[rv.Type()]
+	cache, _ := cachemap.Load(rv.Type())
+	c := cache.(*structCache)
 
 	// write format
 	num := len(c.indexes)
@@ -201,7 +205,8 @@ func (e *encoder) writeStructArray(rv reflect.Value, offset int) int {
 
 func (e *encoder) writeStructMap(rv reflect.Value, offset int) int {
 
-	c := cachemap[rv.Type()]
+	cache, _ := cachemap.Load(rv.Type())
+	c := cache.(*structCache)
 
 	// format size
 	num := len(c.indexes)
