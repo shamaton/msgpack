@@ -58,8 +58,9 @@ func (e *encoder) calcStructArray(rv reflect.Value) (int, error) {
 	ret := 0
 	t := rv.Type()
 	cache, find := cachemap.Load(t)
-	c := &structCache{}
+	var c *structCache
 	if !find {
+		c = &structCache{}
 		for i := 0; i < rv.NumField(); i++ {
 			field := t.Field(i)
 			if ok, name := e.CheckField(field); ok {
@@ -103,8 +104,9 @@ func (e *encoder) calcStructMap(rv reflect.Value) (int, error) {
 	ret := 0
 	t := rv.Type()
 	cache, find := cachemap.Load(t)
-	c := &structCache{}
+	var c *structCache
 	if !find {
+		c = &structCache{}
 		for i := 0; i < rv.NumField(); i++ {
 			if ok, name := e.CheckField(rv.Type().Field(i)); ok {
 				keySize := def.Byte1 + e.calcString(name)
