@@ -3,6 +3,7 @@ package decoding
 import (
 	"encoding/binary"
 	"reflect"
+	"sync"
 
 	"github.com/shamaton/msgpack/def"
 )
@@ -16,8 +17,8 @@ type structCacheTypeArray struct {
 }
 
 // struct cache map
-var mapSCTM = map[reflect.Type]*structCacheTypeMap{}
-var mapSCTA = map[reflect.Type]*structCacheTypeArray{}
+var mapSCTM = sync.Map{}
+var mapSCTA = sync.Map{}
 
 func (d *decoder) setStruct(rv reflect.Value, offset int, k reflect.Kind) (int, error) {
 	/*
@@ -56,7 +57,8 @@ func (d *decoder) setStructFromArray(rv reflect.Value, offset int, k reflect.Kin
 	}
 
 	// find or create reference
-	scta, findCache := mapSCTA[rv.Type()]
+	var scta *structCacheTypeArray
+	cache, findCache := mapSCTA.Load(rv.Type())
 	if !findCache {
 		scta = &structCacheTypeArray{}
 		for i := 0; i < rv.NumField(); i++ {
@@ -64,7 +66,9 @@ func (d *decoder) setStructFromArray(rv reflect.Value, offset int, k reflect.Kin
 				scta.m = append(scta.m, i)
 			}
 		}
-		mapSCTA[rv.Type()] = scta
+		mapSCTA.Store(rv.Type(), scta)
+	} else {
+		scta = cache.(*structCacheTypeArray)
 	}
 	// set value
 	for i := 0; i < l; i++ {
@@ -88,7 +92,8 @@ func (d *decoder) setStructFromMap(rv reflect.Value, offset int, k reflect.Kind)
 	}
 
 	// find or create reference
-	sctm, cacheFind := mapSCTM[rv.Type()]
+	var sctm *structCacheTypeMap
+	cache, cacheFind := mapSCTM.Load(rv.Type())
 	if !cacheFind {
 		sctm = &structCacheTypeMap{m: map[string]int{}}
 		for i := 0; i < rv.NumField(); i++ {
@@ -96,7 +101,9 @@ func (d *decoder) setStructFromMap(rv reflect.Value, offset int, k reflect.Kind)
 				sctm.m[name] = i
 			}
 		}
-		mapSCTM[rv.Type()] = sctm
+		mapSCTM.Store(rv.Type(), sctm)
+	} else {
+		sctm = cache.(*structCacheTypeMap)
 	}
 	// set value if string correct
 	for i := 0; i < l; i++ {
