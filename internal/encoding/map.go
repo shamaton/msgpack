@@ -264,7 +264,7 @@ func (e *encoder) writeMapLength(l int, offset int) int {
 	} else if l <= math.MaxUint16 {
 		offset = e.setByte1Int(def.Map16, offset)
 		offset = e.setByte2Int(l, offset)
-	} else if l <= math.MaxUint32 {
+	} else if uint(l) <= math.MaxUint32 {
 		offset = e.setByte1Int(def.Map32, offset)
 		offset = e.setByte4Int(l, offset)
 	}
