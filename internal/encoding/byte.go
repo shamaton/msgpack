@@ -19,7 +19,7 @@ func (e *encoder) calcByteSlice(l int) (int, error) {
 		return def.Byte1 + l, nil
 	} else if l <= math.MaxUint16 {
 		return def.Byte2 + l, nil
-	} else if l <= math.MaxUint32 {
+	} else if uint(l) <= math.MaxUint32 {
 		return def.Byte4 + l, nil
 	}
 	// not supported error
@@ -33,7 +33,7 @@ func (e *encoder) writeByteSliceLength(l int, offset int) int {
 	} else if l <= math.MaxUint16 {
 		offset = e.setByte1Int(def.Bin16, offset)
 		offset = e.setByte2Int(l, offset)
-	} else if l <= math.MaxUint32 {
+	} else if uint(l) <= math.MaxUint32 {
 		offset = e.setByte1Int(def.Bin32, offset)
 		offset = e.setByte4Int(l, offset)
 	}
