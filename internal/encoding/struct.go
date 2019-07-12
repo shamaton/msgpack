@@ -91,7 +91,7 @@ func (e *encoder) calcStructArray(rv reflect.Value) (int, error) {
 		// format code only
 	} else if l <= math.MaxUint16 {
 		ret += def.Byte2
-	} else if l <= math.MaxUint32 {
+	} else if uint(l) <= math.MaxUint32 {
 		ret += def.Byte4
 	} else {
 		// not supported error
@@ -138,7 +138,7 @@ func (e *encoder) calcStructMap(rv reflect.Value) (int, error) {
 		// format code only
 	} else if l <= math.MaxUint16 {
 		ret += def.Byte2
-	} else if l <= math.MaxUint32 {
+	} else if uint(l) <= math.MaxUint32 {
 		ret += def.Byte4
 	} else {
 		// not supported error
@@ -194,7 +194,7 @@ func (e *encoder) writeStructArray(rv reflect.Value, offset int) int {
 	} else if num <= math.MaxUint16 {
 		offset = e.setByte1Int(def.Array16, offset)
 		offset = e.setByte2Int(num, offset)
-	} else if num <= math.MaxUint32 {
+	} else if uint(num) <= math.MaxUint32 {
 		offset = e.setByte1Int(def.Array32, offset)
 		offset = e.setByte4Int(num, offset)
 	}
@@ -217,7 +217,7 @@ func (e *encoder) writeStructMap(rv reflect.Value, offset int) int {
 	} else if num <= math.MaxUint16 {
 		offset = e.setByte1Int(def.Map16, offset)
 		offset = e.setByte2Int(num, offset)
-	} else if num <= math.MaxUint32 {
+	} else if uint(num) <= math.MaxUint32 {
 		offset = e.setByte1Int(def.Map32, offset)
 		offset = e.setByte4Int(num, offset)
 	}
