@@ -107,7 +107,7 @@ func (e *encoder) calcSize(rv reflect.Value) (int, error) {
 			// format code only
 		} else if l <= math.MaxUint16 {
 			ret += def.Byte2
-		} else if l <= math.MaxUint32 {
+		} else if uint(l) <= math.MaxUint32 {
 			ret += def.Byte4
 		} else {
 			// not supported error
@@ -155,7 +155,7 @@ func (e *encoder) calcSize(rv reflect.Value) (int, error) {
 			// format code only
 		} else if l <= math.MaxUint16 {
 			ret += def.Byte2
-		} else if l <= math.MaxUint32 {
+		} else if uint(l) <= math.MaxUint32 {
 			ret += def.Byte4
 		} else {
 			// not supported error
@@ -192,7 +192,7 @@ func (e *encoder) calcSize(rv reflect.Value) (int, error) {
 			// do nothing
 		} else if l <= math.MaxUint16 {
 			ret += def.Byte2
-		} else if l <= math.MaxUint32 {
+		} else if uint(l) <= math.MaxUint32 {
 			ret += def.Byte4
 		} else {
 			// not supported error
