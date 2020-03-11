@@ -1,9 +1,9 @@
 # MessagePack for Golang
 
-[![GoDoc](https://godoc.org/github.com/shamaton/msgpack?status.svg)](https://godoc.org/github.com/shamaton/msgpack)
-[![Build Status](https://travis-ci.org/shamaton/msgpack.svg?branch=master)](https://travis-ci.org/shamaton/msgpack)
-[![Coverage Status](https://coveralls.io/repos/github/shamaton/msgpack/badge.svg)](https://coveralls.io/github/shamaton/msgpack)
-[![Releases](https://img.shields.io/github/release/shamaton/msgpack.svg)](https://github.com/shamaton/msgpack/releases)
+[![GoDoc](https://godoc.org/github.com/aucfan-yotsuya/msgpack?status.svg)](https://godoc.org/github.com/aucfan-yotsuya/msgpack)
+[![Build Status](https://travis-ci.org/aucfan-yotsuya/msgpack.svg?branch=master)](https://travis-ci.org/aucfan-yotsuya/msgpack)
+[![Coverage Status](https://coveralls.io/repos/github/aucfan-yotsuya/msgpack/badge.svg)](https://coveralls.io/github/aucfan-yotsuya/msgpack)
+[![Releases](https://img.shields.io/github/release/aucfan-yotsuya/msgpack.svg)](https://github.com/aucfan-yotsuya/msgpack/releases)
 
 * Supported types : primitive / array / slice / struct / map / interface{} and time.Time
 * Renames fields via `msgpack:"field_name"`
@@ -15,7 +15,7 @@ This package require more than golang version **1.9**
 
 ## Installation
 ```sh
-go get -u github.com/shamaton/msgpack
+go get -u github.com/aucfan-yotsuya/msgpack
 ```
 
 ## Quick Start
@@ -23,7 +23,7 @@ go get -u github.com/shamaton/msgpack
 package main;
 
 import (
-  "github.com/shamaton/msgpack"
+  "github.com/aucfan-yotsuya/msgpack"
 )
 
 func main() {
@@ -45,7 +45,7 @@ func main() {
 ```
 
 ## Benchmark
-This result made from [shamaton/msgpack_bench](https://github.com/shamaton/msgpack_bench)
+This result made from [aucfan-yotsuya/msgpack_bench](https://github.com/aucfan-yotsuya/msgpack_bench)
 ### Encode
 ```
 BenchmarkCompareEncodeShamaton-4           	 1000000	      1341 ns/op	     320 B/op	       3 allocs/op

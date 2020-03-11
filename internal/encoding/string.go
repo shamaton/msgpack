@@ -4,7 +4,7 @@ import (
 	"math"
 	"unsafe"
 
-	"github.com/shamaton/msgpack/def"
+	"github.com/aucfan-yotsuya/msgpack/def"
 )
 
 func (e *encoder) calcString(v string) int {

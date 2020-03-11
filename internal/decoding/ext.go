@@ -1,8 +1,8 @@
 package decoding
 
 import (
-	"github.com/shamaton/msgpack/ext"
-	"github.com/shamaton/msgpack/time"
+	"github.com/aucfan-yotsuya/msgpack/ext"
+	"github.com/aucfan-yotsuya/msgpack/time"
 )
 
 var extCoderMap = map[int8]ext.Decoder{time.Decoder.Code(): time.Decoder}

@@ -3,7 +3,7 @@ package encoding
 import (
 	"math"
 
-	"github.com/shamaton/msgpack/def"
+	"github.com/aucfan-yotsuya/msgpack/def"
 )
 
 func (e *encoder) isPositiveFixInt64(v int64) bool {

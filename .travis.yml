@@ -18,9 +18,9 @@ before_install:
   - docker pull i386/golang:1.12-alpine
   - docker run -dit --name test i386/golang:1.12-alpine sh
   - docker exec test sh -c "apk add --no-cache git"
-  - docker exec test sh -c "go get github.com/shamaton/msgpack"
-  - docker exec test sh -c "cd /go/src/github.com/shamaton/msgpack && git checkout `git rev-parse --abbrev-ref HEAD`"
+  - docker exec test sh -c "go get github.com/aucfan-yotsuya/msgpack"
+  - docker exec test sh -c "cd /go/src/github.com/aucfan-yotsuya/msgpack && git checkout `git rev-parse --abbrev-ref HEAD`"
 
 script:
-  - docker exec test sh -c "cd /go/src/github.com/shamaton/msgpack && go test -v ."
+  - docker exec test sh -c "cd /go/src/github.com/aucfan-yotsuya/msgpack && go test -v ."
   - $GOPATH/bin/goveralls -service=travis-ci

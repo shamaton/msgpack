@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"runtime"
 
-	"github.com/shamaton/msgpack/def"
-	"github.com/shamaton/msgpack/internal/common"
+	"github.com/aucfan-yotsuya/msgpack/def"
+	"github.com/aucfan-yotsuya/msgpack/internal/common"
 )
 
 type encoder struct {

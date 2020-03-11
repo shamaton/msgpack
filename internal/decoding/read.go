@@ -1,7 +1,7 @@
 package decoding
 
 import (
-	"github.com/shamaton/msgpack/def"
+	"github.com/aucfan-yotsuya/msgpack/def"
 )
 
 func (d *decoder) readSize1(index int) (byte, int) {

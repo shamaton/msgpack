@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"reflect"
 
-	"github.com/shamaton/msgpack/def"
+	"github.com/aucfan-yotsuya/msgpack/def"
 )
 
 var (

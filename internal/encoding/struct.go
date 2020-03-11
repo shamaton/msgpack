@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/shamaton/msgpack/def"
-	"github.com/shamaton/msgpack/internal/common"
+	"github.com/aucfan-yotsuya/msgpack/def"
+	"github.com/aucfan-yotsuya/msgpack/internal/common"
 )
 
 type structCache struct {

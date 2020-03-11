@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"reflect"
 
-	"github.com/shamaton/msgpack/def"
+	"github.com/aucfan-yotsuya/msgpack/def"
 )
 
 func (d *decoder) asUint(offset int, k reflect.Kind) (uint64, int, error) {

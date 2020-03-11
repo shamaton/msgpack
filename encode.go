@@ -1,7 +1,7 @@
 package msgpack
 
 import (
-	"github.com/shamaton/msgpack/internal/encoding"
+	"github.com/aucfan-yotsuya/msgpack/internal/encoding"
 )
 
 // EncodeStructAsMap encodes data as map format.

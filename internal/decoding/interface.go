@@ -3,7 +3,7 @@ package decoding
 import (
 	"reflect"
 
-	"github.com/shamaton/msgpack/def"
+	"github.com/aucfan-yotsuya/msgpack/def"
 )
 
 func (d *decoder) asInterface(offset int, k reflect.Kind) (interface{}, int, error) {

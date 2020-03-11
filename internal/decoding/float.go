@@ -5,7 +5,7 @@ import (
 	"math"
 	"reflect"
 
-	"github.com/shamaton/msgpack/def"
+	"github.com/aucfan-yotsuya/msgpack/def"
 )
 
 func (d *decoder) asFloat32(offset int, k reflect.Kind) (float32, int, error) {
