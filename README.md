@@ -48,25 +48,24 @@ func main() {
 This result made from [shamaton/msgpack_bench](https://github.com/shamaton/msgpack_bench)
 ### Encode
 ```
-BenchmarkCompareEncodeShamaton-4           	 1000000	      1341 ns/op	     320 B/op	       3 allocs/op
-BenchmarkCompareEncodeShamatonArray-4      	 1000000	      1183 ns/op	     256 B/op	       3 allocs/op
-BenchmarkCompareEncodeVmihailenco-4        	  200000	      5271 ns/op	     968 B/op	      14 allocs/op
-BenchmarkCompareEncodeVmihailencoArray-4   	  300000	      5055 ns/op	     968 B/op	      14 allocs/op
-BenchmarkCompareEncodeUgorji-4             	 1000000	      1772 ns/op	     872 B/op	      10 allocs/op
-BenchmarkCompareEncodeZeroformatter-4      	 1000000	      1960 ns/op	     744 B/op	      13 allocs/op
-BenchmarkCompareEncodeJson-4               	  300000	      3679 ns/op	    1224 B/op	      16 allocs/op
-BenchmarkCompareEncodeGob-4                	  100000	     11988 ns/op	    2824 B/op	      50 allocs/op
+BenchmarkCompareEncodeShamaton-4                  843001              1271 ns/op             320 B/op          3 allocs/op
+BenchmarkCompareEncodeShamatonArray-4            1000000              1128 ns/op             256 B/op          3 allocs/op
+BenchmarkCompareEncodeVmihailenco-4               308065              3562 ns/op            1000 B/op         15 allocs/op
+BenchmarkCompareEncodeVmihailencoArray-4          327612              3577 ns/op            1000 B/op         15 allocs/op
+BenchmarkCompareEncodeUgorji-4                    690046              1708 ns/op             904 B/op          9 allocs/op
+BenchmarkCompareEncodeJson-4                      452257              2800 ns/op             824 B/op         14 allocs/op
+BenchmarkCompareEncodeGob-4                       135574              8493 ns/op            2760 B/op         50 allocs/op
 ```
 
 ### Decode
 ```
-BenchmarkCompareDecodeShamaton-4           	 1000000	      1501 ns/op	     512 B/op	       6 allocs/op
-BenchmarkCompareDecodeShamatonArray-4      	 1000000	      1032 ns/op	     512 B/op	       6 allocs/op
-BenchmarkCompareDecodeVmihailenco-4        	  200000	      5573 ns/op	    1056 B/op	      33 allocs/op
-BenchmarkCompareDecodeVmihailencoArray-4   	  300000	      4438 ns/op	     992 B/op	      22 allocs/op
-BenchmarkCompareDecodeUgorji-4             	  500000	      2615 ns/op	     858 B/op	      11 allocs/op
-BenchmarkCompareDecodeJson-4               	  200000	      9241 ns/op	    1216 B/op	      43 allocs/op
-BenchmarkCompareDecodeGob-4                	   50000	     37985 ns/op	   10172 B/op	     275 allocs/op
+BenchmarkCompareDecodeShamaton-4                  826440              1419 ns/op             512 B/op          6 allocs/op
+BenchmarkCompareDecodeShamatonArray-4            1246941              1126 ns/op             512 B/op          6 allocs/op
+BenchmarkCompareDecodeVmihailenco-4               234380              4914 ns/op            1055 B/op         33 allocs/op
+BenchmarkCompareDecodeVmihailencoArray-4          291438              4148 ns/op             992 B/op         22 allocs/op
+BenchmarkCompareDecodeUgorji-4                    497340              2302 ns/op             890 B/op         10 allocs/op
+BenchmarkCompareDecodeJson-4                      152253              7632 ns/op            1144 B/op         33 allocs/op
+BenchmarkCompareDecodeGob-4                        36434             34308 ns/op           10108 B/op        275 allocs/op
 ```
 
 
