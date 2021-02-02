@@ -272,14 +272,14 @@ func TestBool(t *testing.T) {
 func TestNil(t *testing.T) {
 	{
 		var r *map[interface{}]interface{}
-		d, err := msgpack.Encode(nil)
+		d, err := msgpack.Marshal(nil)
 		if err != nil {
 			t.Error(err)
 		}
 		if d[0] != def.Nil {
 			t.Error("not nil type")
 		}
-		err = msgpack.Decode(d, &r)
+		err = msgpack.Unmarshal(d, &r)
 		if err != nil {
 			t.Error(err)
 		}
@@ -1126,14 +1126,14 @@ func TestMap(t *testing.T) {
 		for i := 0; i < 100; i++ {
 			v[i] = i + 1
 		}
-		d, err := msgpack.Encode(v)
+		d, err := msgpack.Marshal(v)
 		if err != nil {
 			t.Error(err)
 		}
 		if d[0] != def.Map16 {
 			t.Error("code diffenrent")
 		}
-		err = msgpack.Decode(d, &r)
+		err = msgpack.Unmarshal(d, &r)
 		if err != nil {
 			t.Error(err)
 		}
@@ -1154,14 +1154,14 @@ func TestMap(t *testing.T) {
 		for i := 0; i < 100; i++ {
 			v[fmt.Sprintf("%03d", i)] = i
 		}
-		d, err := msgpack.Encode(v)
+		d, err := msgpack.Marshal(v)
 		if err != nil {
 			t.Error(err)
 		}
 		if d[0] != def.Map16 {
 			t.Error("code diffenrent")
 		}
-		err = msgpack.Decode(d, &r)
+		err = msgpack.Unmarshal(d, &r)
 		if err == nil || !strings.Contains(err.Error(), "invalid code a3 decoding") {
 			t.Error("error")
 		}
@@ -1173,14 +1173,14 @@ func TestMap(t *testing.T) {
 		for i := 0; i < 100; i++ {
 			v[i] = fmt.Sprint(i % 10)
 		}
-		d, err := msgpack.Encode(v)
+		d, err := msgpack.Marshal(v)
 		if err != nil {
 			t.Error(err)
 		}
 		if d[0] != def.Map16 {
 			t.Error("code diffenrent")
 		}
-		err = msgpack.Decode(d, &r)
+		err = msgpack.Unmarshal(d, &r)
 		if err == nil || !strings.Contains(err.Error(), "invalid code a1 decoding") {
 			t.Error("error", err)
 		}
@@ -1199,14 +1199,14 @@ func TestPointer(t *testing.T) {
 	}
 	{
 		var v, r *int
-		d, err := msgpack.Encode(v)
+		d, err := msgpack.Marshal(v)
 		if err != nil {
 			t.Error(err)
 		}
 		if d[0] != def.Nil {
 			t.Error("code diffenrent")
 		}
-		err = msgpack.Decode(d, &r)
+		err = msgpack.Unmarshal(d, &r)
 		if err != nil {
 			t.Error(err)
 		}
@@ -1230,11 +1230,11 @@ func TestUnsupported(t *testing.T) {
 	{
 		var v, r complex128
 		v = 1i
-		_, err := msgpack.Encode(v)
+		_, err := msgpack.Marshal(v)
 		if !strings.Contains(err.Error(), "type(complex128) is unsupported") {
 			t.Error("test error")
 		}
-		err = msgpack.Decode([]byte{0xc0}, &r)
+		err = msgpack.Unmarshal([]byte{0xc0}, &r)
 		if !strings.Contains(err.Error(), "type(complex128) is unsupported") {
 			t.Error("test error")
 		}
@@ -1270,14 +1270,14 @@ func testStructTag(t *testing.T) {
 	v := vSt{One: 1, Two: "2", Ten: 1.234}
 	r := rSt{}
 
-	d, err := msgpack.EncodeStructAsMap(v)
+	d, err := msgpack.MarshalAsMap(v)
 	if err != nil {
 		t.Error(err)
 	}
 	if d[0] != def.FixMap+0x02 {
 		t.Error("code different")
 	}
-	err = msgpack.DecodeStructAsMap(d, &r)
+	err = msgpack.UnmarshalAsMap(d, &r)
 	if err != nil {
 		t.Error(err)
 	}
@@ -1304,14 +1304,14 @@ func testStructArray(t *testing.T) {
 	v := vSt{One: 1, Two: "2", Ten: 1.234}
 	r := rSt{}
 
-	d, err := msgpack.EncodeStructAsArray(v)
+	d, err := msgpack.MarshalAsArray(v)
 	if err != nil {
 		t.Error(err)
 	}
 	if d[0] != def.FixArray+0x04 {
 		t.Error("code different")
 	}
-	err = msgpack.DecodeStructAsArray(d, &r)
+	err = msgpack.UnmarshalAsArray(d, &r)
 	if err != nil {
 		t.Error(err)
 	}
@@ -1472,15 +1472,15 @@ func testStructUseCase(t *testing.T) {
 func encSt(t *testing.T, in interface{}, isDebug bool) ([]byte, []byte, error) {
 	var d1, d2 []byte
 	var err error
-	d1, err = msgpack.Encode(in)
+	d1, err = msgpack.Marshal(in)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	if msgpack.StructAsArray {
-		d2, err = msgpack.EncodeStructAsMap(in)
+		d2, err = msgpack.MarshalAsMap(in)
 	} else {
-		d2, err = msgpack.EncodeStructAsArray(in)
+		d2, err = msgpack.MarshalAsArray(in)
 	}
 	if err != nil {
 		return nil, nil, err
@@ -1494,17 +1494,17 @@ func encSt(t *testing.T, in interface{}, isDebug bool) ([]byte, []byte, error) {
 }
 
 func decSt(t *testing.T, d1, d2 []byte, out1, out2 interface{}, isDebug bool) error {
-	if err := msgpack.Decode(d1, out1); err != nil {
+	if err := msgpack.Unmarshal(d1, out1); err != nil {
 		return err
 	}
 
 	if msgpack.StructAsArray {
-		err := msgpack.DecodeStructAsMap(d2, out2)
+		err := msgpack.UnmarshalAsMap(d2, out2)
 		if err != nil {
 			return err
 		}
 	} else {
-		err := msgpack.DecodeStructAsArray(d2, out2)
+		err := msgpack.UnmarshalAsArray(d2, out2)
 		if err != nil {
 			return err
 		}
@@ -1688,14 +1688,14 @@ func (s *testExt2Encoder) WriteToBytes(value reflect.Value, offset int, bytes *[
 /////////////////////////////////////////////////////////
 
 func encdec(v, r interface{}, j func(d byte) bool) error {
-	d, err := msgpack.Encode(v)
+	d, err := msgpack.Marshal(v)
 	if err != nil {
 		return err
 	}
 	if !j(d[0]) {
 		return fmt.Errorf("different %s", hex.Dump(d))
 	}
-	if err := msgpack.Decode(d, r); err != nil {
+	if err := msgpack.Unmarshal(d, r); err != nil {
 		return err
 	}
 	if err := equalCheck(v, r); err != nil {
