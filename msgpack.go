@@ -12,13 +12,23 @@ import (
 // If this option sets true, default encoding sets to array-format.
 var StructAsArray = false
 
-// Encode returns the MessagePack-encoded byte array of v.
+// Marshal returns the MessagePack-encoded byte array of v.
+func Marshal(v interface{}) ([]byte, error) {
+	return encoding.Encode(v, StructAsArray)
+}
+
+// Unmarshal analyzes the MessagePack-encoded data and stores
+// the result into the pointer of v.
+func Unmarshal(data []byte, v interface{}) error {
+	return decoding.Decode(data, v, StructAsArray)
+}
+
+// Deprecated: Use Marshal, this method will be deleted.
 func Encode(v interface{}) ([]byte, error) {
 	return encoding.Encode(v, StructAsArray)
 }
 
-// Decode analyzes the MessagePack-encoded data and stores
-// the result into the pointer of v.
+// Deprecated: Use Unmarshal, this method will be deleted.
 func Decode(data []byte, v interface{}) error {
 	return decoding.Decode(data, v, StructAsArray)
 }
