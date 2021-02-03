@@ -65,6 +65,7 @@ func stackTrace() string {
 
 func (e *encoder) calcSize(rv reflect.Value) (int, error) {
 	ret := def.Byte1
+	fmt.Println(rv.Kind())
 
 	switch rv.Kind() {
 	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
@@ -85,7 +86,13 @@ func (e *encoder) calcSize(rv reflect.Value) (int, error) {
 		ret += e.calcString(rv.String())
 
 	case reflect.Bool:
-		// do nothing
+	// do nothing
+
+	case reflect.Complex64:
+		ret += e.calcComplex64()
+
+	case reflect.Complex128:
+		ret += e.calcComplex128()
 
 	case reflect.Slice:
 		if rv.IsNil() {
@@ -285,6 +292,12 @@ func (e *encoder) create(rv reflect.Value, offset int) int {
 
 	case reflect.String:
 		offset = e.writeString(rv.String(), offset)
+
+	case reflect.Complex64:
+		offset = e.writeComplex64(complex64(rv.Complex()), offset)
+
+	case reflect.Complex128:
+		offset = e.writeComplex128(rv.Complex(), offset)
 
 	case reflect.Slice:
 		if rv.IsNil() {

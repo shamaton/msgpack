@@ -366,6 +366,43 @@ func TestString(t *testing.T) {
 		}
 	}
 }
+
+func TestComplex(t *testing.T) {
+	{
+		var v, r complex64
+		v = complex(1, 2)
+		if err := encdec(v, &r, func(code byte) bool {
+			return code == def.Fixext8
+		}); err != nil {
+			t.Error(err)
+		}
+
+		b, _ := msgpack.Marshal(v)
+		if int8(b[1]) != def.ComplexTypeCode() {
+			t.Errorf("complex type code is different %d, %d", int8(b[1]), def.ComplexTypeCode())
+		}
+	}
+	typeCode := int8(-100)
+	msgpack.SetComplexTypeCode(typeCode)
+	{
+		if def.ComplexTypeCode() != typeCode {
+			t.Errorf("complex type code not set %d, %d", typeCode, def.ComplexTypeCode())
+		}
+
+		var v, r complex128
+		v = complex(math.MaxFloat64, math.SmallestNonzeroFloat64)
+		if err := encdec(v, &r, func(code byte) bool {
+			return code == def.Fixext16
+		}); err != nil {
+			t.Error(err)
+		}
+		b, _ := msgpack.Marshal(v)
+		if int8(b[1]) != def.ComplexTypeCode() {
+			t.Errorf("complex type code is different %d, %d", int8(b[1]), def.ComplexTypeCode())
+		}
+	}
+}
+
 func TestBin(t *testing.T) {
 	// slice
 	{
@@ -1227,16 +1264,56 @@ func TestPointer(t *testing.T) {
 }
 
 func TestUnsupported(t *testing.T) {
+	b := []byte{0xc0}
 	{
-		var v, r complex128
-		v = 1i
+		var v, r uintptr
 		_, err := msgpack.Marshal(v)
-		if !strings.Contains(err.Error(), "type(complex128) is unsupported") {
-			t.Error("test error")
+		if !strings.Contains(err.Error(), "type(uintptr) is unsupported") {
+			t.Error("test error", err)
 		}
-		err = msgpack.Unmarshal([]byte{0xc0}, &r)
-		if !strings.Contains(err.Error(), "type(complex128) is unsupported") {
-			t.Error("test error")
+		err = msgpack.Unmarshal(b, &r)
+		if !strings.Contains(err.Error(), "type(uintptr) is unsupported") {
+			t.Error("test error", err)
+		}
+	}
+	{
+		var v, r chan string
+		_, err := msgpack.Marshal(v)
+		if !strings.Contains(err.Error(), "type(chan) is unsupported") {
+			t.Error("test error", err)
+		}
+		err = msgpack.Unmarshal(b, &r)
+		if !strings.Contains(err.Error(), "type(chan) is unsupported") {
+			t.Error("test error", err)
+		}
+	}
+	{
+		var v, r func()
+		_, err := msgpack.Marshal(v)
+		if !strings.Contains(err.Error(), "type(func) is unsupported") {
+			t.Error("test error", err)
+		}
+		err = msgpack.Unmarshal(b, &r)
+		if !strings.Contains(err.Error(), "type(func) is unsupported") {
+			t.Error("test error", err)
+		}
+	}
+	{
+		// error reflect kind is invalid. current version set nil (0xc0)
+		var v, r error
+		bb, err := msgpack.Marshal(v)
+		if err != nil {
+			t.Error(err)
+		}
+		if bb[0] != def.Nil {
+			t.Errorf("code is different %d, %d", bb[0], def.Nil)
+		}
+		err = msgpack.Unmarshal(b, &r)
+		if err != nil {
+			t.Error(err)
+		}
+		if r != nil {
+			t.Error("error should be nil")
 		}
 	}
 }
