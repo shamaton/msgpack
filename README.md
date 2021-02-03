@@ -20,7 +20,7 @@ go get -u github.com/shamaton/msgpack
 
 ## Quick Start
 ```go
-package main;
+package main
 
 import (
   "github.com/shamaton/msgpack"
@@ -32,12 +32,12 @@ func main() {
 	}
 	v := Struct{String: "msgpack"}
 
-	d, err := msgpack.Encode(v)
+	d, err := msgpack.Marshal(v)
 	if err != nil {
 		panic(err)
 	}
 	r := Struct{}
-	err = msgpack.Decode(d, &r)
+	err = msgpack.Unmarshal(d, &r)
 	if err != nil {
 		panic(err)
 	}

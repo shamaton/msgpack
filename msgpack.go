@@ -3,6 +3,8 @@ package msgpack
 import (
 	"fmt"
 
+	"github.com/shamaton/msgpack/def"
+
 	"github.com/shamaton/msgpack/ext"
 	"github.com/shamaton/msgpack/internal/decoding"
 	"github.com/shamaton/msgpack/internal/encoding"
@@ -51,4 +53,9 @@ func RemoveExtCoder(e ext.Encoder, d ext.Decoder) error {
 	encoding.RemoveExtEncoder(e)
 	decoding.RemoveExtDecoder(d)
 	return nil
+}
+
+// SetComplexTypeCode sets def.complexTypeCode
+func SetComplexTypeCode(code int8) {
+	def.SetComplexTypeCode(code)
 }

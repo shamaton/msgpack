@@ -74,3 +74,14 @@ const (
 const (
 	TimeStamp = -1
 )
+
+// ext type complex
+var complexTypeCode = int8(-128)
+
+// ComplexTypeCode gets complexTypeCode
+func ComplexTypeCode() int8 { return complexTypeCode }
+
+// SetComplexTypeCode sets complexTypeCode
+func SetComplexTypeCode(code int8) {
+	complexTypeCode = code
+}
