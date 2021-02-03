@@ -65,7 +65,6 @@ func stackTrace() string {
 
 func (e *encoder) calcSize(rv reflect.Value) (int, error) {
 	ret := def.Byte1
-	fmt.Println(rv.Kind())
 
 	switch rv.Kind() {
 	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
