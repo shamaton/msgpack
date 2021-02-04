@@ -1223,6 +1223,7 @@ func TestMap(t *testing.T) {
 		}
 	}
 }
+
 func TestPointer(t *testing.T) {
 	{
 		var v, r *int
@@ -1324,10 +1325,31 @@ func TestStruct(t *testing.T) {
 	testSturctCode(t)
 	testStructTag(t)
 	testStructArray(t)
+	testEmbedded(t)
 
 	testStructUseCase(t)
 	msgpack.StructAsArray = true
 	testStructUseCase(t)
+}
+
+func testEmbedded(t *testing.T) {
+	type Emb struct {
+		Int int
+	}
+	type A struct {
+		Emb
+	}
+	v := A{Emb: Emb{Int: 2}}
+	b, err := msgpack.Marshal(v)
+	if err != nil {
+		t.Error(err)
+	}
+
+	var vv A
+	err = msgpack.Unmarshal(b, &vv)
+	if v.Int != vv.Int {
+		t.Errorf("value is different %v, %v", v, vv)
+	}
 }
 
 func testStructTag(t *testing.T) {
@@ -1335,16 +1357,18 @@ func testStructTag(t *testing.T) {
 		One int     `msgpack:"Three"`
 		Two string  `msgpack:"four"`
 		Ten float32 `msgpack:"ignore"`
+		Hfn bool    `msgpack:"-"`
 	}
 	type rSt struct {
 		Three int
 		Four  string `msgpack:"four"`
 		Ten   float32
+		Hfn   bool
 	}
 
 	msgpack.StructAsArray = false
 
-	v := vSt{One: 1, Two: "2", Ten: 1.234}
+	v := vSt{One: 1, Two: "2", Ten: 1.234, Hfn: true}
 	r := rSt{}
 
 	d, err := msgpack.MarshalAsMap(v)
@@ -1358,7 +1382,7 @@ func testStructTag(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if v.One != r.Three || v.Two != r.Four || r.Ten != 0 {
+	if v.One != r.Three || v.Two != r.Four || r.Ten != 0 || r.Hfn != false {
 		t.Error("error:", v, r)
 	}
 }
