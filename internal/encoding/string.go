@@ -28,19 +28,16 @@ func (e *encoder) writeString(str string, offset int) int {
 	l := len(strBytes)
 	if l < 32 {
 		offset = e.setByte1Int(def.FixStr+l, offset)
-		offset = e.setBytes(strBytes, offset)
 	} else if l <= math.MaxUint8 {
 		offset = e.setByte1Int(def.Str8, offset)
 		offset = e.setByte1Int(l, offset)
-		offset = e.setBytes(strBytes, offset)
 	} else if l <= math.MaxUint16 {
 		offset = e.setByte1Int(def.Str16, offset)
 		offset = e.setByte2Int(l, offset)
-		offset = e.setBytes(strBytes, offset)
 	} else {
 		offset = e.setByte1Int(def.Str32, offset)
 		offset = e.setByte4Int(l, offset)
-		offset = e.setBytes(strBytes, offset)
 	}
+	offset += copy(e.d[offset:], str)
 	return offset
 }

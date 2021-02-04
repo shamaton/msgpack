@@ -152,6 +152,22 @@ func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
 		rv.Set(tmpSlice)
 		offset = o
 
+	case reflect.Complex64:
+		v, o, err := d.asComplex64(offset, k)
+		if err != nil {
+			return 0, err
+		}
+		rv.SetComplex(complex128(v))
+		offset = o
+
+	case reflect.Complex128:
+		v, o, err := d.asComplex128(offset, k)
+		if err != nil {
+			return 0, err
+		}
+		rv.SetComplex(v)
+		offset = o
+
 	case reflect.Array:
 		// nil
 		if d.isCodeNil(d.data[offset]) {
