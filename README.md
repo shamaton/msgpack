@@ -6,9 +6,10 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/shamaton/msgpack)](https://goreportcard.com/report/github.com/shamaton/msgpack)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fshamaton%2Fmsgpack.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fshamaton%2Fmsgpack?ref=badge_shield)
 
+## Features
 * Supported types : primitive / array / slice / struct / map / interface{} and time.Time
-* Renames fields via `msgpack:"field_name"`
-* Ignores fields via `msgpack:"ignore"`
+* Renaming fields via `msgpack:"field_name"`
+* Omitting fields via `msgpack:"-"` or `msgpack:"ignore"`
 * Supports extend encoder / decoder
 * Can also Encoding / Decoding struct as array
 
