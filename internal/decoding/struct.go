@@ -38,8 +38,12 @@ func (d *decoder) setStruct(rv reflect.Value, offset int, k reflect.Kind) (int, 
 			if err != nil {
 				return 0, err
 			}
-			rv.Set(reflect.ValueOf(v))
-			return offset, nil
+
+			// Validate that the receptacle is of the right value type.
+			if rv.Type() == reflect.TypeOf(v) {
+				rv.Set(reflect.ValueOf(v))
+				return offset, nil
+			}
 		}
 	}
 
