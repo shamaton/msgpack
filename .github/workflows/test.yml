@@ -38,11 +38,7 @@ jobs:
         run: go build -v ./...
 
       - name: Test
-        run: go test -v -count=1 \
-          --coverpkg=github.com/shamaton/msgpack/... \
-          --coverprofile=coverage.coverprofile \
-          --covermode=atomic ./...
-
+        run: go test -v --coverpkg=github.com/shamaton/msgpack/... --coverprofile=coverage.coverprofile --covermode=atomic ./...
 
       - name: Upload coverage to Codecov
         if: success() && matrix.go == 1.15 && matrix.os == 'ubuntu-latest'
