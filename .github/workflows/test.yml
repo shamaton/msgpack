@@ -9,6 +9,9 @@ env:
 jobs:
 
   test:
+    defaults:
+      run:
+        working-directory: ${{ env.WORKSPACE }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
