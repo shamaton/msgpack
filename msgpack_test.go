@@ -1347,6 +1347,9 @@ func testEmbedded(t *testing.T) {
 
 	var vv A
 	err = msgpack.Unmarshal(b, &vv)
+	if err != nil {
+		t.Error(err)
+	}
 	if v.Int != vv.Int {
 		t.Errorf("value is different %v, %v", v, vv)
 	}

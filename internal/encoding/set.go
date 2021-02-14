@@ -81,14 +81,6 @@ func (e *encoder) setByte4Int(value int, offset int) int {
 	return offset + 4
 }
 
-func (e *encoder) setByte4Uint32(value uint32, offset int) int {
-	e.d[offset] = byte(value >> 24)
-	e.d[offset+1] = byte(value >> 16)
-	e.d[offset+2] = byte(value >> 8)
-	e.d[offset+3] = byte(value)
-	return offset + 4
-}
-
 func (e *encoder) setBytes(bs []byte, offset int) int {
 	for i := range bs {
 		e.d[offset+i] = bs[i]
