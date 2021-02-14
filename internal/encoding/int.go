@@ -6,10 +6,6 @@ import (
 	"github.com/shamaton/msgpack/def"
 )
 
-func (e *encoder) isPositiveFixInt64(v int64) bool {
-	return def.PositiveFixIntMin <= v && v <= def.PositiveFixIntMax
-}
-
 func (e *encoder) isNegativeFixInt64(v int64) bool {
 	return def.NegativeFixintMin <= v && v <= def.NegativeFixintMax
 }
