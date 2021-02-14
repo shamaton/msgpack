@@ -2,6 +2,10 @@ name: test
 
 on: [push, pull_request]
 
+env:
+  GOPATH: ${{ github.workspace }}
+  WORKSPACE: ${{ github.workspace }}/src/github.com/${{ github.repository }}
+
 jobs:
 
   test:
@@ -27,6 +31,8 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          path: ${{ env.WORKSPACE }}
 
       - name: Build
         run: go build -v ./...
@@ -44,6 +50,7 @@ jobs:
         with:
           token:
           fail_ci_if_error: false
+          working-directory: ${{ env.WORKSPACE }}
 
   lint:
     needs: test
@@ -51,7 +58,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          path: ${{ env.WORKSPACE }}
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v2
         with:
           version: v1.29
+          working-directory: ${{ env.WORKSPACE }}
