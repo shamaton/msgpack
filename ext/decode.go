@@ -3,7 +3,7 @@ package ext
 import (
 	"reflect"
 
-	"github.com/shamaton/msgpack/def"
+	"github.com/shamaton/msgpack/v2/def"
 )
 
 type Decoder interface {

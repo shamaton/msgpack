@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/shamaton/msgpack/def"
-	"github.com/shamaton/msgpack/ext"
+	"github.com/shamaton/msgpack/v2/def"
+	"github.com/shamaton/msgpack/v2/ext"
 )
 
 var zero = time.Unix(0, 0)

@@ -5,8 +5,8 @@ import (
 	"math"
 	"reflect"
 
-	"github.com/shamaton/msgpack/def"
-	"github.com/shamaton/msgpack/internal/common"
+	"github.com/shamaton/msgpack/v2/def"
+	"github.com/shamaton/msgpack/v2/internal/common"
 )
 
 type encoder struct {

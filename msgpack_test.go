@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shamaton/msgpack"
-	"github.com/shamaton/msgpack/def"
-	"github.com/shamaton/msgpack/ext"
+	"github.com/shamaton/msgpack/v2"
+	"github.com/shamaton/msgpack/v2/def"
+	"github.com/shamaton/msgpack/v2/ext"
 )
 
 var now time.Time
@@ -1357,21 +1357,19 @@ func testEmbedded(t *testing.T) {
 
 func testStructTag(t *testing.T) {
 	type vSt struct {
-		One int     `msgpack:"Three"`
-		Two string  `msgpack:"four"`
-		Ten float32 `msgpack:"ignore"`
-		Hfn bool    `msgpack:"-"`
+		One int    `msgpack:"Three"`
+		Two string `msgpack:"four"`
+		Hfn bool   `msgpack:"-"`
 	}
 	type rSt struct {
 		Three int
 		Four  string `msgpack:"four"`
-		Ten   float32
 		Hfn   bool
 	}
 
 	msgpack.StructAsArray = false
 
-	v := vSt{One: 1, Two: "2", Ten: 1.234, Hfn: true}
+	v := vSt{One: 1, Two: "2", Hfn: true}
 	r := rSt{}
 
 	d, err := msgpack.MarshalAsMap(v)
@@ -1385,7 +1383,7 @@ func testStructTag(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if v.One != r.Three || v.Two != r.Four || r.Ten != 0 || r.Hfn != false {
+	if v.One != r.Three || v.Two != r.Four || r.Hfn != false {
 		t.Error("error:", v, r)
 	}
 }
