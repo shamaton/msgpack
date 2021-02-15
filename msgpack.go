@@ -3,11 +3,10 @@ package msgpack
 import (
 	"fmt"
 
-	"github.com/shamaton/msgpack/def"
-
-	"github.com/shamaton/msgpack/ext"
-	"github.com/shamaton/msgpack/internal/decoding"
-	"github.com/shamaton/msgpack/internal/encoding"
+	"github.com/shamaton/msgpack/v2/def"
+	"github.com/shamaton/msgpack/v2/ext"
+	"github.com/shamaton/msgpack/v2/internal/decoding"
+	"github.com/shamaton/msgpack/v2/internal/encoding"
 )
 
 // StructAsArray is encoding option.
@@ -22,16 +21,6 @@ func Marshal(v interface{}) ([]byte, error) {
 // Unmarshal analyzes the MessagePack-encoded data and stores
 // the result into the pointer of v.
 func Unmarshal(data []byte, v interface{}) error {
-	return decoding.Decode(data, v, StructAsArray)
-}
-
-// Deprecated: Use Marshal, this method will be deleted.
-func Encode(v interface{}) ([]byte, error) {
-	return encoding.Encode(v, StructAsArray)
-}
-
-// Deprecated: Use Unmarshal, this method will be deleted.
-func Decode(data []byte, v interface{}) error {
 	return decoding.Decode(data, v, StructAsArray)
 }
 

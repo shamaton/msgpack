@@ -1,19 +1,19 @@
 # MessagePack for Golang
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/shamaton/msgpack.svg)](https://pkg.go.dev/github.com/shamaton/msgpack)
-[![Build Status](https://travis-ci.org/shamaton/msgpack.svg?branch=master)](https://travis-ci.org/shamaton/msgpack)
-[![Coverage Status](https://coveralls.io/repos/github/shamaton/msgpack/badge.svg)](https://coveralls.io/github/shamaton/msgpack)
+![test](https://github.com/shamaton/msgpack/workflows/test/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/shamaton/msgpack)](https://goreportcard.com/report/github.com/shamaton/msgpack)
+[![codecov](https://codecov.io/gh/shamaton/msgpack/branch/master/graph/badge.svg?token=9PD2JUK5V3)](https://codecov.io/gh/shamaton/msgpack)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fshamaton%2Fmsgpack.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fshamaton%2Fmsgpack?ref=badge_shield)
 
 ## Features
 * Supported types : primitive / array / slice / struct / map / interface{} and time.Time
 * Renaming fields via `msgpack:"field_name"`
-* Omitting fields via `msgpack:"-"` or `msgpack:"ignore"`
+* Omitting fields via `msgpack:"-"`
 * Supports extend encoder / decoder
 * Can also Encoding / Decoding struct as array
 
-This package require more than golang version **1.9**
+This package require more than golang version **1.13**
 
 ## Installation
 ```sh
@@ -74,6 +74,3 @@ BenchmarkCompareDecodeGob-4                        36434             34308 ns/op
 ## License
 
 This library is under the MIT License.
-
-
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fshamaton%2Fmsgpack.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fshamaton%2Fmsgpack?ref=badge_large)

@@ -5,7 +5,7 @@ import (
 	"math"
 	"reflect"
 
-	"github.com/shamaton/msgpack/def"
+	"github.com/shamaton/msgpack/v2/def"
 )
 
 var typeByte = reflect.TypeOf(byte(0))

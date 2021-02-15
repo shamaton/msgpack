@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/shamaton/msgpack/internal/common"
+	"github.com/shamaton/msgpack/v2/internal/common"
 )
 
 type decoder struct {

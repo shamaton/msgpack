@@ -3,7 +3,7 @@ package decoding
 import (
 	"reflect"
 
-	"github.com/shamaton/msgpack/def"
+	"github.com/shamaton/msgpack/v2/def"
 )
 
 func (d *decoder) asBool(offset int, k reflect.Kind) (bool, int, error) {
