@@ -13,13 +13,3 @@ func UnmarshalAsMap(data []byte, v interface{}) error {
 func UnmarshalAsArray(data []byte, v interface{}) error {
 	return decoding.Decode(data, v, true)
 }
-
-// Deprecated: Use UnmarshalAsMap, this method will be deleted.
-func DecodeStructAsMap(data []byte, v interface{}) error {
-	return UnmarshalAsMap(data, v)
-}
-
-// Deprecated: Use UnmarshalAsArray, this method will be deleted.
-func DecodeStructAsArray(data []byte, v interface{}) error {
-	return UnmarshalAsArray(data, v)
-}

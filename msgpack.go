@@ -24,16 +24,6 @@ func Unmarshal(data []byte, v interface{}) error {
 	return decoding.Decode(data, v, StructAsArray)
 }
 
-// Deprecated: Use Marshal, this method will be deleted.
-func Encode(v interface{}) ([]byte, error) {
-	return encoding.Encode(v, StructAsArray)
-}
-
-// Deprecated: Use Unmarshal, this method will be deleted.
-func Decode(data []byte, v interface{}) error {
-	return decoding.Decode(data, v, StructAsArray)
-}
-
 // AddExtCoder adds encoders for extension types.
 func AddExtCoder(e ext.Encoder, d ext.Decoder) error {
 	if e.Code() != d.Code() {
