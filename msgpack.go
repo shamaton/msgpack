@@ -3,11 +3,10 @@ package msgpack
 import (
 	"fmt"
 
-	"github.com/shamaton/msgpack/def"
-
-	"github.com/shamaton/msgpack/ext"
-	"github.com/shamaton/msgpack/internal/decoding"
-	"github.com/shamaton/msgpack/internal/encoding"
+	"github.com/shamaton/msgpack/v2/def"
+	"github.com/shamaton/msgpack/v2/ext"
+	"github.com/shamaton/msgpack/v2/internal/decoding"
+	"github.com/shamaton/msgpack/v2/internal/encoding"
 )
 
 // StructAsArray is encoding option.

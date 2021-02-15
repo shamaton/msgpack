@@ -1,7 +1,7 @@
 package msgpack
 
 import (
-	"github.com/shamaton/msgpack/internal/encoding"
+	"github.com/shamaton/msgpack/v2/internal/encoding"
 )
 
 // MarshalAsMap encodes data as map format.

@@ -1,6 +1,6 @@
 package msgpack
 
-import "github.com/shamaton/msgpack/internal/decoding"
+import "github.com/shamaton/msgpack/v2/internal/decoding"
 
 // UnmarshalAsMap decodes data that is encoded as map format.
 // This is the same thing that StructAsArray sets false.
