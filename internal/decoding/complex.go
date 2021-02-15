@@ -6,7 +6,7 @@ import (
 	"math"
 	"reflect"
 
-	"github.com/shamaton/msgpack/def"
+	"github.com/shamaton/msgpack/v2/def"
 )
 
 func (d *decoder) asComplex64(offset int, k reflect.Kind) (complex64, int, error) {
