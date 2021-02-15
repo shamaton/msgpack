@@ -10,7 +10,7 @@ type Common struct {
 func (c *Common) CheckField(field reflect.StructField) (bool, string) {
 	// A to Z
 	if c.isPublic(field.Name) {
-		if tag := field.Tag.Get("msgpack"); tag == "ignore" || tag == "-" {
+		if tag := field.Tag.Get("msgpack"); tag == "-" {
 			return false, ""
 		} else if len(tag) > 0 {
 			return true, tag
