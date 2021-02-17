@@ -377,11 +377,51 @@ func TestComplex(t *testing.T) {
 			t.Error(err)
 		}
 
-		b, _ := msgpack.Marshal(v)
+		b, err := msgpack.Marshal(v)
+		if err != nil {
+			t.Error(err)
+		}
 		if int8(b[1]) != def.ComplexTypeCode() {
 			t.Errorf("complex type code is different %d, %d", int8(b[1]), def.ComplexTypeCode())
 		}
+
+		var rr complex128
+		err = msgpack.Unmarshal(b, &rr)
+		if err != nil {
+			t.Error(err)
+		}
+		if imag(rr) == 0 || real(rr) == 0 {
+			t.Errorf("somthing wrong %v", rr)
+		}
+
+		err = msgpack.Unmarshal([]byte{def.Nil}, &r)
+		if err == nil {
+			t.Errorf("error must occur")
+		}
+		if err != nil && !strings.Contains(err.Error(), "should not reach this line") {
+			t.Error(err)
+		}
+
+		typeCode := int8(-99)
+		msgpack.SetComplexTypeCode(typeCode)
+
+		err = msgpack.Unmarshal(b, &r)
+		if err == nil {
+			t.Errorf("error must occur")
+		}
+		if err != nil && !strings.Contains(err.Error(), "fixext8") {
+			t.Error(err)
+		}
+
+		err = msgpack.Unmarshal(b, &rr)
+		if err == nil {
+			t.Errorf("error must occur")
+		}
+		if err != nil && !strings.Contains(err.Error(), "fixext8") {
+			t.Error(err)
+		}
 	}
+
 	typeCode := int8(-100)
 	msgpack.SetComplexTypeCode(typeCode)
 	{
@@ -396,10 +436,112 @@ func TestComplex(t *testing.T) {
 		}); err != nil {
 			t.Error(err)
 		}
-		b, _ := msgpack.Marshal(v)
+
+		b, err := msgpack.Marshal(v)
+		if err != nil {
+			t.Error(err)
+		}
 		if int8(b[1]) != def.ComplexTypeCode() {
 			t.Errorf("complex type code is different %d, %d", int8(b[1]), def.ComplexTypeCode())
 		}
+
+		var rr complex64
+		err = msgpack.Unmarshal(b, &rr)
+		if err != nil {
+			t.Error(err)
+		}
+		if imag(rr) != 0 || real(rr) == 0 {
+			t.Errorf("somthing wrong %v", rr)
+		}
+
+		err = msgpack.Unmarshal([]byte{def.Nil}, &r)
+		if err == nil {
+			t.Errorf("error must occur")
+		}
+		if err != nil && !strings.Contains(err.Error(), "should not reach this line") {
+			t.Error(err)
+		}
+
+		typeCode := int8(-99)
+		msgpack.SetComplexTypeCode(typeCode)
+
+		err = msgpack.Unmarshal(b, &r)
+		if err == nil {
+			t.Errorf("error must occur")
+		}
+		if err != nil && !strings.Contains(err.Error(), "fixext16") {
+			t.Error(err)
+		}
+
+		err = msgpack.Unmarshal(b, &rr)
+		if err == nil {
+			t.Errorf("error must occur")
+		}
+		if err != nil && !strings.Contains(err.Error(), "fixext16") {
+			t.Error(err)
+		}
+	}
+}
+
+func TestInterface(t *testing.T) {
+	f := func(v interface{}) error {
+		b, err := msgpack.Marshal(v)
+		if err != nil {
+			return err
+		}
+		var r interface{}
+		err = msgpack.Unmarshal(b, &r)
+		if err != nil {
+			return err
+		}
+		if fmt.Sprintf("%v", v) != fmt.Sprintf("%v", r) {
+			return fmt.Errorf("different value %v, %v", v, r)
+		}
+		return err
+	}
+
+	a1 := make([]int, math.MaxUint16)
+	a2 := make([]int, math.MaxUint16+1)
+	m1 := map[string]int{}
+	m2 := map[string]int{}
+
+	for i := range a1 {
+		a1[i] = i
+		m1[fmt.Sprint(i)] = 1
+	}
+	for i := range a2 {
+		a2[i] = i
+		m2[fmt.Sprint(i)] = 1
+	}
+
+	vars := []interface{}{
+		true, false,
+		1, math.MaxUint8, math.MaxUint16, math.MaxUint32, math.MaxUint32 + 1,
+		-1, math.MinInt8, math.MinInt16, math.MinInt32, math.MinInt32 - 1,
+		math.MaxFloat32, math.MaxFloat64,
+		"a", strings.Repeat("a", math.MaxUint8), strings.Repeat("a", math.MaxUint16), strings.Repeat("a", math.MaxUint16+1),
+		[]byte(strings.Repeat("a", math.MaxUint8)),
+		[]byte(strings.Repeat("a", math.MaxUint16)),
+		[]byte(strings.Repeat("a", math.MaxUint16+1)),
+		[]interface{}{1, "a", 1.23}, a1, a2,
+		map[interface{}]interface{}{"1": 1, 1.23: "a"}, m1, m2,
+		time.Unix(now.Unix(), int64(now.Nanosecond())),
+	}
+
+	for i, v := range vars {
+		if err := f(v); err != nil {
+			t.Error(i, err)
+		}
+	}
+
+	// error
+	var r interface{}
+	err := msgpack.Unmarshal([]byte{def.Ext32}, &r)
+	if err == nil {
+		t.Error("error must occur")
+	}
+	if err != nil && !strings.Contains(err.Error(), "invalid code") {
+		t.Error(err)
 	}
 }
 
@@ -1326,6 +1468,7 @@ func TestStruct(t *testing.T) {
 	testStructTag(t)
 	testStructArray(t)
 	testEmbedded(t)
+	testStructJump(t)
 
 	testStructUseCase(t)
 	msgpack.StructAsArray = true
@@ -1512,11 +1655,14 @@ func testStructUseCase(t *testing.T) {
 		Double      float64
 		Bool        bool
 		String      string
+		Pointer     *int
+		Nil         *int
 		Time        time.Time
 		Duration    time.Duration
 		Child       child
 		Child3Array []child3
 	}
+	p := rand.Int()
 	v := &st{
 		Int32:    -32,
 		Int8:     -8,
@@ -1530,6 +1676,8 @@ func testStructUseCase(t *testing.T) {
 		Double:   2.3456,
 		Bool:     true,
 		String:   "Parent",
+		Pointer:  &p,
+		Nil:      nil,
 		Time:     now,
 		Duration: time.Duration(123 * time.Second),
 
@@ -1569,6 +1717,63 @@ func testStructUseCase(t *testing.T) {
 	if err := equalCheck(v, r2); err != nil {
 		t.Error(err)
 	}
+}
+
+func testStructJump(t *testing.T) {
+	type v1 struct{ A interface{} }
+	type r1 struct{ B interface{} }
+
+	f := func(v v1) error {
+		b, err := msgpack.MarshalAsMap(v)
+		if err != nil {
+			return err
+		}
+		var r r1
+		err = msgpack.UnmarshalAsMap(b, &r)
+		if err != nil {
+			return err
+		}
+		if fmt.Sprint(v.A) == fmt.Sprint(r.B) {
+			return fmt.Errorf("value equal %v, %v", v, r)
+		}
+		return nil
+	}
+
+	a1 := make([]int, math.MaxUint16)
+	a2 := make([]int, math.MaxUint16+1)
+	m1 := map[string]int{}
+	m2 := map[string]int{}
+
+	for i := range a1 {
+		a1[i] = i
+		m1[fmt.Sprint(i)] = 1
+	}
+	for i := range a2 {
+		a2[i] = i
+		m2[fmt.Sprint(i)] = 1
+	}
+
+	vs := []v1{
+		{A: true},
+		{A: 1}, {A: -1},
+		{A: math.MaxUint8}, {A: math.MinInt8},
+		{A: math.MaxUint16}, {A: math.MinInt16},
+		{A: math.MaxUint32 + 1}, {A: math.MinInt32 - 1}, {A: math.MaxFloat64},
+		{A: "a"},
+		{A: strings.Repeat("b", math.MaxUint8)}, {A: []byte(strings.Repeat("c", math.MaxUint8))},
+		{A: strings.Repeat("e", math.MaxUint16)}, {A: []byte(strings.Repeat("d", math.MaxUint16))},
+		{A: strings.Repeat("f", math.MaxUint16+1)}, {A: []byte(strings.Repeat("g", math.MaxUint16+1))},
+		{A: []int{1}}, {A: a1}, {A: a2},
+		{A: map[string]int{"a": 1}}, {A: m1}, {A: m2},
+		{A: time.Unix(now.Unix(), int64(now.Nanosecond()))},
+	}
+
+	for i, v := range vs {
+		if err := f(v); err != nil {
+			t.Error(i, err)
+		}
+	}
+
 }
 
 func encSt(t *testing.T, in interface{}, isDebug bool) ([]byte, []byte, error) {
