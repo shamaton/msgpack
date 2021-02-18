@@ -15,6 +15,7 @@ import (
 	"github.com/shamaton/msgpack/v2"
 	"github.com/shamaton/msgpack/v2/def"
 	"github.com/shamaton/msgpack/v2/ext"
+	extTime "github.com/shamaton/msgpack/v2/time"
 )
 
 var now time.Time
@@ -645,6 +646,15 @@ func TestArray(t *testing.T) {
 	// slice
 	{
 		var v, r []int
+		v = nil
+		if err := encdec(v, &r, func(code byte) bool {
+			return def.Nil == code
+		}); err != nil {
+			t.Error(err)
+		}
+	}
+	{
+		var v, r []int
 		v = make([]int, 15)
 		for i := range v {
 			v[i] = rand.Intn(math.MaxInt32)
@@ -727,6 +737,21 @@ func TestArray(t *testing.T) {
 			return code == def.Nil
 		}); err == nil || !strings.Contains(err.Error(), "value different") {
 			t.Error("error")
+		}
+	}
+	{
+		v := "abcde"
+		var r [5]byte
+		b, err := msgpack.Marshal(v)
+		if err != nil {
+			t.Error(err)
+		}
+		err = msgpack.Unmarshal(b, &r)
+		if err != nil {
+			t.Error(err)
+		}
+		if v != string(r[:]) {
+			t.Errorf("value different %v, %v", v, string(r[:]))
 		}
 	}
 }
@@ -1260,6 +1285,42 @@ func TestTime(t *testing.T) {
 			return code == def.Fixext8
 		}); err != nil {
 			t.Error(err)
+		}
+	}
+
+	{
+		now := time.Now().Unix()
+		nowByte := make([]byte, 4)
+		binary.BigEndian.PutUint32(nowByte, uint32(now))
+
+		var r time.Time
+		c := def.TimeStamp
+
+		nanoByte := make([]byte, 64)
+		for i := range nanoByte[:30] {
+			nanoByte[i] = 0xff
+		}
+
+		b := append([]byte{def.Fixext8, byte(c)}, nanoByte...)
+		err := msgpack.UnmarshalAsArray(b, &r)
+		if err == nil || !strings.Contains(err.Error(), "In timestamp 64 formats") {
+			t.Error(err)
+		}
+
+		nanoByte = make([]byte, 96)
+		for i := range nanoByte[:32] {
+			nanoByte[i] = 0xff
+		}
+		b = append([]byte{def.Ext8, byte(12), byte(c)}, nanoByte...)
+		err = msgpack.UnmarshalAsArray(b, &r)
+		if err == nil || !strings.Contains(err.Error(), "In timestamp 96 formats") {
+			t.Error(err)
+		}
+
+		notReach := []byte{def.Fixext1}
+		_, _, err = extTime.Decoder.AsValue(0, reflect.Bool, &notReach)
+		if err == nil || !strings.Contains(err.Error(), "should not reach this line") {
+			t.Error("something wrong", err)
 		}
 	}
 }
@@ -1828,7 +1889,20 @@ func TestExt(t *testing.T) {
 	}
 
 	{
-		v := ExtInt{V: 321}
+		v := ExtInt{
+			Int8:        math.MinInt8,
+			Int16:       math.MinInt16,
+			Int32:       math.MinInt32,
+			Int64:       math.MinInt32 - 1,
+			Uint8:       math.MaxUint8,
+			Uint16:      math.MaxUint16,
+			Uint32:      math.MaxUint32,
+			Uint64:      math.MaxUint32 + 1,
+			Byte2Int:    rand.Intn(math.MaxUint16) - math.MinInt16,
+			Byte4Int:    rand.Intn(math.MaxInt32) - rand.Intn(math.MaxInt32),
+			Byte4Uint32: math.MaxUint32 - 1,
+			Bytes:       []byte{1, 2, 3}, // 3
+		}
 		var r1, r2 ExtInt
 		d1, d2, err := encSt(t, v, false)
 		if err != nil {
@@ -1850,7 +1924,20 @@ func TestExt(t *testing.T) {
 		t.Error(err)
 	}
 	{
-		v := ExtInt{V: 123}
+		v := ExtInt{
+			Int8:        math.MinInt8,
+			Int16:       math.MinInt16,
+			Int32:       math.MinInt32,
+			Int64:       math.MinInt32 - 1,
+			Uint8:       math.MaxUint8,
+			Uint16:      math.MaxUint16,
+			Uint32:      math.MaxUint32,
+			Uint64:      math.MaxUint32 + 1,
+			Byte2Int:    rand.Intn(math.MaxUint16) - math.MinInt16,
+			Byte4Int:    rand.Intn(math.MaxInt32) - rand.Intn(math.MaxInt32),
+			Byte4Uint32: math.MaxUint32 - 1,
+			Bytes:       []byte{4, 5, 6}, // 3
+		}
 		var r1, r2 ExtInt
 		d1, d2, err := encSt(t, v, false)
 		if err != nil {
@@ -1885,7 +1972,18 @@ func TestExt(t *testing.T) {
 }
 
 type ExtStruct struct {
-	V int
+	Int8        int8
+	Int16       int16
+	Int32       int32
+	Int64       int64
+	Uint8       uint8
+	Uint16      uint16
+	Uint32      uint32
+	Uint64      uint64
+	Byte2Int    int
+	Byte4Int    int
+	Byte4Uint32 uint32
+	Bytes       []byte // 3
 }
 type ExtInt ExtStruct
 
@@ -1903,9 +2001,10 @@ func (td *testDecoder) Code() int8 {
 
 func (td *testDecoder) IsType(offset int, d *[]byte) bool {
 	code, offset := td.ReadSize1(offset, d)
-	if code == def.Fixext4 {
+	if code == def.Ext8 {
+		c, offset := td.ReadSize1(offset, d)
 		t, _ := td.ReadSize1(offset, d)
-		return int8(t) == td.Code()
+		return c == 15+15+10+3 && int8(t) == td.Code()
 	}
 	return false
 }
@@ -1914,10 +2013,37 @@ func (td *testDecoder) AsValue(offset int, k reflect.Kind, d *[]byte) (interface
 	code, offset := td.ReadSize1(offset, d)
 
 	switch code {
-	case def.Fixext4:
+	case def.Ext8:
+		// size
 		_, offset = td.ReadSize1(offset, d)
-		bs, offset := td.ReadSize4(offset, d)
-		return ExtInt{V: int(binary.BigEndian.Uint32(bs))}, offset, nil
+		// code
+		_, offset = td.ReadSize1(offset, d)
+		i8, offset := td.ReadSize1(offset, d)
+		i16, offset := td.ReadSize2(offset, d)
+		i32, offset := td.ReadSize4(offset, d)
+		i64, offset := td.ReadSize8(offset, d)
+		u8, offset := td.ReadSize1(offset, d)
+		u16, offset := td.ReadSize2(offset, d)
+		u32, offset := td.ReadSize4(offset, d)
+		u64, offset := td.ReadSize8(offset, d)
+		b16, offset := td.ReadSize2(offset, d)
+		b32, offset := td.ReadSize4(offset, d)
+		bu32, offset := td.ReadSize4(offset, d)
+		bs, offset := td.ReadSizeN(offset, 3, d)
+		return ExtInt{
+			Int8:        int8(i8),
+			Int16:       int16(binary.BigEndian.Uint16(i16)),
+			Int32:       int32(binary.BigEndian.Uint32(i32)),
+			Int64:       int64(binary.BigEndian.Uint64(i64)),
+			Uint8:       u8,
+			Uint16:      binary.BigEndian.Uint16(u16),
+			Uint32:      binary.BigEndian.Uint32(u32),
+			Uint64:      binary.BigEndian.Uint64(u64),
+			Byte2Int:    int(binary.BigEndian.Uint16(b16)),
+			Byte4Int:    int(int32(binary.BigEndian.Uint32(b32))),
+			Byte4Uint32: binary.BigEndian.Uint32(bu32),
+			Bytes:       bs,
+		}, offset, nil
 	}
 
 	return ExtInt{}, 0, fmt.Errorf("should not reach this line!! code %x decoding %v", code, k)
@@ -1938,14 +2064,31 @@ func (s *testEncoder) Type() reflect.Type {
 }
 
 func (s *testEncoder) CalcByteSize(value reflect.Value) (int, error) {
-	return def.Byte1 + def.Byte4, nil
+	t := value.Interface().(ExtInt)
+	return def.Byte1 + def.Byte1 + 15 + 15 + 10 + len(t.Bytes), nil
 }
 
 func (s *testEncoder) WriteToBytes(value reflect.Value, offset int, bytes *[]byte) int {
 	t := value.Interface().(ExtInt)
-	offset = s.SetByte1Int(def.Fixext4, offset, bytes)
+	offset = s.SetByte1Int(def.Ext8, offset, bytes)
+	offset = s.SetByte1Int(15+15+10+len(t.Bytes), offset, bytes)
 	offset = s.SetByte1Int(int(s.Code()), offset, bytes)
-	offset = s.SetByte4Int(t.V, offset, bytes)
+
+	offset = s.SetByte1Int64(int64(t.Int8), offset, bytes)
+	offset = s.SetByte2Int64(int64(t.Int16), offset, bytes)
+	offset = s.SetByte4Int64(int64(t.Int32), offset, bytes)
+	offset = s.SetByte8Int64(t.Int64, offset, bytes)
+
+	offset = s.SetByte1Uint64(uint64(t.Uint8), offset, bytes)
+	offset = s.SetByte2Uint64(uint64(t.Uint16), offset, bytes)
+	offset = s.SetByte4Uint64(uint64(t.Uint32), offset, bytes)
+	offset = s.SetByte8Uint64(t.Uint64, offset, bytes)
+
+	offset = s.SetByte2Int(t.Byte2Int, offset, bytes)
+	offset = s.SetByte4Int(t.Byte4Int, offset, bytes)
+
+	offset = s.SetByte4Uint32(t.Byte4Uint32, offset, bytes)
+	offset = s.SetBytes(t.Bytes, offset, bytes)
 	return offset
 }
 
