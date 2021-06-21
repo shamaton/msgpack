@@ -206,6 +206,40 @@ func TestFloat(t *testing.T) {
 			t.Error(err)
 		}
 	}
+	{
+		var r int
+		v := float32(2.345)
+		b, err := msgpack.MarshalAsArray(v)
+		if err != nil {
+			t.Error(err)
+		}
+
+		err = msgpack.UnmarshalAsArray(b, &r)
+		if err != nil {
+			t.Error(err)
+		}
+
+		if r != 2 {
+			t.Error("different value", r)
+		}
+	}
+	{
+		var r int
+		v := 6.789
+		b, err := msgpack.MarshalAsArray(v)
+		if err != nil {
+			t.Error(err)
+		}
+
+		err = msgpack.UnmarshalAsArray(b, &r)
+		if err != nil {
+			t.Error(err)
+		}
+
+		if r != 6 {
+			t.Error("different value", r)
+		}
+	}
 	// error
 	{
 		var v float32

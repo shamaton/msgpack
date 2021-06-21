@@ -72,6 +72,20 @@ func (d *decoder) asInt(offset int, k reflect.Kind) (int64, int, error) {
 		bs, offset := d.readSize8(offset)
 		return int64(binary.BigEndian.Uint64(bs)), offset, nil
 
+	case code == def.Float32:
+		v, offset, err := d.asFloat32(offset, k)
+		if err != nil {
+			return 0, 0, err
+		}
+		return int64(v), offset, nil
+
+	case code == def.Float64:
+		v, offset, err := d.asFloat64(offset, k)
+		if err != nil {
+			return 0, 0, err
+		}
+		return int64(v), offset, nil
+
 	case code == def.Nil:
 		offset++
 		return 0, offset, nil
