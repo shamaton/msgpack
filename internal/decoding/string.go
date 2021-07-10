@@ -47,6 +47,9 @@ func (d *decoder) asString(offset int, k reflect.Kind) (string, int, error) {
 		return emptyString, 0, err
 	}
 	bs, offset := d.asStringByte(offset, l, k)
+	if d.stringSafety {
+		return string(bs), offset, nil
+	}
 	return *(*string)(unsafe.Pointer(&bs)), offset, nil
 }
 

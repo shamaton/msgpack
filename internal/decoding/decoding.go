@@ -8,15 +8,16 @@ import (
 )
 
 type decoder struct {
-	data    []byte
-	asArray bool
+	data         []byte
+	asArray      bool
+	stringSafety bool
 	common.Common
 }
 
 // Decode analyzes the MessagePack-encoded data and stores
 // the result into the pointer of v.
-func Decode(data []byte, v interface{}, asArray bool) error {
-	d := decoder{data: data, asArray: asArray}
+func Decode(data []byte, v interface{}, asArray, stringSafety bool) error {
+	d := decoder{data: data, asArray: asArray, stringSafety: stringSafety}
 
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr {

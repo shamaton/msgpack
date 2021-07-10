@@ -13,6 +13,10 @@ import (
 // If this option sets true, default encoding sets to array-format.
 var StructAsArray = false
 
+// RequireSafeStrings disables the use of unsafe to decode strings.  This is much slower, but makes
+// unmarshaled strings immutable.
+var RequireSafeStrings = false
+
 // Marshal returns the MessagePack-encoded byte array of v.
 func Marshal(v interface{}) ([]byte, error) {
 	return encoding.Encode(v, StructAsArray)
@@ -21,7 +25,7 @@ func Marshal(v interface{}) ([]byte, error) {
 // Unmarshal analyzes the MessagePack-encoded data and stores
 // the result into the pointer of v.
 func Unmarshal(data []byte, v interface{}) error {
-	return decoding.Decode(data, v, StructAsArray)
+	return decoding.Decode(data, v, StructAsArray, RequireSafeStrings)
 }
 
 // AddExtCoder adds encoders for extension types.
