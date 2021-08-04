@@ -18,6 +18,10 @@ type decoder struct {
 func Decode(data []byte, v interface{}, asArray bool) error {
 	d := decoder{data: data, asArray: asArray}
 
+	if d.data == nil {
+		return fmt.Errorf("data is nil")
+	}
+
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr {
 		return fmt.Errorf("holder must set pointer value. but got: %t", v)
