@@ -3,7 +3,6 @@ package decoding
 import (
 	"encoding/binary"
 	"reflect"
-	"unsafe"
 
 	"github.com/shamaton/msgpack/v2/def"
 )
@@ -42,15 +41,24 @@ func (d *decoder) stringByteLength(offset int, k reflect.Kind) (int, int, error)
 }
 
 func (d *decoder) asString(offset int, k reflect.Kind) (string, int, error) {
-	l, offset, err := d.stringByteLength(offset, k)
+	bs, offset, err := d.asStringByte(offset, k)
 	if err != nil {
 		return emptyString, 0, err
 	}
-	bs, offset := d.asStringByte(offset, l, k)
-	return *(*string)(unsafe.Pointer(&bs)), offset, nil
+	return string(bs), offset, nil
 }
 
-func (d *decoder) asStringByte(offset int, l int, k reflect.Kind) ([]byte, int) {
+func (d *decoder) asStringByte(offset int, k reflect.Kind) ([]byte, int, error) {
+	l, offset, err := d.stringByteLength(offset, k)
+	if err != nil {
+		return emptyBytes, 0, err
+	}
+
+	b, o := d.asStringByteByLength(offset, l, k)
+	return b, o, nil
+}
+
+func (d *decoder) asStringByteByLength(offset int, l int, k reflect.Kind) ([]byte, int) {
 	if l < 1 {
 		return emptyBytes, offset
 	}

@@ -9,7 +9,8 @@ import (
 )
 
 type structCacheTypeMap struct {
-	m map[string]int
+	keys    [][]byte
+	indexes []int
 }
 
 type structCacheTypeArray struct {
@@ -95,28 +96,47 @@ func (d *decoder) setStructFromMap(rv reflect.Value, offset int, k reflect.Kind)
 		return 0, err
 	}
 
-	// find or create reference
 	var sctm *structCacheTypeMap
 	cache, cacheFind := mapSCTM.Load(rv.Type())
 	if !cacheFind {
-		sctm = &structCacheTypeMap{m: map[string]int{}}
+		sctm = &structCacheTypeMap{}
 		for i := 0; i < rv.NumField(); i++ {
 			if ok, name := d.CheckField(rv.Type().Field(i)); ok {
-				sctm.m[name] = i
+				sctm.keys = append(sctm.keys, []byte(name))
+				sctm.indexes = append(sctm.indexes, i)
 			}
 		}
 		mapSCTM.Store(rv.Type(), sctm)
 	} else {
 		sctm = cache.(*structCacheTypeMap)
 	}
-	// set value if string correct
+
 	for i := 0; i < l; i++ {
-		key, o2, err := d.asString(o, k)
+		dataKey, o2, err := d.asStringByte(o, k)
 		if err != nil {
 			return 0, err
 		}
-		if _, ok := sctm.m[key]; ok {
-			o2, err = d.decode(rv.Field(sctm.m[key]), o2)
+
+		fieldIndex := -1
+		for keyIndex, keyBytes := range sctm.keys {
+			if len(keyBytes) != len(dataKey) {
+				continue
+			}
+
+			fieldIndex = sctm.indexes[keyIndex]
+			for dataIndex := range dataKey {
+				if dataKey[dataIndex] != keyBytes[dataIndex] {
+					fieldIndex = -1
+					break
+				}
+			}
+			if fieldIndex >= 0 {
+				break
+			}
+		}
+
+		if fieldIndex >= 0 {
+			o2, err = d.decode(rv.Field(fieldIndex), o2)
 			if err != nil {
 				return 0, err
 			}
