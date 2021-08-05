@@ -120,7 +120,7 @@ func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
 			if err != nil {
 				return 0, err
 			}
-			bs, offset := d.asStringByte(offset, l, k)
+			bs, offset := d.asStringByteByLength(offset, l, k)
 			rv.SetBytes(bs)
 			return offset, nil
 		}
@@ -201,7 +201,7 @@ func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
 			if l > rv.Len() {
 				return 0, fmt.Errorf("%v len is %d, but msgpack has %d elements", rv.Type(), rv.Len(), l)
 			}
-			bs, offset := d.asStringByte(offset, l, k)
+			bs, offset := d.asStringByteByLength(offset, l, k)
 			for i, b := range bs {
 				rv.Index(i).SetUint(uint64(b))
 			}

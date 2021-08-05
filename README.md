@@ -29,7 +29,7 @@ go get -u github.com/shamaton/msgpack
 package main
 
 import (
-  "github.com/shamaton/msgpack"
+  "github.com/shamaton/msgpack/v2"
 )
 
 func main() {
