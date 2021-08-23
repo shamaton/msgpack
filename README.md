@@ -20,8 +20,10 @@ You can get the fastest performance with [msgpackgen](https://github.com/shamato
 This package requires more than  version **1.13**
 
 ## Installation
+
+Current version is **msgpack/v2**.
 ```sh
-go get -u github.com/shamaton/msgpack
+go get -u github.com/shamaton/msgpack/v2
 ```
 
 ## Quick Start
