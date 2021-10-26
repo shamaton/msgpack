@@ -1,163 +1,163 @@
 package decoding
 
 import (
+	"bufio"
 	"reflect"
 
 	"github.com/shamaton/msgpack/v2/def"
 )
 
-func (d *decoder) asInterface(offset int, k reflect.Kind) (interface{}, int, error) {
-	code := d.data[offset]
+func (d *decoder) asInterface(reader *bufio.Reader, k reflect.Kind) (interface{}, error) {
+	code, err := peekCode(reader)
+	if err != nil {
+		return nil, err
+	}
 
 	switch {
 	case code == def.Nil:
-		offset++
-		return nil, offset, nil
+		return nil, skipOne(reader)
 
 	case code == def.True, code == def.False:
-		v, offset, err := d.asBool(offset, k)
+		v, err := d.asBool(reader, k)
 		if err != nil {
-			return nil, 0, err
+			return nil, err
 		}
-		return v, offset, nil
+		return v, nil
 
 	case d.isPositiveFixNum(code), code == def.Uint8:
-		v, offset, err := d.asUint(offset, k)
+		v, err := d.asUint(reader, k)
 		if err != nil {
-			return nil, 0, err
+			return nil, err
 		}
-		return uint8(v), offset, err
+		return uint8(v), err
 	case code == def.Uint16:
-		v, offset, err := d.asUint(offset, k)
+		v, err := d.asUint(reader, k)
 		if err != nil {
-			return nil, 0, err
+			return nil, err
 		}
-		return uint16(v), offset, err
+		return uint16(v), err
 	case code == def.Uint32:
-		v, offset, err := d.asUint(offset, k)
+		v, err := d.asUint(reader, k)
 		if err != nil {
-			return nil, 0, err
+			return nil, err
 		}
-		return uint32(v), offset, err
+		return uint32(v), err
 	case code == def.Uint64:
-		v, offset, err := d.asUint(offset, k)
+		v, err := d.asUint(reader, k)
 		if err != nil {
-			return nil, 0, err
+			return nil, err
 		}
-		return v, offset, err
+		return v, err
 
 	case d.isNegativeFixNum(code), code == def.Int8:
-		v, offset, err := d.asInt(offset, k)
+		v, err := d.asInt(reader, k)
 		if err != nil {
-			return nil, 0, err
+			return nil, err
 		}
-		return int8(v), offset, err
+		return int8(v), err
 	case code == def.Int16:
-		v, offset, err := d.asInt(offset, k)
+		v, err := d.asInt(reader, k)
 		if err != nil {
-			return nil, 0, err
+			return nil, err
 		}
-		return int16(v), offset, err
+		return int16(v), err
 	case code == def.Int32:
-		v, offset, err := d.asInt(offset, k)
+		v, err := d.asInt(reader, k)
 		if err != nil {
-			return nil, 0, err
+			return nil, err
 		}
-		return int32(v), offset, err
+		return int32(v), err
 	case code == def.Int64:
-		v, offset, err := d.asInt(offset, k)
+		v, err := d.asInt(reader, k)
 		if err != nil {
-			return nil, 0, err
+			return nil, err
 		}
-		return v, offset, err
+		return v, err
 
 	case code == def.Float32:
-		v, offset, err := d.asFloat32(offset, k)
+		v, err := d.asFloat32(reader, k)
 		if err != nil {
-			return nil, 0, err
+			return nil, err
 		}
-		return v, offset, err
+		return v, err
 	case code == def.Float64:
-		v, offset, err := d.asFloat64(offset, k)
+		v, err := d.asFloat64(reader, k)
 		if err != nil {
-			return nil, 0, err
+			return nil, err
 		}
-		return v, offset, err
+		return v, err
 
 	case d.isFixString(code), code == def.Str8, code == def.Str16, code == def.Str32:
-		v, offset, err := d.asString(offset, k)
+		v, err := d.asString(reader, k)
 		if err != nil {
-			return nil, 0, err
+			return nil, err
 		}
-		return v, offset, err
+		return v, err
 
 	case code == def.Bin8, code == def.Bin16, code == def.Bin32:
-		v, offset, err := d.asBin(offset, k)
+		v, err := d.asBin(reader, k)
 		if err != nil {
-			return nil, 0, err
+			return nil, err
 		}
-		return v, offset, err
+		return v, err
 
 	case d.isFixSlice(code), code == def.Array16, code == def.Array32:
-		l, o, err := d.sliceLength(offset, k)
+		l, err := d.sliceLength(reader, k)
 		if err != nil {
-			return nil, 0, err
+			return nil, err
 		}
 
 		v := make([]interface{}, l)
 		for i := 0; i < l; i++ {
-			vv, o2, err := d.asInterface(o, k)
+			vv, err := d.asInterface(reader, k)
 			if err != nil {
-				return nil, 0, err
+				return nil, err
 			}
 			v[i] = vv
-			o = o2
 		}
-		offset = o
-		return v, offset, nil
+		return v, nil
 
 	case d.isFixMap(code), code == def.Map16, code == def.Map32:
-		l, o, err := d.mapLength(offset, k)
+		l, err := d.mapLength(reader, k)
 		if err != nil {
-			return nil, 0, err
+			return nil, err
 		}
 		v := make(map[interface{}]interface{}, l)
 		for i := 0; i < l; i++ {
-			key, o2, err := d.asInterface(o, k)
+			key, err := d.asInterface(reader, k)
 			if err != nil {
-				return nil, 0, err
+				return nil, err
 			}
-			value, o2, err := d.asInterface(o2, k)
+			value, err := d.asInterface(reader, k)
 			if err != nil {
-				return nil, 0, err
+				return nil, err
 			}
 			v[key] = value
-			o = o2
 		}
-		offset = o
-		return v, offset, nil
+		return v, nil
 	}
 
 	/* use ext
 	if d.isDateTime(offset) {
-		v, offset, err := d.asDateTime(offset, k)
+		v, err := d.asDateTime(reader, k)
 		if err != nil {
-			return nil, 0, err
+			return nil, err
 		}
-		return v, offset, nil
+		return v, nil
 	}
 	*/
 
-	// ext
-	for i := range extCoders {
-		if extCoders[i].IsType(offset, &d.data) {
-			v, offset, err := extCoders[i].AsValue(offset, k, &d.data)
-			if err != nil {
-				return nil, 0, err
+	if code, data, err := d.readExt(reader); err == nil {
+		for i := range extCoders {
+			if extCoders[i].Code() == int8(code) {
+				v, err := extCoders[i].AsValue(data, k)
+				if err != nil {
+					return nil, err
+				}
+				return v, nil
 			}
-			return v, offset, nil
 		}
 	}
 
-	return nil, 0, d.errorTemplate(code, k)
+	return nil, d.errorTemplate(code, k)
 }

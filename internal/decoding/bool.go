@@ -1,20 +1,24 @@
 package decoding
 
 import (
+	"bufio"
 	"reflect"
 
 	"github.com/shamaton/msgpack/v2/def"
 )
 
-func (d *decoder) asBool(offset int, k reflect.Kind) (bool, int, error) {
-	code := d.data[offset]
-	offset++
+func (d *decoder) asBool(reader *bufio.Reader, k reflect.Kind) (bool, error) {
+	code, err := reader.ReadByte()
+	if err != nil {
+		return false, err
+	}
 
 	switch code {
 	case def.True:
-		return true, offset, nil
+		return true, nil
 	case def.False:
-		return false, offset, nil
+		return false, nil
 	}
-	return false, 0, d.errorTemplate(code, k)
+
+	return false, d.errorTemplate(code, k)
 }

@@ -1,6 +1,7 @@
 package decoding
 
 import (
+	"bufio"
 	"encoding/binary"
 	"reflect"
 
@@ -58,23 +59,32 @@ func (d *decoder) isFixMap(v byte) bool {
 	return def.FixMap <= v && v <= def.FixMap+0x0f
 }
 
-func (d *decoder) mapLength(offset int, k reflect.Kind) (int, int, error) {
-	code, offset := d.readSize1(offset)
+func (d *decoder) mapLength(reader *bufio.Reader, k reflect.Kind) (int, error) {
+	code, err := reader.ReadByte()
+	if err != nil {
+		return 0, err
+	}
 
 	switch {
 	case d.isFixMap(code):
-		return int(code - def.FixMap), offset, nil
+		return int(code - def.FixMap), nil
 	case code == def.Map16:
-		bs, offset := d.readSize2(offset)
-		return int(binary.BigEndian.Uint16(bs)), offset, nil
+		bs, err := d.readSize2(reader)
+		if err != nil {
+			return 0, err
+		}
+		return int(binary.BigEndian.Uint16(bs)), nil
 	case code == def.Map32:
-		bs, offset := d.readSize4(offset)
-		return int(binary.BigEndian.Uint32(bs)), offset, nil
+		bs, err := d.readSize4(reader)
+		if err != nil {
+			return 0, err
+		}
+		return int(binary.BigEndian.Uint32(bs)), nil
 	}
-	return 0, 0, d.errorTemplate(code, k)
+	return 0, d.errorTemplate(code, k)
 }
 
-func (d *decoder) asFixedMap(rv reflect.Value, offset int, l int) (int, bool, error) {
+func (d *decoder) asFixedMap(rv reflect.Value, reader *bufio.Reader, l int) (bool, error) {
 	t := rv.Type()
 
 	keyKind := t.Key().Kind()
@@ -84,648 +94,610 @@ func (d *decoder) asFixedMap(rv reflect.Value, offset int, l int) (int, bool, er
 	case typeMapStringInt:
 		m := make(map[string]int, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asString(offset, keyKind)
+			k, err := d.asString(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asInt(o, valueKind)
+			v, err := d.asInt(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[k] = int(v)
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapStringUint:
 		m := make(map[string]uint, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asString(offset, keyKind)
+			k, err := d.asString(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asUint(o, valueKind)
+			v, err := d.asUint(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[k] = uint(v)
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapStringFloat32:
 		m := make(map[string]float32, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asString(offset, keyKind)
+			k, err := d.asString(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asFloat32(o, valueKind)
+			v, err := d.asFloat32(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[k] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapStringFloat64:
 		m := make(map[string]float64, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asString(offset, keyKind)
+			k, err := d.asString(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asFloat64(o, valueKind)
+			v, err := d.asFloat64(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[k] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapStringBool:
 		m := make(map[string]bool, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asString(offset, keyKind)
+			k, err := d.asString(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asBool(o, valueKind)
+			v, err := d.asBool(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[k] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapStringString:
 		m := make(map[string]string, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asString(offset, keyKind)
+			k, err := d.asString(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asString(o, valueKind)
+			v, err := d.asString(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[k] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapStringInt8:
 		m := make(map[string]int8, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asString(offset, keyKind)
+			k, err := d.asString(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asInt(o, valueKind)
+			v, err := d.asInt(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[k] = int8(v)
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapStringInt16:
 		m := make(map[string]int16, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asString(offset, keyKind)
+			k, err := d.asString(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asInt(o, valueKind)
+			v, err := d.asInt(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[k] = int16(v)
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapStringInt32:
 		m := make(map[string]int32, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asString(offset, keyKind)
+			k, err := d.asString(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asInt(o, valueKind)
+			v, err := d.asInt(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[k] = int32(v)
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapStringInt64:
 		m := make(map[string]int64, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asString(offset, keyKind)
+			k, err := d.asString(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asInt(o, valueKind)
+			v, err := d.asInt(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[k] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapStringUint8:
 		m := make(map[string]uint8, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asString(offset, keyKind)
+			k, err := d.asString(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asUint(o, valueKind)
+			v, err := d.asUint(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[k] = uint8(v)
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 	case typeMapStringUint16:
 		m := make(map[string]uint16, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asString(offset, keyKind)
+			k, err := d.asString(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asUint(o, valueKind)
+			v, err := d.asUint(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[k] = uint16(v)
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapStringUint32:
 		m := make(map[string]uint32, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asString(offset, keyKind)
+			k, err := d.asString(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asUint(o, valueKind)
+			v, err := d.asUint(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[k] = uint32(v)
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapStringUint64:
 		m := make(map[string]uint64, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asString(offset, keyKind)
+			k, err := d.asString(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asUint(o, valueKind)
+			v, err := d.asUint(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[k] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapIntString:
 		m := make(map[int]string, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asInt(offset, keyKind)
+			k, err := d.asInt(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asString(o, valueKind)
+			v, err := d.asString(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[int(k)] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapInt8String:
 		m := make(map[int8]string, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asInt(offset, keyKind)
+			k, err := d.asInt(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asString(o, valueKind)
+			v, err := d.asString(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[int8(k)] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapInt16String:
 		m := make(map[int16]string, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asInt(offset, keyKind)
+			k, err := d.asInt(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asString(o, valueKind)
+			v, err := d.asString(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[int16(k)] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapInt32String:
 		m := make(map[int32]string, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asInt(offset, keyKind)
+			k, err := d.asInt(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asString(o, valueKind)
+			v, err := d.asString(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[int32(k)] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapInt64String:
 		m := make(map[int64]string, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asInt(offset, keyKind)
+			k, err := d.asInt(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asString(o, valueKind)
+			v, err := d.asString(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[k] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapIntBool:
 		m := make(map[int]bool, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asInt(offset, keyKind)
+			k, err := d.asInt(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asBool(o, valueKind)
+			v, err := d.asBool(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[int(k)] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapInt8Bool:
 		m := make(map[int8]bool, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asInt(offset, keyKind)
+			k, err := d.asInt(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asBool(o, valueKind)
+			v, err := d.asBool(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[int8(k)] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapInt16Bool:
 		m := make(map[int16]bool, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asInt(offset, keyKind)
+			k, err := d.asInt(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asBool(o, valueKind)
+			v, err := d.asBool(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[int16(k)] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapInt32Bool:
 		m := make(map[int32]bool, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asInt(offset, keyKind)
+			k, err := d.asInt(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asBool(o, valueKind)
+			v, err := d.asBool(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[int32(k)] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapInt64Bool:
 		m := make(map[int64]bool, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asInt(offset, keyKind)
+			k, err := d.asInt(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asBool(o, valueKind)
+			v, err := d.asBool(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[k] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapUintString:
 		m := make(map[uint]string, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asUint(offset, keyKind)
+			k, err := d.asUint(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asString(o, valueKind)
+			v, err := d.asString(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[uint(k)] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapUint8String:
 		m := make(map[uint8]string, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asUint(offset, keyKind)
+			k, err := d.asUint(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asString(o, valueKind)
+			v, err := d.asString(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[uint8(k)] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapUint16String:
 		m := make(map[uint16]string, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asUint(offset, keyKind)
+			k, err := d.asUint(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asString(o, valueKind)
+			v, err := d.asString(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[uint16(k)] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapUint32String:
 		m := make(map[uint32]string, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asUint(offset, keyKind)
+			k, err := d.asUint(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asString(o, valueKind)
+			v, err := d.asString(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[uint32(k)] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapUint64String:
 		m := make(map[uint64]string, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asUint(offset, keyKind)
+			k, err := d.asUint(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asString(o, valueKind)
+			v, err := d.asString(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[k] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapUintBool:
 		m := make(map[uint]bool, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asUint(offset, keyKind)
+			k, err := d.asUint(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asBool(o, valueKind)
+			v, err := d.asBool(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[uint(k)] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapUint8Bool:
 		m := make(map[uint8]bool, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asUint(offset, keyKind)
+			k, err := d.asUint(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asBool(o, valueKind)
+			v, err := d.asBool(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[uint8(k)] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapUint16Bool:
 		m := make(map[uint16]bool, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asUint(offset, keyKind)
+			k, err := d.asUint(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asBool(o, valueKind)
+			v, err := d.asBool(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[uint16(k)] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapUint32Bool:
 		m := make(map[uint32]bool, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asUint(offset, keyKind)
+			k, err := d.asUint(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asBool(o, valueKind)
+			v, err := d.asBool(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[uint32(k)] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapUint64Bool:
 		m := make(map[uint64]bool, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asUint(offset, keyKind)
+			k, err := d.asUint(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asBool(o, valueKind)
+			v, err := d.asBool(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[k] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapFloat32String:
 		m := make(map[float32]string, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asFloat32(offset, keyKind)
+			k, err := d.asFloat32(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asString(o, valueKind)
+			v, err := d.asString(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[k] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapFloat64String:
 		m := make(map[float64]string, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asFloat64(offset, keyKind)
+			k, err := d.asFloat64(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asString(o, valueKind)
+			v, err := d.asString(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[k] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapFloat32Bool:
 		m := make(map[float32]bool, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asFloat32(offset, keyKind)
+			k, err := d.asFloat32(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asBool(o, valueKind)
+			v, err := d.asBool(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[k] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 
 	case typeMapFloat64Bool:
 		m := make(map[float64]bool, l)
 		for i := 0; i < l; i++ {
-			k, o, err := d.asFloat64(offset, keyKind)
+			k, err := d.asFloat64(reader, keyKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
-			v, o, err := d.asBool(o, valueKind)
+			v, err := d.asBool(reader, valueKind)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			m[k] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(m))
-		return offset, true, nil
+		return true, nil
 	}
 
-	return offset, false, nil
+	return false, nil
 }

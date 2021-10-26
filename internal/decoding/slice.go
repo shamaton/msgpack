@@ -1,6 +1,7 @@
 package decoding
 
 import (
+	"bufio"
 	"encoding/binary"
 	"reflect"
 
@@ -32,23 +33,32 @@ func (d *decoder) isFixSlice(v byte) bool {
 	return def.FixArray <= v && v <= def.FixArray+0x0f
 }
 
-func (d *decoder) sliceLength(offset int, k reflect.Kind) (int, int, error) {
-	code, offset := d.readSize1(offset)
+func (d *decoder) sliceLength(reader *bufio.Reader, k reflect.Kind) (int, error) {
+	code, err := reader.ReadByte()
+	if err != nil {
+		return 0, err
+	}
 
 	switch {
 	case d.isFixSlice(code):
-		return int(code - def.FixArray), offset, nil
+		return int(code - def.FixArray), nil
 	case code == def.Array16:
-		bs, offset := d.readSize2(offset)
-		return int(binary.BigEndian.Uint16(bs)), offset, nil
+		bs, err := d.readSize2(reader)
+		if err != nil {
+			return 0, err
+		}
+		return int(binary.BigEndian.Uint16(bs)), nil
 	case code == def.Array32:
-		bs, offset := d.readSize4(offset)
-		return int(binary.BigEndian.Uint32(bs)), offset, nil
+		bs, err := d.readSize4(reader)
+		if err != nil {
+			return 0, err
+		}
+		return int(binary.BigEndian.Uint32(bs)), nil
 	}
-	return 0, 0, d.errorTemplate(code, k)
+	return 0, d.errorTemplate(code, k)
 }
 
-func (d *decoder) asFixedSlice(rv reflect.Value, offset int, l int) (int, bool, error) {
+func (d *decoder) asFixedSlice(rv reflect.Value, reader *bufio.Reader, l int) (bool, error) {
 	t := rv.Type()
 	k := t.Elem().Kind()
 
@@ -56,185 +66,171 @@ func (d *decoder) asFixedSlice(rv reflect.Value, offset int, l int) (int, bool, 
 	case typeIntSlice:
 		sli := make([]int, l)
 		for i := range sli {
-			v, o, err := d.asInt(offset, k)
+			v, err := d.asInt(reader, k)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			sli[i] = int(v)
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(sli))
-		return offset, true, nil
+		return true, nil
 
 	case typeUintSlice:
 		sli := make([]uint, l)
 		for i := range sli {
-			v, o, err := d.asUint(offset, k)
+			v, err := d.asUint(reader, k)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			sli[i] = uint(v)
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(sli))
-		return offset, true, nil
+		return true, nil
 
 	case typeStringSlice:
 		sli := make([]string, l)
 		for i := range sli {
-			v, o, err := d.asString(offset, k)
+			v, err := d.asString(reader, k)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			sli[i] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(sli))
-		return offset, true, nil
+		return true, nil
 
 	case typeBoolSlice:
 		sli := make([]bool, l)
 		for i := range sli {
-			v, o, err := d.asBool(offset, k)
+			v, err := d.asBool(reader, k)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			sli[i] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(sli))
-		return offset, true, nil
+		return true, nil
 
 	case typeFloat32Slice:
 		sli := make([]float32, l)
 		for i := range sli {
-			v, o, err := d.asFloat32(offset, k)
+			v, err := d.asFloat32(reader, k)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			sli[i] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(sli))
-		return offset, true, nil
+		return true, nil
 
 	case typeFloat64Slice:
 		sli := make([]float64, l)
 		for i := range sli {
-			v, o, err := d.asFloat64(offset, k)
+			v, err := d.asFloat64(reader, k)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			sli[i] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(sli))
-		return offset, true, nil
+		return true, nil
 
 	case typeInt8Slice:
 		sli := make([]int8, l)
 		for i := range sli {
-			v, o, err := d.asInt(offset, k)
+			v, err := d.asInt(reader, k)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			sli[i] = int8(v)
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(sli))
-		return offset, true, nil
+		return true, nil
 
 	case typeInt16Slice:
 		sli := make([]int16, l)
 		for i := range sli {
-			v, o, err := d.asInt(offset, k)
+			v, err := d.asInt(reader, k)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			sli[i] = int16(v)
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(sli))
-		return offset, true, nil
+		return true, nil
 
 	case typeInt32Slice:
 		sli := make([]int32, l)
 		for i := range sli {
-			v, o, err := d.asInt(offset, k)
+			v, err := d.asInt(reader, k)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			sli[i] = int32(v)
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(sli))
-		return offset, true, nil
+		return true, nil
 
 	case typeInt64Slice:
 		sli := make([]int64, l)
 		for i := range sli {
-			v, o, err := d.asInt(offset, k)
+			v, err := d.asInt(reader, k)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			sli[i] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(sli))
-		return offset, true, nil
+		return true, nil
 
 	case typeUint8Slice:
 		sli := make([]uint8, l)
 		for i := range sli {
-			v, o, err := d.asUint(offset, k)
+			v, err := d.asUint(reader, k)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			sli[i] = uint8(v)
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(sli))
-		return offset, true, nil
+		return true, nil
 
 	case typeUint16Slice:
 		sli := make([]uint16, l)
 		for i := range sli {
-			v, o, err := d.asUint(offset, k)
+			v, err := d.asUint(reader, k)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			sli[i] = uint16(v)
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(sli))
-		return offset, true, nil
+		return true, nil
 
 	case typeUint32Slice:
 		sli := make([]uint32, l)
 		for i := range sli {
-			v, o, err := d.asUint(offset, k)
+			v, err := d.asUint(reader, k)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			sli[i] = uint32(v)
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(sli))
-		return offset, true, nil
+		return true, nil
 
 	case typeUint64Slice:
 		sli := make([]uint64, l)
 		for i := range sli {
-			v, o, err := d.asUint(offset, k)
+			v, err := d.asUint(reader, k)
 			if err != nil {
-				return 0, false, err
+				return false, err
 			}
 			sli[i] = v
-			offset = o
 		}
 		rv.Set(reflect.ValueOf(sli))
-		return offset, true, nil
+		return true, nil
 	}
 
-	return offset, false, nil
+	return false, nil
 }

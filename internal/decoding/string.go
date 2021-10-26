@@ -1,6 +1,7 @@
 package decoding
 
 import (
+	"bufio"
 	"encoding/binary"
 	"reflect"
 
@@ -18,50 +19,63 @@ func (d *decoder) isFixString(v byte) bool {
 	return def.FixStr <= v && v <= def.FixStr+0x1f
 }
 
-func (d *decoder) stringByteLength(offset int, k reflect.Kind) (int, int, error) {
-	code := d.data[offset]
-	offset++
+func (d *decoder) stringByteLength(reader *bufio.Reader, k reflect.Kind) (int, error) {
+	code, err := reader.ReadByte()
+	if err != nil {
+		return 0, err
+	}
 
 	if def.FixStr <= code && code <= def.FixStr+0x1f {
 		l := int(code - def.FixStr)
-		return l, offset, nil
+		return l, nil
 	} else if code == def.Str8 {
-		b, offset := d.readSize1(offset)
-		return int(b), offset, nil
+		b, err := d.readSize1(reader)
+		if err != nil {
+			return 0, err
+		}
+
+		return int(b), nil
 	} else if code == def.Str16 {
-		b, offset := d.readSize2(offset)
-		return int(binary.BigEndian.Uint16(b)), offset, nil
+		b, err := d.readSize2(reader)
+		if err != nil {
+			return 0, err
+		}
+
+		return int(binary.BigEndian.Uint16(b)), nil
 	} else if code == def.Str32 {
-		b, offset := d.readSize4(offset)
-		return int(binary.BigEndian.Uint32(b)), offset, nil
+		b, err := d.readSize4(reader)
+		if err != nil {
+			return 0, err
+		}
+
+		return int(binary.BigEndian.Uint32(b)), nil
 	} else if code == def.Nil {
-		return 0, offset, nil
+		return 0, nil
 	}
-	return 0, 0, d.errorTemplate(code, k)
+	return 0, d.errorTemplate(code, k)
 }
 
-func (d *decoder) asString(offset int, k reflect.Kind) (string, int, error) {
-	bs, offset, err := d.asStringByte(offset, k)
+func (d *decoder) asString(reader *bufio.Reader, k reflect.Kind) (string, error) {
+	bs, err := d.asStringByte(reader, k)
 	if err != nil {
-		return emptyString, 0, err
+		return emptyString, err
 	}
-	return string(bs), offset, nil
+	return string(bs), nil
 }
 
-func (d *decoder) asStringByte(offset int, k reflect.Kind) ([]byte, int, error) {
-	l, offset, err := d.stringByteLength(offset, k)
+func (d *decoder) asStringByte(reader *bufio.Reader, k reflect.Kind) ([]byte, error) {
+	l, err := d.stringByteLength(reader, k)
 	if err != nil {
-		return emptyBytes, 0, err
+		return emptyBytes, err
 	}
 
-	b, o := d.asStringByteByLength(offset, l, k)
-	return b, o, nil
+	return d.asStringByteByLength(reader, l, k)
 }
 
-func (d *decoder) asStringByteByLength(offset int, l int, k reflect.Kind) ([]byte, int) {
+func (d *decoder) asStringByteByLength(reader *bufio.Reader, l int, k reflect.Kind) ([]byte, error) {
 	if l < 1 {
-		return emptyBytes, offset
+		return emptyBytes, nil
 	}
 
-	return d.readSizeN(offset, l)
+	return d.readSizeN(reader, l)
 }

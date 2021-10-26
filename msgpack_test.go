@@ -566,7 +566,7 @@ func TestInterface(t *testing.T) {
 
 	for i, v := range vars {
 		if err := f(v); err != nil {
-			t.Error(i, err)
+			t.Error(i, v, err)
 		}
 	}
 
@@ -1353,7 +1353,7 @@ func TestTime(t *testing.T) {
 		}
 
 		notReach := []byte{def.Fixext1}
-		_, _, err = extTime.Decoder.AsValue(0, reflect.Bool, &notReach)
+		_, err = extTime.Decoder.AsValue(notReach, reflect.Bool)
 		if err == nil || !strings.Contains(err.Error(), "should not reach this line") {
 			t.Error("something wrong", err)
 		}
@@ -2024,9 +2024,7 @@ type ExtInt ExtStruct
 
 var decoder = new(testDecoder)
 
-type testDecoder struct {
-	ext.DecoderCommon
-}
+type testDecoder struct {}
 
 var extIntCode = int8(-2)
 
@@ -2034,37 +2032,27 @@ func (td *testDecoder) Code() int8 {
 	return extIntCode
 }
 
-func (td *testDecoder) IsType(offset int, d *[]byte) bool {
-	code, offset := td.ReadSize1(offset, d)
-	if code == def.Ext8 {
-		c, offset := td.ReadSize1(offset, d)
-		t, _ := td.ReadSize1(offset, d)
-		return c == 15+15+10+3 && int8(t) == td.Code()
+func (td *testDecoder) AsValue(data []byte, k reflect.Kind) (interface{}, error) {
+	readN := func(n int) []byte {
+		res := data[:n]
+		data = data[n:]
+		return res
 	}
-	return false
-}
 
-func (td *testDecoder) AsValue(offset int, k reflect.Kind, d *[]byte) (interface{}, int, error) {
-	code, offset := td.ReadSize1(offset, d)
-
-	switch code {
-	case def.Ext8:
-		// size
-		_, offset = td.ReadSize1(offset, d)
-		// code
-		_, offset = td.ReadSize1(offset, d)
-		i8, offset := td.ReadSize1(offset, d)
-		i16, offset := td.ReadSize2(offset, d)
-		i32, offset := td.ReadSize4(offset, d)
-		i64, offset := td.ReadSize8(offset, d)
-		u8, offset := td.ReadSize1(offset, d)
-		u16, offset := td.ReadSize2(offset, d)
-		u32, offset := td.ReadSize4(offset, d)
-		u64, offset := td.ReadSize8(offset, d)
-		b16, offset := td.ReadSize2(offset, d)
-		b32, offset := td.ReadSize4(offset, d)
-		bu32, offset := td.ReadSize4(offset, d)
-		bs, offset := td.ReadSizeN(offset, 3, d)
+	switch len(data) {
+	case 15+15+10+3:
+		i8 := readN(1)[0]
+		i16 := readN(2)
+		i32 := readN(4)
+		i64 := readN(8)
+		u8 := readN(1)[0]
+		u16 := readN(2)
+		u32 := readN(4)
+		u64 := readN(8)
+		b16 := readN(2)
+		b32 := readN(4)
+		bu32 := readN(4)
+		bs := readN(3)
 		return ExtInt{
 			Int8:        int8(i8),
 			Int16:       int16(binary.BigEndian.Uint16(i16)),
@@ -2078,10 +2066,10 @@ func (td *testDecoder) AsValue(offset int, k reflect.Kind, d *[]byte) (interface
 			Byte4Int:    int(int32(binary.BigEndian.Uint32(b32))),
 			Byte4Uint32: binary.BigEndian.Uint32(bu32),
 			Bytes:       bs,
-		}, offset, nil
+		}, nil
 	}
 
-	return ExtInt{}, 0, fmt.Errorf("should not reach this line!! code %x decoding %v", code, k)
+	return ExtInt{}, fmt.Errorf("should not reach this line!! data %x decoding %v", data, k)
 }
 
 var encoder = new(testEncoder)
@@ -2191,20 +2179,14 @@ type Ext2Struct struct {
 }
 type Ext2Int Ext2Struct
 
-type testExt2Decoder struct {
-	ext.DecoderCommon
-}
+type testExt2Decoder struct {}
 
 func (td *testExt2Decoder) Code() int8 {
 	return 3
 }
 
-func (td *testExt2Decoder) IsType(offset int, d *[]byte) bool {
-	return false
-}
-
-func (td *testExt2Decoder) AsValue(offset int, k reflect.Kind, d *[]byte) (interface{}, int, error) {
-	return Ext2Int{}, 0, fmt.Errorf("should not reach this line!! code %x decoding %v", 3, k)
+func (td *testExt2Decoder) AsValue(data []byte, k reflect.Kind) (interface{}, error) {
+	return Ext2Int{}, fmt.Errorf("should not reach this line!! code %x data %x decoding %v", 3, data, k)
 }
 
 type testExt2Encoder struct {

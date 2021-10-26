@@ -1,24 +1,26 @@
 package decoding
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
+	"io"
 	"reflect"
 
 	"github.com/shamaton/msgpack/v2/internal/common"
 )
 
 type decoder struct {
-	data    []byte
 	asArray bool
 	common.Common
 }
 
 // Decode analyzes the MessagePack-encoded data and stores
 // the result into the pointer of v.
-func Decode(data []byte, v interface{}, asArray bool) error {
-	d := decoder{data: data, asArray: asArray}
+func Decode(input io.Reader, v interface{}, asArray bool) error {
+	d := decoder{asArray: asArray}
 
-	if d.data == nil {
+	if input == nil {
 		return fmt.Errorf("data is nil")
 	}
 
@@ -29,115 +31,170 @@ func Decode(data []byte, v interface{}, asArray bool) error {
 
 	rv = rv.Elem()
 
-	last, err := d.decode(rv, 0)
+	// if input is already a bufio.Reader, just type assert it
+	bufReader, ok := input.(*bufio.Reader)
+	if !ok {
+		// otherwise, wrap the input in a bufio reader
+		bufReader = bufio.NewReader(input)
+	}
+
+	return d.decode(rv, bufReader)
+}
+
+// DecodeBytes analyzes the MessagePack-encoded data and stores
+// the result into the pointer of v.
+func DecodeBytes(data []byte, v interface{}, asArray bool) error {
+	d := decoder{asArray: asArray}
+
+	if data == nil {
+		return fmt.Errorf("data is nil")
+	}
+
+	rv := reflect.ValueOf(v)
+	if rv.Kind() != reflect.Ptr {
+		return fmt.Errorf("holder must set pointer value. but got: %t", v)
+	}
+
+	rv = rv.Elem()
+
+	input := bytes.NewReader(data)
+	err := d.decode(rv, bufio.NewReader(input))
 	if err != nil {
 		return err
 	}
-	if len(data) != last {
-		return fmt.Errorf("failed deserialization size=%d, last=%d", len(data), last)
+	if input.Len() != 0 {
+		return fmt.Errorf("failed deserialization size=%d, last=%d", len(data), len(data)-input.Len())
 	}
 	return err
 }
 
-func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
+func skipOne(reader *bufio.Reader) error {
+	_, err := reader.ReadByte()
+	return err
+}
+
+func skipN(reader *bufio.Reader, n int) error {
+	_, err := reader.Discard(n)
+	return err
+}
+
+func peekCode(reader *bufio.Reader) (byte, error) {
+	code, err := reader.Peek(1)
+	if err != nil {
+		return 0, err
+	}
+
+	return code[0], nil
+}
+
+func (d *decoder) decode(rv reflect.Value, reader *bufio.Reader) error {
 	k := rv.Kind()
 	switch k {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		v, o, err := d.asInt(offset, k)
+		v, err := d.asInt(reader, k)
 		if err != nil {
-			return 0, err
+			return err
 		}
 		rv.SetInt(v)
-		offset = o
 
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		v, o, err := d.asUint(offset, k)
+		v, err := d.asUint(reader, k)
 		if err != nil {
-			return 0, err
+			return err
 		}
 		rv.SetUint(v)
-		offset = o
 
 	case reflect.Float32:
-		v, o, err := d.asFloat32(offset, k)
+		v, err := d.asFloat32(reader, k)
 		if err != nil {
-			return 0, err
+			return err
 		}
 		rv.SetFloat(float64(v))
-		offset = o
 
 	case reflect.Float64:
-		v, o, err := d.asFloat64(offset, k)
+		v, err := d.asFloat64(reader, k)
 		if err != nil {
-			return 0, err
+			return err
 		}
 		rv.SetFloat(v)
-		offset = o
 
 	case reflect.String:
+		code, err := peekCode(reader)
+		if err != nil {
+			return err
+		}
+
 		// byte slice
-		if d.isCodeBin(d.data[offset]) {
-			v, offset, err := d.asBinString(offset, k)
+		if d.isCodeBin(code) {
+			v, err := d.asBinString(reader, k)
 			if err != nil {
-				return 0, err
+				return err
 			}
 			rv.SetString(v)
-			return offset, nil
+			return nil
 		}
-		v, o, err := d.asString(offset, k)
+		v, err := d.asString(reader, k)
 		if err != nil {
-			return 0, err
+			return err
 		}
 		rv.SetString(v)
-		offset = o
 
 	case reflect.Bool:
-		v, o, err := d.asBool(offset, k)
+		v, err := d.asBool(reader, k)
 		if err != nil {
-			return 0, err
+			return err
 		}
 		rv.SetBool(v)
-		offset = o
 
 	case reflect.Slice:
+		code, err := peekCode(reader)
+		if err != nil {
+			return err
+		}
+
 		// nil
-		if d.isCodeNil(d.data[offset]) {
-			offset++
-			return offset, nil
+		if d.isCodeNil(code) {
+			_, err = reader.ReadByte()
+			return err
 		}
+
 		// byte slice
-		if d.isCodeBin(d.data[offset]) {
-			bs, offset, err := d.asBin(offset, k)
+		if d.isCodeBin(code) {
+			bs, err := d.asBin(reader, k)
 			if err != nil {
-				return 0, err
+				return err
 			}
 			rv.SetBytes(bs)
-			return offset, nil
+			return nil
 		}
+
 		// string to bytes
-		if d.isCodeString(d.data[offset]) {
-			l, offset, err := d.stringByteLength(offset, k)
+		if d.isCodeString(code) {
+			l, err := d.stringByteLength(reader, k)
 			if err != nil {
-				return 0, err
+				return err
 			}
-			bs, offset := d.asStringByteByLength(offset, l, k)
+			bs, err := d.asStringByteByLength(reader, l, k)
+			if err != nil {
+				return err
+			}
 			rv.SetBytes(bs)
-			return offset, nil
+			return nil
 		}
 
 		// get slice length
-		l, o, err := d.sliceLength(offset, k)
+		l, err := d.sliceLength(reader, k)
 		if err != nil {
-			return 0, err
+			return err
 		}
 
 		// check fixed type
-		fixedOffset, found, err := d.asFixedSlice(rv, o, l)
+		found, err := d.asFixedSlice(rv, reader, l)
 		if err != nil {
-			return 0, err
+			return err
 		}
 		if found {
-			return fixedOffset, nil
+			return nil
 		}
 
 		// create slice dynamically
@@ -145,108 +202,118 @@ func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
 		for i := 0; i < l; i++ {
 			v := tmpSlice.Index(i)
 			if v.Kind() == reflect.Struct {
-				o, err = d.setStruct(v, o, k)
+				err = d.setStruct(v, reader, k)
 			} else {
-				o, err = d.decode(v, o)
+				err = d.decode(v, reader)
 			}
 			if err != nil {
-				return 0, err
+				return err
 			}
 		}
 		rv.Set(tmpSlice)
-		offset = o
 
 	case reflect.Complex64:
-		v, o, err := d.asComplex64(offset, k)
+		v, err := d.asComplex64(reader, k)
 		if err != nil {
-			return 0, err
+			return err
 		}
 		rv.SetComplex(complex128(v))
-		offset = o
 
 	case reflect.Complex128:
-		v, o, err := d.asComplex128(offset, k)
+		v, err := d.asComplex128(reader, k)
 		if err != nil {
-			return 0, err
+			return err
 		}
 		rv.SetComplex(v)
-		offset = o
 
 	case reflect.Array:
-		// nil
-		if d.isCodeNil(d.data[offset]) {
-			offset++
-			return offset, nil
+		code, err := peekCode(reader)
+		if err != nil {
+			return err
 		}
+
+		// nil
+		if d.isCodeNil(code) {
+			_, err = reader.ReadByte()
+			return err
+		}
+
 		// byte slice
-		if d.isCodeBin(d.data[offset]) {
-			bs, offset, err := d.asBin(offset, k)
+		if d.isCodeBin(code) {
+			bs, err := d.asBin(reader, k)
 			if err != nil {
-				return 0, err
+				return err
 			}
 			if len(bs) > rv.Len() {
-				return 0, fmt.Errorf("%v len is %d, but msgpack has %d elements", rv.Type(), rv.Len(), len(bs))
+				return fmt.Errorf("%v len is %d, but msgpack has %d elements", rv.Type(), rv.Len(), len(bs))
 			}
 			for i, b := range bs {
 				rv.Index(i).SetUint(uint64(b))
 			}
-			return offset, nil
+			return nil
 		}
 		// string to bytes
-		if d.isCodeString(d.data[offset]) {
-			l, offset, err := d.stringByteLength(offset, k)
+		if d.isCodeString(code) {
+			l, err := d.stringByteLength(reader, k)
 			if err != nil {
-				return 0, err
+				return err
 			}
 			if l > rv.Len() {
-				return 0, fmt.Errorf("%v len is %d, but msgpack has %d elements", rv.Type(), rv.Len(), l)
+				return fmt.Errorf("%v len is %d, but msgpack has %d elements", rv.Type(), rv.Len(), l)
 			}
-			bs, offset := d.asStringByteByLength(offset, l, k)
+			bs, err := d.asStringByteByLength(reader, l, k)
+			if err != nil {
+				return err
+			}
 			for i, b := range bs {
 				rv.Index(i).SetUint(uint64(b))
 			}
-			return offset, nil
+			return nil
 		}
 
 		// get slice length
-		l, o, err := d.sliceLength(offset, k)
+		l, err := d.sliceLength(reader, k)
 		if err != nil {
-			return 0, err
+			return err
 		}
 
 		if l > rv.Len() {
-			return 0, fmt.Errorf("%v len is %d, but msgpack has %d elements", rv.Type(), rv.Len(), l)
+			return fmt.Errorf("%v len is %d, but msgpack has %d elements", rv.Type(), rv.Len(), l)
 		}
 
 		// create array dynamically
 		for i := 0; i < l; i++ {
-			o, err = d.decode(rv.Index(i), o)
+			err = d.decode(rv.Index(i), reader)
 			if err != nil {
-				return 0, err
+				return err
 			}
 		}
-		offset = o
 
 	case reflect.Map:
+		code, err := peekCode(reader)
+		if err != nil {
+			return err
+		}
+
 		// nil
-		if d.isCodeNil(d.data[offset]) {
-			offset++
-			return offset, nil
+		if d.isCodeNil(code) {
+			_, err = reader.ReadByte()
+			return err
 		}
 
 		// get map length
-		l, o, err := d.mapLength(offset, k)
+		l, err := d.mapLength(reader, k)
 		if err != nil {
-			return 0, err
+			return err
 		}
 
 		// check fixed type
-		fixedOffset, found, err := d.asFixedMap(rv, o, l)
+		found, err := d.asFixedMap(rv, reader, l)
 		if err != nil {
-			return 0, err
+			return err
 		}
 		if found {
-			return fixedOffset, nil
+			return nil
 		}
 
 		// create dynamically
@@ -258,31 +325,34 @@ func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
 		for i := 0; i < l; i++ {
 			k := reflect.New(key).Elem()
 			v := reflect.New(value).Elem()
-			o, err = d.decode(k, o)
+			err = d.decode(k, reader)
 			if err != nil {
-				return 0, err
+				return err
 			}
-			o, err = d.decode(v, o)
+			err = d.decode(v, reader)
 			if err != nil {
-				return 0, err
+				return err
 			}
 
 			rv.SetMapIndex(k, v)
 		}
-		offset = o
 
 	case reflect.Struct:
-		o, err := d.setStruct(rv, offset, k)
+		err := d.setStruct(rv, reader, k)
 		if err != nil {
-			return 0, err
+			return err
 		}
-		offset = o
 
 	case reflect.Ptr:
+		code, err := peekCode(reader)
+		if err != nil {
+			return err
+		}
+
 		// nil
-		if d.isCodeNil(d.data[offset]) {
-			offset++
-			return offset, nil
+		if d.isCodeNil(code) {
+			_, err = reader.ReadByte()
+			return err
 		}
 
 		if rv.Elem().Kind() == reflect.Invalid {
@@ -290,34 +360,32 @@ func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
 			rv.Set(n)
 		}
 
-		o, err := d.decode(rv.Elem(), offset)
+		err = d.decode(rv.Elem(), reader)
 		if err != nil {
-			return 0, err
+			return err
 		}
-		offset = o
 
 	case reflect.Interface:
 		if rv.Elem().Kind() == reflect.Ptr {
-			o, err := d.decode(rv.Elem(), offset)
+			err := d.decode(rv.Elem(), reader)
 			if err != nil {
-				return 0, err
+				return err
 			}
-			offset = o
 		} else {
-			v, o, err := d.asInterface(offset, k)
+			v, err := d.asInterface(reader, k)
 			if err != nil {
-				return 0, err
+				return err
 			}
 			if v != nil {
 				rv.Set(reflect.ValueOf(v))
 			}
-			offset = o
 		}
 
 	default:
-		return 0, fmt.Errorf("type(%v) is unsupported", rv.Kind())
+		return fmt.Errorf("type(%v) is unsupported", rv.Kind())
 	}
-	return offset, nil
+
+	return nil
 }
 
 func (d *decoder) errorTemplate(code byte, k reflect.Kind) error {

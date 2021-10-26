@@ -1,6 +1,11 @@
 package decoding
 
 import (
+	"bufio"
+	"encoding/binary"
+	"errors"
+
+	"github.com/shamaton/msgpack/v2/def"
 	"github.com/shamaton/msgpack/v2/ext"
 	"github.com/shamaton/msgpack/v2/time"
 )
@@ -43,6 +48,112 @@ func updateExtCoders() {
 		extCoders[i] = extCoderMap[k]
 		i++
 	}
+}
+
+var errNotExt = errors.New("not an Ext value")
+
+func (d *decoder) readExt(reader *bufio.Reader) (byte, []byte, error) {
+	code, err := peekCode(reader)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	// first, determine whether this is actually an ext value or not
+	switch code {
+	case def.Fixext1:
+	case def.Fixext2:
+	case def.Fixext4:
+	case def.Fixext8:
+	case def.Fixext16:
+	case def.Ext8:
+	case def.Ext16:
+	case def.Ext32:
+	default:
+		return 0, nil, errNotExt
+	}
+
+	err = skipOne(reader)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	switch code {
+	case def.Fixext1:
+		code, err = reader.ReadByte()
+		if err != nil {
+			return 0, nil, err
+		}
+		data, err := d.readSize1(reader)
+		return code, []byte{data}, err
+	case def.Fixext2:
+		code, err = reader.ReadByte()
+		if err != nil {
+			return 0, nil, err
+		}
+		data, err := d.readSize2(reader)
+		return code, data, err
+	case def.Fixext4:
+		code, err = reader.ReadByte()
+		if err != nil {
+			return 0, nil, err
+		}
+		data, err := d.readSize4(reader)
+		return code, data, err
+	case def.Fixext8:
+		code, err = reader.ReadByte()
+		if err != nil {
+			return 0, nil, err
+		}
+		data, err := d.readSize8(reader)
+		return code, data, err
+	case def.Fixext16:
+		code, err = reader.ReadByte()
+		if err != nil {
+			return 0, nil, err
+		}
+		data, err := d.readSizeN(reader, 16)
+		return code, data, err
+
+	case def.Ext8:
+		v, err := d.readSize1(reader)
+		if err != nil {
+			return 0, nil ,err
+		}
+		code, err = reader.ReadByte()
+		if err != nil {
+			return 0, nil, err
+		}
+		data, err := d.readSizeN(reader, int(v))
+		return code, data, err
+	case def.Ext16:
+		bs, err := d.readSize2(reader)
+		if err != nil {
+			return 0, nil, err
+		}
+		code, err = reader.ReadByte()
+		if err != nil {
+			return 0, nil, err
+		}
+		v := binary.BigEndian.Uint16(bs)
+		data, err := d.readSizeN(reader, int(v))
+		return code, data, err
+	case def.Ext32:
+		bs, err := d.readSize4(reader)
+		if err != nil {
+			return 0, nil, err
+		}
+		code, err = reader.ReadByte()
+		if err != nil {
+			return 0, nil, err
+		}
+		v := binary.BigEndian.Uint32(bs)
+		data, err := d.readSizeN(reader, int(v))
+		return code, data, err
+
+	default:
+		return 0, nil, errors.New("this should be impossible")
+	}
+
 }
 
 /*
