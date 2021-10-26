@@ -2,6 +2,7 @@ package msgpack
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/shamaton/msgpack/v2/def"
 	"github.com/shamaton/msgpack/v2/ext"
@@ -22,6 +23,30 @@ func Marshal(v interface{}) ([]byte, error) {
 // the result into the pointer of v.
 func Unmarshal(data []byte, v interface{}) error {
 	return decoding.DecodeBytes(data, v, StructAsArray)
+}
+
+type Encoder struct {
+	writer io.Writer
+}
+
+func NewEncoder(output io.Writer) *Encoder {
+	return &Encoder{writer: output}
+}
+
+func (e *Encoder) Encode(v interface{}) error {
+	return encoding.Encode(v, e.writer, StructAsArray)
+}
+
+type Decoder struct {
+	reader io.Reader
+}
+
+func NewDecoder(output io.Reader) *Decoder {
+	return &Decoder{reader: output}
+}
+
+func (e *Decoder) Decode(v interface{}) error {
+	return decoding.Decode(e.reader, v, StructAsArray)
 }
 
 // AddExtCoder adds encoders for extension types.
