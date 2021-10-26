@@ -29,10 +29,12 @@ type Encoder struct {
 	writer io.Writer
 }
 
+// NewEncoder will create an Encoder that will encode values into a stream
 func NewEncoder(output io.Writer) *Encoder {
 	return &Encoder{writer: output}
 }
 
+// Encode a single value into the output stream
 func (e *Encoder) Encode(v interface{}) error {
 	return encoding.Encode(v, e.writer, StructAsArray)
 }
@@ -41,6 +43,7 @@ type Decoder struct {
 	reader io.Reader
 }
 
+// NewDecoder will create an Decoder that will decode values from a stream one at a time
 func NewDecoder(output io.Reader) *Decoder {
 	return &Decoder{reader: output}
 }
