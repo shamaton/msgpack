@@ -61,20 +61,11 @@ func (e *encoder) calcStructArray(rv reflect.Value) (int, error) {
 	cache, find := cachemap.Load(t)
 	var c *structCache
 	if !find {
-		c = &structCache{}
-		for i := 0; i < rv.NumField(); i++ {
-			field := t.Field(i)
-			if ok, name := e.CheckField(field); ok {
-				size, err := e.calcSize(rv.Field(i))
-				if err != nil {
-					return 0, err
-				}
-				ret += size
-				c.indexes = append(c.indexes, i)
-				c.names = append(c.names, name)
-			}
+		var err error
+		c, ret, err = e.cacheStructArray(rv, ret, t)
+		if err != nil {
+			return 0, err
 		}
-		cachemap.Store(t, c)
 	} else {
 		c = cache.(*structCache)
 		for i := 0; i < len(c.indexes); i++ {
@@ -101,26 +92,38 @@ func (e *encoder) calcStructArray(rv reflect.Value) (int, error) {
 	return ret, nil
 }
 
+
+
+func (e *encoder) cacheStructArray(rv reflect.Value, ret int, t reflect.Type) (*structCache, int, error) {
+	c := &structCache{}
+	for i := 0; i < rv.NumField(); i++ {
+		field := t.Field(i)
+		if ok, name := e.CheckField(field); ok {
+			size, err := e.calcSize(rv.Field(i))
+			if err != nil {
+				return nil, 0, err
+			}
+			ret += size
+			c.indexes = append(c.indexes, i)
+			c.names = append(c.names, name)
+		}
+	}
+
+	cachemap.Store(t, c)
+	return c, ret, nil
+}
+
 func (e *encoder) calcStructMap(rv reflect.Value) (int, error) {
 	ret := 0
 	t := rv.Type()
 	cache, find := cachemap.Load(t)
 	var c *structCache
 	if !find {
-		c = &structCache{}
-		for i := 0; i < rv.NumField(); i++ {
-			if ok, name := e.CheckField(rv.Type().Field(i)); ok {
-				keySize := def.Byte1 + e.calcString(name)
-				valueSize, err := e.calcSize(rv.Field(i))
-				if err != nil {
-					return 0, err
-				}
-				ret += keySize + valueSize
-				c.indexes = append(c.indexes, i)
-				c.names = append(c.names, name)
-			}
+		var err error
+		c, ret, err = e.cacheStructMap(rv, ret, t)
+		if err != nil {
+			return 0, err
 		}
-		cachemap.Store(t, c)
 	} else {
 		c = cache.(*structCache)
 		for i := 0; i < len(c.indexes); i++ {
@@ -146,6 +149,25 @@ func (e *encoder) calcStructMap(rv reflect.Value) (int, error) {
 		return 0, fmt.Errorf("not support this array length : %d", l)
 	}
 	return ret, nil
+}
+
+func (e *encoder) cacheStructMap(rv reflect.Value, ret int, t reflect.Type) (*structCache, int, error) {
+	c := &structCache{}
+	for i := 0; i < rv.NumField(); i++ {
+		if ok, name := e.CheckField(rv.Type().Field(i)); ok {
+			keySize := def.Byte1 + e.calcString(name)
+			valueSize, err := e.calcSize(rv.Field(i))
+			if err != nil {
+				return nil, 0, err
+			}
+			ret += keySize + valueSize
+			c.indexes = append(c.indexes, i)
+			c.names = append(c.names, name)
+		}
+	}
+
+	cachemap.Store(t, c)
+	return c, ret, nil
 }
 
 func (e *encoder) getStructWriter(typ reflect.Type) structWriteFunc {
@@ -183,7 +205,14 @@ func (e *encoder) writeStruct(rv reflect.Value, writer io.Writer) error {
 }
 
 func (e *encoder) writeStructArray(rv reflect.Value, writer io.Writer) error {
-	cache, _ := cachemap.Load(rv.Type())
+	cache, find := cachemap.Load(rv.Type())
+	if !find {
+		var err error
+		cache, _, err = e.cacheStructArray(rv, 0, rv.Type())
+		if err != nil {
+			return err
+		}
+	}
 	c := cache.(*structCache)
 
 	// write format
@@ -224,7 +253,14 @@ func (e *encoder) writeStructArray(rv reflect.Value, writer io.Writer) error {
 }
 
 func (e *encoder) writeStructMap(rv reflect.Value, writer io.Writer) error {
-	cache, _ := cachemap.Load(rv.Type())
+	cache, find := cachemap.Load(rv.Type())
+	if !find {
+		var err error
+		cache, _, err = e.cacheStructMap(rv, 0, rv.Type())
+		if err != nil {
+			return err
+		}
+	}
 	c := cache.(*structCache)
 
 	// format size
