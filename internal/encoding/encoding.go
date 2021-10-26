@@ -56,7 +56,7 @@ func EncodeBytes(v interface{}, asArray bool) (b []byte, err error) {
 		return nil, err
 	}
 	if size != writer.Len() {
-		return nil, fmt.Errorf("failed serialization size=%d, lastIdx=%d contents=%x", size, writer.Len(), writer.Bytes())
+		return nil, fmt.Errorf("failed serialization size=%d, lastIdx=%d", size, writer.Len())
 	}
 	return writer.Bytes(), err
 }
