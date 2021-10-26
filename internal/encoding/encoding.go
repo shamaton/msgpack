@@ -61,18 +61,6 @@ func EncodeBytes(v interface{}, asArray bool) (b []byte, err error) {
 	return writer.Bytes(), err
 }
 
-//func stackTrace() string {
-//	msg := ""
-//	for depth := 0; ; depth++ {
-//		_, file, line, ok := runtime.Caller(depth)
-//		if !ok {
-//			break
-//		}
-//		msg += fmt.Sprintln(depth, ": ", file, ":", line)
-//	}
-//	return msg
-//}
-
 func (e *encoder) calcSize(rv reflect.Value) (int, error) {
 	ret := def.Byte1
 
