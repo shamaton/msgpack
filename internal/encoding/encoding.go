@@ -1,7 +1,10 @@
 package encoding
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
+	"io"
 	"math"
 	"reflect"
 
@@ -10,7 +13,6 @@ import (
 )
 
 type encoder struct {
-	d       []byte
 	asArray bool
 	common.Common
 	mk map[uintptr][]reflect.Value
@@ -18,17 +20,23 @@ type encoder struct {
 }
 
 // Encode returns the MessagePack-encoded byte array of v.
-func Encode(v interface{}, asArray bool) (b []byte, err error) {
+func Encode(v interface{}, output io.Writer, asArray bool) (err error) {
 	e := encoder{asArray: asArray}
-	/*
-		defer func() {
-			e := recover()
-			if e != nil {
-				b = nil
-				err = fmt.Errorf("unexpected error!! \n%s", stackTrace())
-			}
-		}()
-	*/
+
+	rv := reflect.ValueOf(v)
+	if rv.Kind() == reflect.Ptr {
+		rv = rv.Elem()
+		if rv.Kind() == reflect.Ptr {
+			rv = rv.Elem()
+		}
+	}
+
+	return e.create(rv, output)
+}
+
+// EncodeBytes returns the MessagePack-encoded byte array of v.
+func EncodeBytes(v interface{}, asArray bool) (b []byte, err error) {
+	e := encoder{asArray: asArray}
 
 	rv := reflect.ValueOf(v)
 	if rv.Kind() == reflect.Ptr {
@@ -42,12 +50,15 @@ func Encode(v interface{}, asArray bool) (b []byte, err error) {
 		return nil, err
 	}
 
-	e.d = make([]byte, size)
-	last := e.create(rv, 0)
-	if size != last {
-		return nil, fmt.Errorf("failed serialization size=%d, lastIdx=%d", size, last)
+	writer := bytes.NewBuffer(make([]byte, 0, size))
+	err = e.create(rv, writer)
+	if err != nil {
+		return nil, err
 	}
-	return e.d, err
+	if size != writer.Len() {
+		return nil, fmt.Errorf("failed serialization size=%d, lastIdx=%d contents=%x", size, writer.Len(), writer.Bytes())
+	}
+	return writer.Bytes(), err
 }
 
 //func stackTrace() string {
@@ -268,52 +279,58 @@ func (e *encoder) calcSize(rv reflect.Value) (int, error) {
 	return ret, nil
 }
 
-func (e *encoder) create(rv reflect.Value, offset int) int {
+func (e *encoder) create(rv reflect.Value, writer io.Writer) error {
 
 	switch rv.Kind() {
 	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
 		v := rv.Uint()
-		offset = e.writeUint(v, offset)
+		return e.writeUint(v, writer)
 
 	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
 		v := rv.Int()
-		offset = e.writeInt(v, offset)
+		return e.writeInt(v, writer)
 
 	case reflect.Float32:
-		offset = e.writeFloat32(rv.Float(), offset)
+		return e.writeFloat32(rv.Float(), writer)
 
 	case reflect.Float64:
-		offset = e.writeFloat64(rv.Float(), offset)
+		return e.writeFloat64(rv.Float(), writer)
 
 	case reflect.Bool:
-		offset = e.writeBool(rv.Bool(), offset)
+		return e.writeBool(rv.Bool(), writer)
 
 	case reflect.String:
-		offset = e.writeString(rv.String(), offset)
+		return e.writeString(rv.String(), writer)
 
 	case reflect.Complex64:
-		offset = e.writeComplex64(complex64(rv.Complex()), offset)
+		return e.writeComplex64(complex64(rv.Complex()), writer)
 
 	case reflect.Complex128:
-		offset = e.writeComplex128(rv.Complex(), offset)
+		return e.writeComplex128(rv.Complex(), writer)
 
 	case reflect.Slice:
 		if rv.IsNil() {
-			return e.writeNil(offset)
+			return e.writeNil(writer)
 		}
 		l := rv.Len()
 		// bin format
 		if e.isByteSlice(rv) {
-			offset = e.writeByteSliceLength(l, offset)
-			offset = e.setBytes(rv.Bytes(), offset)
-			return offset
+			err := e.writeByteSliceLength(l, writer)
+			if err != nil {
+				return err
+			}
+
+			return e.setBytes(rv.Bytes(), writer)
 		}
 
 		// format
-		offset = e.writeSliceLength(l, offset)
+		err := e.writeSliceLength(l, writer)
+		if err != nil {
+			return err
+		}
 
-		if offset, find := e.writeFixedSlice(rv, offset); find {
-			return offset
+		if found, err := e.writeFixedSlice(rv, writer); found {
+			return err
 		}
 
 		// func
@@ -327,23 +344,39 @@ func (e *encoder) create(rv reflect.Value, offset int) int {
 
 		// objects
 		for i := 0; i < l; i++ {
-			offset = f(rv.Index(i), offset)
+			err = f(rv.Index(i), writer)
+			if err != nil {
+				return err
+			}
 		}
+
+		return nil
 
 	case reflect.Array:
 		l := rv.Len()
 		// bin format
 		if e.isByteSlice(rv) {
-			offset = e.writeByteSliceLength(l, offset)
+			err := e.writeByteSliceLength(l, writer)
+			if err != nil {
+				return err
+			}
+
 			// objects
 			for i := 0; i < l; i++ {
-				offset = e.setByte1Uint64(rv.Index(i).Uint(), offset)
+				err = e.setByte1Uint64(rv.Index(i).Uint(), writer)
+				if err != nil {
+					return err
+				}
 			}
-			return offset
+
+			return nil
 		}
 
 		// format
-		offset = e.writeSliceLength(l, offset)
+		err := e.writeSliceLength(l, writer)
+		if err != nil {
+			return err
+		}
 
 		// func
 		elem := rv.Type().Elem()
@@ -356,44 +389,62 @@ func (e *encoder) create(rv reflect.Value, offset int) int {
 
 		// objects
 		for i := 0; i < l; i++ {
-			offset = f(rv.Index(i), offset)
+			err = f(rv.Index(i), writer)
+			if err != nil {
+				return err
+			}
 		}
+
+		return nil
 
 	case reflect.Map:
 		if rv.IsNil() {
-			return e.writeNil(offset)
+			return e.writeNil(writer)
 		}
 
 		l := rv.Len()
-		offset = e.writeMapLength(l, offset)
+		err := e.writeMapLength(l, writer)
+		if err != nil {
+			return err
+		}
 
-		if offset, find := e.writeFixedMap(rv, offset); find {
-			return offset
+		if found, err := e.writeFixedMap(rv, writer); found {
+			return err
 		}
 
 		// key-value
 		p := rv.Pointer()
 		for i := range e.mk[p] {
-			offset = e.create(e.mk[p][i], offset)
-			offset = e.create(e.mv[p][i], offset)
+			err = e.create(e.mk[p][i], writer)
+			if err != nil {
+				return err
+			}
+
+			err = e.create(e.mv[p][i], writer)
+			if err != nil {
+				return err
+			}
 		}
 
+		return nil
+
 	case reflect.Struct:
-		offset = e.writeStruct(rv, offset)
+		return e.writeStruct(rv, writer)
 
 	case reflect.Ptr:
 		if rv.IsNil() {
-			return e.writeNil(offset)
+			return e.writeNil(writer)
 		}
 
-		offset = e.create(rv.Elem(), offset)
+		return e.create(rv.Elem(), writer)
 
 	case reflect.Interface:
-		offset = e.create(rv.Elem(), offset)
+		return e.create(rv.Elem(), writer)
 
 	case reflect.Invalid:
-		return e.writeNil(offset)
+		return e.writeNil(writer)
 
+	default:
+		return errors.New("invalid reflect value")
 	}
-	return offset
 }

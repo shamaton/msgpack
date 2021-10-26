@@ -1,6 +1,7 @@
 package encoding
 
 import (
+	"io"
 	"math"
 	"unsafe"
 
@@ -22,22 +23,45 @@ func (e *encoder) calcString(v string) int {
 	// NOTE : length over uint32
 }
 
-func (e *encoder) writeString(str string, offset int) int {
-	// NOTE : unsafe
-	strBytes := *(*[]byte)(unsafe.Pointer(&str))
-	l := len(strBytes)
+func (e *encoder) writeString(str string, writer io.Writer) (err error) {
+	l := len(str)
 	if l < 32 {
-		offset = e.setByte1Int(def.FixStr+l, offset)
+		err = e.setByte1Int(def.FixStr+l, writer)
+		if err != nil {
+			return err
+		}
 	} else if l <= math.MaxUint8 {
-		offset = e.setByte1Int(def.Str8, offset)
-		offset = e.setByte1Int(l, offset)
+		err = e.setByte1Int(def.Str8, writer)
+		if err != nil {
+			return err
+		}
+
+		err = e.setByte1Int(l, writer)
+		if err != nil {
+			return err
+		}
 	} else if l <= math.MaxUint16 {
-		offset = e.setByte1Int(def.Str16, offset)
-		offset = e.setByte2Int(l, offset)
+		err = e.setByte1Int(def.Str16, writer)
+		if err != nil {
+			return err
+		}
+
+		err = e.setByte2Int(l, writer)
+		if err != nil {
+			return err
+		}
 	} else {
-		offset = e.setByte1Int(def.Str32, offset)
-		offset = e.setByte4Int(l, offset)
+		err = e.setByte1Int(def.Str32, writer)
+		if err != nil {
+			return err
+		}
+
+		err = e.setByte4Int(l, writer)
+		if err != nil {
+			return err
+		}
 	}
-	offset += copy(e.d[offset:], str)
-	return offset
+
+	_, err = io.WriteString(writer, str)
+	return err
 }

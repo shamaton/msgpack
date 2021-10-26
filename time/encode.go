@@ -1,6 +1,7 @@
 package time
 
 import (
+	"io"
 	"reflect"
 	"time"
 
@@ -38,29 +39,73 @@ func (s *timeEncoder) CalcByteSize(value reflect.Value) (int, error) {
 	return def.Byte1 + def.Byte1 + def.Byte4 + def.Byte8, nil
 }
 
-func (s *timeEncoder) WriteToBytes(value reflect.Value, offset int, bytes *[]byte) int {
+func (s *timeEncoder) WriteToBytes(value reflect.Value, writer io.Writer) error {
 	t := value.Interface().(time.Time)
 
 	secs := uint64(t.Unix())
 	if secs>>34 == 0 {
 		data := uint64(t.Nanosecond())<<34 | secs
 		if data&0xffffffff00000000 == 0 {
-			offset = s.SetByte1Int(def.Fixext4, offset, bytes)
-			offset = s.SetByte1Int(def.TimeStamp, offset, bytes)
-			offset = s.SetByte4Uint64(data, offset, bytes)
-			return offset
+			err := s.SetByte1Int(def.Fixext4, writer)
+			if err != nil {
+				return err
+			}
+
+			err = s.SetByte1Int(def.TimeStamp, writer)
+			if err != nil {
+				return err
+			}
+
+			err = s.SetByte4Uint64(data, writer)
+			if err != nil {
+				return err
+			}
+
+			return nil
 		}
 
-		offset = s.SetByte1Int(def.Fixext8, offset, bytes)
-		offset = s.SetByte1Int(def.TimeStamp, offset, bytes)
-		offset = s.SetByte8Uint64(data, offset, bytes)
-		return offset
+		err := s.SetByte1Int(def.Fixext8, writer)
+		if err != nil {
+			return err
+		}
+
+		err = s.SetByte1Int(def.TimeStamp, writer)
+		if err != nil {
+			return err
+		}
+
+		err = s.SetByte8Uint64(data, writer)
+		if err != nil {
+			return err
+		}
+
+		return nil
 	}
 
-	offset = s.SetByte1Int(def.Ext8, offset, bytes)
-	offset = s.SetByte1Int(12, offset, bytes)
-	offset = s.SetByte1Int(def.TimeStamp, offset, bytes)
-	offset = s.SetByte4Int(t.Nanosecond(), offset, bytes)
-	offset = s.SetByte8Uint64(secs, offset, bytes)
-	return offset
+	err := s.SetByte1Int(def.Ext8, writer)
+	if err != nil {
+		return err
+	}
+
+	err = s.SetByte1Int(12, writer)
+	if err != nil {
+		return err
+	}
+
+	err = s.SetByte1Int(def.TimeStamp, writer)
+	if err != nil {
+		return err
+	}
+
+	err = s.SetByte4Int(t.Nanosecond(), writer)
+	if err != nil {
+		return err
+	}
+
+	err = s.SetByte8Uint64(secs, writer)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -1,7 +1,9 @@
 package encoding
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"math"
 	"reflect"
 
@@ -26,16 +28,33 @@ func (e *encoder) calcByteSlice(l int) (int, error) {
 	return 0, fmt.Errorf("not support this array length : %d", l)
 }
 
-func (e *encoder) writeByteSliceLength(l int, offset int) int {
+func (e *encoder) writeByteSliceLength(l int, writer io.Writer) error {
 	if l <= math.MaxUint8 {
-		offset = e.setByte1Int(def.Bin8, offset)
-		offset = e.setByte1Int(l, offset)
-	} else if l <= math.MaxUint16 {
-		offset = e.setByte1Int(def.Bin16, offset)
-		offset = e.setByte2Int(l, offset)
-	} else if uint(l) <= math.MaxUint32 {
-		offset = e.setByte1Int(def.Bin32, offset)
-		offset = e.setByte4Int(l, offset)
+		err := e.setByte1Int(def.Bin8, writer)
+		if err != nil {
+			return err
+		}
+
+		return e.setByte1Int(l, writer)
 	}
-	return offset
+
+	if l <= math.MaxUint16 {
+		err := e.setByte1Int(def.Bin16, writer)
+		if err != nil {
+			return err
+		}
+
+		return e.setByte2Int(l, writer)
+	}
+
+	if uint(l) <= math.MaxUint32 {
+		err := e.setByte1Int(def.Bin32, writer)
+		if err != nil {
+			return err
+		}
+
+		return e.setByte4Int(l, writer)
+	}
+
+	return errors.New("todo: unhandled byte slice length")
 }

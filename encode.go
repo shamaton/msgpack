@@ -7,11 +7,11 @@ import (
 // MarshalAsMap encodes data as map format.
 // This is the same thing that StructAsArray sets false.
 func MarshalAsMap(v interface{}) ([]byte, error) {
-	return encoding.Encode(v, false)
+	return encoding.EncodeBytes(v, false)
 }
 
 // MarshalAsArray encodes data as array format.
 // This is the same thing that StructAsArray sets true.
 func MarshalAsArray(v interface{}) ([]byte, error) {
-	return encoding.Encode(v, true)
+	return encoding.EncodeBytes(v, true)
 }

@@ -1,6 +1,8 @@
 package encoding
 
 import (
+	"errors"
+	"io"
 	"math"
 	"reflect"
 
@@ -97,107 +99,158 @@ func (e *encoder) calcFixedSlice(rv reflect.Value) (int, bool) {
 	return size, false
 }
 
-func (e *encoder) writeSliceLength(l int, offset int) int {
+func (e *encoder) writeSliceLength(l int, writer io.Writer) (err error) {
 	// format size
 	if l <= 0x0f {
-		offset = e.setByte1Int(def.FixArray+l, offset)
+		return e.setByte1Int(def.FixArray+l, writer)
 	} else if l <= math.MaxUint16 {
-		offset = e.setByte1Int(def.Array16, offset)
-		offset = e.setByte2Int(l, offset)
+		err = e.setByte1Int(def.Array16, writer)
+		if err != nil {
+			return err
+		}
+
+		return e.setByte2Int(l, writer)
 	} else if uint(l) <= math.MaxUint32 {
-		offset = e.setByte1Int(def.Array32, offset)
-		offset = e.setByte4Int(l, offset)
+		err = e.setByte1Int(def.Array32, writer)
+		if err != nil {
+			return err
+		}
+
+		return e.setByte4Int(l, writer)
 	}
-	return offset
+
+	return errors.New("todo: unhandled slice length")
 }
 
-func (e *encoder) writeFixedSlice(rv reflect.Value, offset int) (int, bool) {
+func (e *encoder) writeFixedSlice(rv reflect.Value, writer io.Writer) (bool, error) {
 
 	switch sli := rv.Interface().(type) {
 	case []int:
 		for _, v := range sli {
-			offset = e.writeInt(int64(v), offset)
+			err := e.writeInt(int64(v), writer)
+			if err != nil {
+				return true, err
+			}
 		}
-		return offset, true
+		return true, nil
 
 	case []uint:
 		for _, v := range sli {
-			offset = e.writeUint(uint64(v), offset)
+			err := e.writeUint(uint64(v), writer)
+			if err != nil {
+				return true, err
+			}
 		}
-		return offset, true
+		return true, nil
 
 	case []string:
 		for _, v := range sli {
-			offset = e.writeString(v, offset)
+			err := e.writeString(v, writer)
+			if err != nil {
+				return true, err
+			}
 		}
-		return offset, true
+		return true, nil
 
 	case []float32:
 		for _, v := range sli {
-			offset = e.writeFloat32(float64(v), offset)
+			err := e.writeFloat32(float64(v), writer)
+			if err != nil {
+				return true, err
+			}
 		}
-		return offset, true
+		return true, nil
 
 	case []float64:
 		for _, v := range sli {
-			offset = e.writeFloat64(float64(v), offset)
+			err := e.writeFloat64(float64(v), writer)
+			if err != nil {
+				return true, err
+			}
 		}
-		return offset, true
+		return true, nil
 
 	case []bool:
 		for _, v := range sli {
-			offset = e.writeBool(v, offset)
+			err := e.writeBool(v, writer)
+			if err != nil {
+				return true, err
+			}
 		}
-		return offset, true
+		return true, nil
 
 	case []int8:
 		for _, v := range sli {
-			offset = e.writeInt(int64(v), offset)
+			err := e.writeInt(int64(v), writer)
+			if err != nil {
+				return true, err
+			}
 		}
-		return offset, true
+		return true, nil
 
 	case []int16:
 		for _, v := range sli {
-			offset = e.writeInt(int64(v), offset)
+			err := e.writeInt(int64(v), writer)
+			if err != nil {
+				return true, err
+			}
 		}
-		return offset, true
+		return true, nil
 
 	case []int32:
 		for _, v := range sli {
-			offset = e.writeInt(int64(v), offset)
+			err := e.writeInt(int64(v), writer)
+			if err != nil {
+				return true, err
+			}
 		}
-		return offset, true
+		return true, nil
 
 	case []int64:
 		for _, v := range sli {
-			offset = e.writeInt(v, offset)
+			err := e.writeInt(v, writer)
+			if err != nil {
+				return true, err
+			}
 		}
-		return offset, true
+		return true, nil
 
 	case []uint8:
 		for _, v := range sli {
-			offset = e.writeUint(uint64(v), offset)
+			err := e.writeUint(uint64(v), writer)
+			if err != nil {
+				return true, err
+			}
 		}
-		return offset, true
+		return true, nil
 
 	case []uint16:
 		for _, v := range sli {
-			offset = e.writeUint(uint64(v), offset)
+			err := e.writeUint(uint64(v), writer)
+			if err != nil {
+				return true, err
+			}
 		}
-		return offset, true
+		return true, nil
 
 	case []uint32:
 		for _, v := range sli {
-			offset = e.writeUint(uint64(v), offset)
+			err := e.writeUint(uint64(v), writer)
+			if err != nil {
+				return true, err
+			}
 		}
-		return offset, true
+		return true, nil
 
 	case []uint64:
 		for _, v := range sli {
-			offset = e.writeUint(v, offset)
+			err := e.writeUint(v, writer)
+			if err != nil {
+				return true, err
+			}
 		}
-		return offset, true
+		return true, nil
 	}
 
-	return offset, false
+	return false, nil
 }

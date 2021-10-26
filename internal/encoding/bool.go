@@ -1,16 +1,19 @@
 package encoding
 
-import "github.com/shamaton/msgpack/v2/def"
+import (
+	"io"
+
+	"github.com/shamaton/msgpack/v2/def"
+)
 
 //func (e *encoder) calcBool() int {
 //	return 0
 //}
 
-func (e *encoder) writeBool(v bool, offset int) int {
+func (e *encoder) writeBool(v bool, writer io.Writer) error {
 	if v {
-		offset = e.setByte1Int(def.True, offset)
+		return e.setByte1Int(def.True, writer)
 	} else {
-		offset = e.setByte1Int(def.False, offset)
+		return e.setByte1Int(def.False, writer)
 	}
-	return offset
 }

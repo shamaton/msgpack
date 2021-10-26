@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"math/rand"
 	"reflect"
@@ -73,7 +74,7 @@ func TestInt(t *testing.T) {
 		if err := encdec(-8, &r, func(code byte) bool {
 			return def.NegativeFixintMin <= int8(code) && int8(code) <= def.NegativeFixintMax
 		}); err == nil || !strings.Contains(err.Error(), "value different") {
-			t.Error("error")
+			t.Error("error", err)
 		}
 	}
 	{
@@ -81,7 +82,7 @@ func TestInt(t *testing.T) {
 		if err := encdec(int64(math.MinInt64+12345), &r, func(code byte) bool {
 			return code == def.Int64
 		}); err == nil || !strings.Contains(err.Error(), "value different") {
-			t.Error("error")
+			t.Error("error", err)
 		}
 	}
 }
@@ -258,7 +259,7 @@ func TestFloat(t *testing.T) {
 		if err := encdec(v, &r, func(code byte) bool {
 			return code == def.Float64
 		}); err == nil || !strings.Contains(err.Error(), "invalid code cb decoding") {
-			t.Error("error")
+			t.Error("error", err)
 		}
 	}
 	{
@@ -268,7 +269,7 @@ func TestFloat(t *testing.T) {
 		if err := encdec(v, &r, func(code byte) bool {
 			return code == def.Float64
 		}); err == nil || !strings.Contains(err.Error(), "invalid code cb decoding") {
-			t.Error("error")
+			t.Error("error", err)
 		}
 	}
 }
@@ -299,7 +300,7 @@ func TestBool(t *testing.T) {
 		if err := encdec(v, &r, func(code byte) bool {
 			return code == def.True
 		}); err == nil || !strings.Contains(err.Error(), "invalid code c3 decoding") {
-			t.Error("error")
+			t.Error("error", err)
 		}
 	}
 }
@@ -1559,7 +1560,7 @@ func TestUnsupported(t *testing.T) {
 /////////////////////////////////////////////////////////////////
 
 func TestStruct(t *testing.T) {
-	testSturctCode(t)
+	testStructCode(t)
 	testStructTag(t)
 	testStructArray(t)
 	testEmbedded(t)
@@ -1660,7 +1661,7 @@ func testStructArray(t *testing.T) {
 	}
 }
 
-func testSturctCode(t *testing.T) {
+func testStructCode(t *testing.T) {
 	type st1 struct {
 		Int int
 	}
@@ -2102,28 +2103,85 @@ func (s *testEncoder) CalcByteSize(value reflect.Value) (int, error) {
 	return def.Byte1 + def.Byte1 + 15 + 15 + 10 + len(t.Bytes), nil
 }
 
-func (s *testEncoder) WriteToBytes(value reflect.Value, offset int, bytes *[]byte) int {
+func (s *testEncoder) WriteToBytes(value reflect.Value, writer io.Writer) error {
 	t := value.Interface().(ExtInt)
-	offset = s.SetByte1Int(def.Ext8, offset, bytes)
-	offset = s.SetByte1Int(15+15+10+len(t.Bytes), offset, bytes)
-	offset = s.SetByte1Int(int(s.Code()), offset, bytes)
 
-	offset = s.SetByte1Int64(int64(t.Int8), offset, bytes)
-	offset = s.SetByte2Int64(int64(t.Int16), offset, bytes)
-	offset = s.SetByte4Int64(int64(t.Int32), offset, bytes)
-	offset = s.SetByte8Int64(t.Int64, offset, bytes)
+	err := s.SetByte1Int(def.Ext8, writer)
+	if err != nil {
+		return err
+	}
 
-	offset = s.SetByte1Uint64(uint64(t.Uint8), offset, bytes)
-	offset = s.SetByte2Uint64(uint64(t.Uint16), offset, bytes)
-	offset = s.SetByte4Uint64(uint64(t.Uint32), offset, bytes)
-	offset = s.SetByte8Uint64(t.Uint64, offset, bytes)
+	err = s.SetByte1Int(15+15+10+len(t.Bytes), writer)
+	if err != nil {
+		return err
+	}
 
-	offset = s.SetByte2Int(t.Byte2Int, offset, bytes)
-	offset = s.SetByte4Int(t.Byte4Int, offset, bytes)
+	err = s.SetByte1Int(int(s.Code()), writer)
+	if err != nil {
+		return err
+	}
 
-	offset = s.SetByte4Uint32(t.Byte4Uint32, offset, bytes)
-	offset = s.SetBytes(t.Bytes, offset, bytes)
-	return offset
+	err = s.SetByte1Int64(int64(t.Int8), writer)
+	if err != nil {
+		return err
+	}
+
+	err = s.SetByte2Int64(int64(t.Int16), writer)
+	if err != nil {
+		return err
+	}
+
+	err = s.SetByte4Int64(int64(t.Int32), writer)
+	if err != nil {
+		return err
+	}
+
+	err = s.SetByte8Int64(t.Int64, writer)
+	if err != nil {
+		return err
+	}
+
+	err = s.SetByte1Uint64(uint64(t.Uint8), writer)
+	if err != nil {
+		return err
+	}
+
+	err = s.SetByte2Uint64(uint64(t.Uint16), writer)
+	if err != nil {
+		return err
+	}
+
+	err = s.SetByte4Uint64(uint64(t.Uint32), writer)
+	if err != nil {
+		return err
+	}
+
+	err = s.SetByte8Uint64(t.Uint64, writer)
+	if err != nil {
+		return err
+	}
+
+	err = s.SetByte2Int(t.Byte2Int, writer)
+	if err != nil {
+		return err
+	}
+
+	err = s.SetByte4Int(t.Byte4Int, writer)
+	if err != nil {
+		return err
+	}
+
+	err = s.SetByte4Uint32(t.Byte4Uint32, writer)
+	if err != nil {
+		return err
+	}
+
+	err = s.SetBytes(t.Bytes, writer)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 /////////////////////////////////////////////////////////
@@ -2165,8 +2223,8 @@ func (s *testExt2Encoder) CalcByteSize(value reflect.Value) (int, error) {
 	return 0, nil
 }
 
-func (s *testExt2Encoder) WriteToBytes(value reflect.Value, offset int, bytes *[]byte) int {
-	return offset
+func (s *testExt2Encoder) WriteToBytes(value reflect.Value, writer io.Writer) error {
+	return nil
 }
 
 /////////////////////////////////////////////////////////

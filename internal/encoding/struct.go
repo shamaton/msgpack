@@ -2,6 +2,7 @@ package encoding
 
 import (
 	"fmt"
+	"io"
 	"math"
 	"reflect"
 	"sync"
@@ -19,7 +20,7 @@ type structCache struct {
 var cachemap = sync.Map{}
 
 type structCalcFunc func(rv reflect.Value) (int, error)
-type structWriteFunc func(rv reflect.Value, offset int) int
+type structWriteFunc func(rv reflect.Value, writer io.Writer) error
 
 func (e *encoder) getStructCalc(typ reflect.Type) structCalcFunc {
 
@@ -148,11 +149,10 @@ func (e *encoder) calcStructMap(rv reflect.Value) (int, error) {
 }
 
 func (e *encoder) getStructWriter(typ reflect.Type) structWriteFunc {
-
 	for i := range extCoders {
 		if extCoders[i].Type() == typ {
-			return func(rv reflect.Value, offset int) int {
-				return extCoders[i].WriteToBytes(rv, offset, &e.d)
+			return func(rv reflect.Value, writer io.Writer) error {
+				return extCoders[i].WriteToBytes(rv, writer)
 			}
 		}
 	}
@@ -163,7 +163,7 @@ func (e *encoder) getStructWriter(typ reflect.Type) structWriteFunc {
 	return e.writeStructMap
 }
 
-func (e *encoder) writeStruct(rv reflect.Value, offset int) int {
+func (e *encoder) writeStruct(rv reflect.Value, writer io.Writer) error {
 	/*
 		if isTime, tm := e.isDateTime(rv); isTime {
 			return e.writeTime(tm, offset)
@@ -172,59 +172,101 @@ func (e *encoder) writeStruct(rv reflect.Value, offset int) int {
 
 	for i := range extCoders {
 		if extCoders[i].Type() == rv.Type() {
-			return extCoders[i].WriteToBytes(rv, offset, &e.d)
+			return extCoders[i].WriteToBytes(rv, writer)
 		}
 	}
 
 	if e.asArray {
-		return e.writeStructArray(rv, offset)
+		return e.writeStructArray(rv, writer)
 	}
-	return e.writeStructMap(rv, offset)
+	return e.writeStructMap(rv, writer)
 }
 
-func (e *encoder) writeStructArray(rv reflect.Value, offset int) int {
-
+func (e *encoder) writeStructArray(rv reflect.Value, writer io.Writer) error {
 	cache, _ := cachemap.Load(rv.Type())
 	c := cache.(*structCache)
 
 	// write format
 	num := len(c.indexes)
 	if num <= 0x0f {
-		offset = e.setByte1Int(def.FixArray+num, offset)
+		err := e.setByte1Int(def.FixArray+num, writer)
+		if err != nil {
+			return err
+		}
 	} else if num <= math.MaxUint16 {
-		offset = e.setByte1Int(def.Array16, offset)
-		offset = e.setByte2Int(num, offset)
+		err := e.setByte1Int(def.Array16, writer)
+		if err != nil {
+			return err
+		}
+		err = e.setByte2Int(num, writer)
+		if err != nil {
+			return err
+		}
 	} else if uint(num) <= math.MaxUint32 {
-		offset = e.setByte1Int(def.Array32, offset)
-		offset = e.setByte4Int(num, offset)
+		err := e.setByte1Int(def.Array32, writer)
+		if err != nil {
+			return err
+		}
+		err = e.setByte4Int(num, writer)
+		if err != nil {
+			return err
+		}
 	}
 
 	for i := 0; i < num; i++ {
-		offset = e.create(rv.Field(c.indexes[i]), offset)
+		err := e.create(rv.Field(c.indexes[i]), writer)
+		if err != nil {
+			return err
+		}
 	}
-	return offset
+
+	return nil
 }
 
-func (e *encoder) writeStructMap(rv reflect.Value, offset int) int {
-
+func (e *encoder) writeStructMap(rv reflect.Value, writer io.Writer) error {
 	cache, _ := cachemap.Load(rv.Type())
 	c := cache.(*structCache)
 
 	// format size
 	num := len(c.indexes)
 	if num <= 0x0f {
-		offset = e.setByte1Int(def.FixMap+num, offset)
+		err := e.setByte1Int(def.FixMap+num, writer)
+		if err != nil {
+			return err
+		}
 	} else if num <= math.MaxUint16 {
-		offset = e.setByte1Int(def.Map16, offset)
-		offset = e.setByte2Int(num, offset)
+		err := e.setByte1Int(def.Map16, writer)
+		if err != nil {
+			return err
+		}
+
+		err = e.setByte2Int(num, writer)
+		if err != nil {
+			return err
+		}
 	} else if uint(num) <= math.MaxUint32 {
-		offset = e.setByte1Int(def.Map32, offset)
-		offset = e.setByte4Int(num, offset)
+		err := e.setByte1Int(def.Map32, writer)
+		if err != nil {
+			return err
+		}
+
+		err = e.setByte4Int(num, writer)
+		if err != nil {
+			return err
+		}
 	}
 
 	for i := 0; i < num; i++ {
-		offset = e.writeString(c.names[i], offset)
-		offset = e.create(rv.Field(c.indexes[i]), offset)
+		err := e.writeString(c.names[i], writer)
+		if err != nil {
+			return err
+		}
+
+		err = e.create(rv.Field(c.indexes[i]), writer)
+		if err != nil {
+			return err
+		}
 	}
-	return offset
+
+	return nil
 }

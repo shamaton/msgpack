@@ -1,8 +1,11 @@
 package encoding
 
-import "github.com/shamaton/msgpack/v2/def"
+import (
+	"io"
 
-func (e *encoder) writeNil(offset int) int {
-	offset = e.setByte1Int(def.Nil, offset)
-	return offset
+	"github.com/shamaton/msgpack/v2/def"
+)
+
+func (e *encoder) writeNil(writer io.Writer) error {
+	return e.setByte1Int(def.Nil, writer)
 }

@@ -15,7 +15,7 @@ var StructAsArray = false
 
 // Marshal returns the MessagePack-encoded byte array of v.
 func Marshal(v interface{}) ([]byte, error) {
-	return encoding.Encode(v, StructAsArray)
+	return encoding.EncodeBytes(v, StructAsArray)
 }
 
 // Unmarshal analyzes the MessagePack-encoded data and stores

@@ -1,6 +1,7 @@
 package encoding
 
 import (
+	"io"
 	"math"
 
 	"github.com/shamaton/msgpack/v2/def"
@@ -26,23 +27,46 @@ func (e *encoder) calcInt(v int64) int {
 	return def.Byte8
 }
 
-func (e *encoder) writeInt(v int64, offset int) int {
+func (e *encoder) writeInt(v int64, writer io.Writer) error {
 	if v >= 0 {
-		offset = e.writeUint(uint64(v), offset)
-	} else if e.isNegativeFixInt64(v) {
-		offset = e.setByte1Int64(v, offset)
-	} else if v >= math.MinInt8 {
-		offset = e.setByte1Int(def.Int8, offset)
-		offset = e.setByte1Int64(v, offset)
-	} else if v >= math.MinInt16 {
-		offset = e.setByte1Int(def.Int16, offset)
-		offset = e.setByte2Int64(v, offset)
-	} else if v >= math.MinInt32 {
-		offset = e.setByte1Int(def.Int32, offset)
-		offset = e.setByte4Int64(v, offset)
-	} else {
-		offset = e.setByte1Int(def.Int64, offset)
-		offset = e.setByte8Int64(v, offset)
+		return e.writeUint(uint64(v), writer)
 	}
-	return offset
+
+	if e.isNegativeFixInt64(v) {
+		return e.setByte1Int64(v, writer)
+	}
+
+	if v >= math.MinInt8 {
+		err := e.setByte1Int(def.Int8, writer)
+		if err != nil {
+			return err
+		}
+
+		return e.setByte1Int64(v, writer)
+	}
+
+	if v >= math.MinInt16 {
+		err := e.setByte1Int(def.Int16, writer)
+		if err != nil {
+			return err
+		}
+
+		return e.setByte2Int64(v, writer)
+	}
+
+	if v >= math.MinInt32 {
+		err := e.setByte1Int(def.Int32, writer)
+		if err != nil {
+			return err
+		}
+
+		return e.setByte4Int64(v, writer)
+	}
+
+	err := e.setByte1Int(def.Int64, writer)
+	if err != nil {
+		return err
+	}
+
+	return e.setByte8Int64(v, writer)
 }
