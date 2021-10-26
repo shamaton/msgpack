@@ -188,7 +188,7 @@ func (d *decoder) jumpOffset(reader *bufio.Reader) error {
 		}
 
 	case d.isFixString(code):
-		err = skipN(reader, int(code - def.FixStr))
+		err = skipN(reader, int(code-def.FixStr))
 		if err != nil {
 			return err
 		}
@@ -290,27 +290,27 @@ func (d *decoder) jumpOffset(reader *bufio.Reader) error {
 		}
 
 	case code == def.Fixext1:
-		err = skipN(reader, def.Byte1 + def.Byte1)
+		err = skipN(reader, def.Byte1+def.Byte1)
 		if err != nil {
 			return err
 		}
 	case code == def.Fixext2:
-		err = skipN(reader, def.Byte1 + def.Byte2)
+		err = skipN(reader, def.Byte1+def.Byte2)
 		if err != nil {
 			return err
 		}
 	case code == def.Fixext4:
-		err = skipN(reader, def.Byte1 + def.Byte4)
+		err = skipN(reader, def.Byte1+def.Byte4)
 		if err != nil {
 			return err
 		}
 	case code == def.Fixext8:
-		err = skipN(reader, def.Byte1 + def.Byte8)
+		err = skipN(reader, def.Byte1+def.Byte8)
 		if err != nil {
 			return err
 		}
 	case code == def.Fixext16:
-		err = skipN(reader, def.Byte1 + def.Byte16)
+		err = skipN(reader, def.Byte1+def.Byte16)
 		if err != nil {
 			return err
 		}
@@ -321,7 +321,7 @@ func (d *decoder) jumpOffset(reader *bufio.Reader) error {
 			return err
 		}
 
-		err = skipN(reader, def.Byte1 + int(b))
+		err = skipN(reader, def.Byte1+int(b))
 		if err != nil {
 			return err
 		}
@@ -331,7 +331,7 @@ func (d *decoder) jumpOffset(reader *bufio.Reader) error {
 			return err
 		}
 
-		err = skipN(reader, def.Byte1 + int(binary.BigEndian.Uint16(bs)))
+		err = skipN(reader, def.Byte1+int(binary.BigEndian.Uint16(bs)))
 		if err != nil {
 			return err
 		}
@@ -341,7 +341,7 @@ func (d *decoder) jumpOffset(reader *bufio.Reader) error {
 			return err
 		}
 
-		err = skipN(reader, def.Byte1 + int(binary.BigEndian.Uint32(bs)))
+		err = skipN(reader, def.Byte1+int(binary.BigEndian.Uint32(bs)))
 		if err != nil {
 			return err
 		}

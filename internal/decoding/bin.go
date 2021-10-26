@@ -22,7 +22,6 @@ func (d *decoder) asBin(reader *bufio.Reader, k reflect.Kind) ([]byte, error) {
 		return nil, err
 	}
 
-
 	switch code {
 	case def.Bin8:
 		l, err := d.readSize1(reader)

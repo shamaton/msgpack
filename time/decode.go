@@ -13,7 +13,7 @@ var zero = time.Unix(0, 0)
 
 var Decoder = new(timeDecoder)
 
-type timeDecoder struct {}
+type timeDecoder struct{}
 
 func (td *timeDecoder) Code() int8 {
 	return def.TimeStamp

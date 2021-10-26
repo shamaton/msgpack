@@ -2024,7 +2024,7 @@ type ExtInt ExtStruct
 
 var decoder = new(testDecoder)
 
-type testDecoder struct {}
+type testDecoder struct{}
 
 var extIntCode = int8(-2)
 
@@ -2040,7 +2040,7 @@ func (td *testDecoder) AsValue(data []byte, k reflect.Kind) (interface{}, error)
 	}
 
 	switch len(data) {
-	case 15+15+10+3:
+	case 15 + 15 + 10 + 3:
 		i8 := readN(1)[0]
 		i16 := readN(2)
 		i32 := readN(4)
@@ -2179,7 +2179,7 @@ type Ext2Struct struct {
 }
 type Ext2Int Ext2Struct
 
-type testExt2Decoder struct {}
+type testExt2Decoder struct{}
 
 func (td *testExt2Decoder) Code() int8 {
 	return 3

@@ -117,7 +117,7 @@ func (d *decoder) readExt(reader *bufio.Reader) (byte, []byte, error) {
 	case def.Ext8:
 		v, err := d.readSize1(reader)
 		if err != nil {
-			return 0, nil ,err
+			return 0, nil, err
 		}
 		code, err = reader.ReadByte()
 		if err != nil {
