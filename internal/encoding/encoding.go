@@ -402,15 +402,29 @@ func (e *encoder) create(rv reflect.Value, writer io.Writer) error {
 
 		// key-value
 		p := rv.Pointer()
-		for i := range e.mk[p] {
-			err = e.create(e.mk[p][i], writer)
-			if err != nil {
-				return err
-			}
+		if _, ok := e.mk[p]; ok {
+			for i := range e.mk[p] {
+				err = e.create(e.mk[p][i], writer)
+				if err != nil {
+					return err
+				}
 
-			err = e.create(e.mv[p][i], writer)
-			if err != nil {
-				return err
+				err = e.create(e.mv[p][i], writer)
+				if err != nil {
+					return err
+				}
+			}
+		} else {
+			for _, k := range rv.MapKeys() {
+				err = e.create(k, writer)
+				if err != nil {
+					return err
+				}
+
+				err = e.create(rv.MapIndex(k), writer)
+				if err != nil {
+					return err
+				}
 			}
 		}
 
