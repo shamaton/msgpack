@@ -1,8 +1,6 @@
 package encoding
 
 import (
-	"io"
-
 	"github.com/shamaton/msgpack/v2/def"
 )
 
@@ -10,7 +8,7 @@ import (
 //	return 0
 //}
 
-func (e *encoder) writeBool(v bool, writer io.Writer) error {
+func (e *encoder) writeBool(v bool, writer Writer) error {
 	if v {
 		return e.setByte1Int(def.True, writer)
 	} else {

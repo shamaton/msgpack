@@ -3,7 +3,6 @@ package encoding
 import (
 	"errors"
 	"fmt"
-	"io"
 	"math"
 	"reflect"
 
@@ -28,7 +27,7 @@ func (e *encoder) calcByteSlice(l int) (int, error) {
 	return 0, fmt.Errorf("not support this array length : %d", l)
 }
 
-func (e *encoder) writeByteSliceLength(l int, writer io.Writer) error {
+func (e *encoder) writeByteSliceLength(l int, writer Writer) error {
 	if l <= math.MaxUint8 {
 		err := e.setByte1Int(def.Bin8, writer)
 		if err != nil {

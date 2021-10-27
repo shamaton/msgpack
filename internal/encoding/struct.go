@@ -2,7 +2,6 @@ package encoding
 
 import (
 	"fmt"
-	"io"
 	"math"
 	"reflect"
 	"sync"
@@ -20,7 +19,7 @@ type structCache struct {
 var cachemap = sync.Map{}
 
 type structCalcFunc func(rv reflect.Value) (int, error)
-type structWriteFunc func(rv reflect.Value, writer io.Writer) error
+type structWriteFunc func(rv reflect.Value, writer Writer) error
 
 func (e *encoder) getStructCalc(typ reflect.Type) structCalcFunc {
 
@@ -173,7 +172,7 @@ func (e *encoder) cacheStructMap(rv reflect.Value, ret int, t reflect.Type) (*st
 func (e *encoder) getStructWriter(typ reflect.Type) structWriteFunc {
 	for i := range extCoders {
 		if extCoders[i].Type() == typ {
-			return func(rv reflect.Value, writer io.Writer) error {
+			return func(rv reflect.Value, writer Writer) error {
 				return extCoders[i].WriteToBytes(rv, writer)
 			}
 		}
@@ -185,7 +184,7 @@ func (e *encoder) getStructWriter(typ reflect.Type) structWriteFunc {
 	return e.writeStructMap
 }
 
-func (e *encoder) writeStruct(rv reflect.Value, writer io.Writer) error {
+func (e *encoder) writeStruct(rv reflect.Value, writer Writer) error {
 	/*
 		if isTime, tm := e.isDateTime(rv); isTime {
 			return e.writeTime(tm, offset)
@@ -204,7 +203,7 @@ func (e *encoder) writeStruct(rv reflect.Value, writer io.Writer) error {
 	return e.writeStructMap(rv, writer)
 }
 
-func (e *encoder) writeStructArray(rv reflect.Value, writer io.Writer) error {
+func (e *encoder) writeStructArray(rv reflect.Value, writer Writer) error {
 	cache, find := cachemap.Load(rv.Type())
 	if !find {
 		var err error
@@ -252,7 +251,7 @@ func (e *encoder) writeStructArray(rv reflect.Value, writer io.Writer) error {
 	return nil
 }
 
-func (e *encoder) writeStructMap(rv reflect.Value, writer io.Writer) error {
+func (e *encoder) writeStructMap(rv reflect.Value, writer Writer) error {
 	cache, find := cachemap.Load(rv.Type())
 	if !find {
 		var err error

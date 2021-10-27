@@ -19,7 +19,7 @@ func (e *encoder) calcString(v string) int {
 	return def.Byte4 + l
 }
 
-func (e *encoder) writeString(str string, writer io.Writer) (err error) {
+func (e *encoder) writeString(str string, writer Writer) (err error) {
 	l := len(str)
 	if l < 32 {
 		err = e.setByte1Int(def.FixStr+l, writer)

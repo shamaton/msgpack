@@ -2,7 +2,6 @@ package encoding
 
 import (
 	"errors"
-	"io"
 	"math"
 	"reflect"
 
@@ -99,7 +98,7 @@ func (e *encoder) calcFixedSlice(rv reflect.Value) (int, bool) {
 	return size, false
 }
 
-func (e *encoder) writeSliceLength(l int, writer io.Writer) (err error) {
+func (e *encoder) writeSliceLength(l int, writer Writer) (err error) {
 	// format size
 	if l <= 0x0f {
 		return e.setByte1Int(def.FixArray+l, writer)
@@ -122,7 +121,7 @@ func (e *encoder) writeSliceLength(l int, writer io.Writer) (err error) {
 	return errors.New("todo: unhandled slice length")
 }
 
-func (e *encoder) writeFixedSlice(rv reflect.Value, writer io.Writer) (bool, error) {
+func (e *encoder) writeFixedSlice(rv reflect.Value, writer Writer) (bool, error) {
 
 	switch sli := rv.Interface().(type) {
 	case []int:

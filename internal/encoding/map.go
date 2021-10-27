@@ -2,7 +2,6 @@ package encoding
 
 import (
 	"errors"
-	"io"
 	"math"
 	"reflect"
 
@@ -258,7 +257,7 @@ func (e *encoder) calcFixedMap(rv reflect.Value) (int, bool) {
 	return size, false
 }
 
-func (e *encoder) writeMapLength(l int, writer io.Writer) error {
+func (e *encoder) writeMapLength(l int, writer Writer) error {
 	// format
 	if l <= 0x0f {
 		return e.setByte1Int(def.FixMap+l, writer)
@@ -281,7 +280,7 @@ func (e *encoder) writeMapLength(l int, writer io.Writer) error {
 	return errors.New("todo: unhandled map length")
 }
 
-func (e *encoder) writeFixedMap(rv reflect.Value, writer io.Writer) (bool, error) {
+func (e *encoder) writeFixedMap(rv reflect.Value, writer Writer) (bool, error) {
 	switch m := rv.Interface().(type) {
 	case map[string]int:
 		for k, v := range m {

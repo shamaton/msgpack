@@ -1,7 +1,6 @@
 package encoding
 
 import (
-	"io"
 	"math"
 
 	"github.com/shamaton/msgpack/v2/def"
@@ -27,7 +26,7 @@ func (e *encoder) calcInt(v int64) int {
 	return def.Byte8
 }
 
-func (e *encoder) writeInt(v int64, writer io.Writer) error {
+func (e *encoder) writeInt(v int64, writer Writer) error {
 	if v >= 0 {
 		return e.writeUint(uint64(v), writer)
 	}

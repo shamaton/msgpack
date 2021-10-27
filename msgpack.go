@@ -44,8 +44,8 @@ type Decoder struct {
 }
 
 // NewDecoder will create an Decoder that will decode values from a stream one at a time
-func NewDecoder(output io.Reader) *Decoder {
-	return &Decoder{reader: output}
+func NewDecoder(input io.Reader) *Decoder {
+	return &Decoder{reader: input}
 }
 
 func (e *Decoder) Decode(v interface{}) error {

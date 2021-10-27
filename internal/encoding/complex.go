@@ -1,7 +1,6 @@
 package encoding
 
 import (
-	"io"
 	"math"
 
 	"github.com/shamaton/msgpack/v2/def"
@@ -15,7 +14,7 @@ func (e *encoder) calcComplex128() int {
 	return def.Byte1 + def.Byte16
 }
 
-func (e *encoder) writeComplex64(v complex64, writer io.Writer) error {
+func (e *encoder) writeComplex64(v complex64, writer Writer) error {
 	err := e.setByte1Int(def.Fixext8, writer)
 	if err != nil {
 		return err
@@ -34,7 +33,7 @@ func (e *encoder) writeComplex64(v complex64, writer io.Writer) error {
 	return e.setByte4Uint64(uint64(math.Float32bits(imag(v))), writer)
 }
 
-func (e *encoder) writeComplex128(v complex128, writer io.Writer) error {
+func (e *encoder) writeComplex128(v complex128, writer Writer) error {
 	err := e.setByte1Int(def.Fixext16, writer)
 	if err != nil {
 		return err

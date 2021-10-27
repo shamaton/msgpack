@@ -1,6 +1,7 @@
 package encoding
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
@@ -31,7 +32,14 @@ func Encode(v interface{}, output io.Writer, asArray bool) (err error) {
 		}
 	}
 
-	return e.create(rv, output)
+	// if output is already the right kind of Writer, just type assert it
+	bufWriter, ok := output.(Writer)
+	if !ok {
+		// otherwise, wrap the output in a bufio writer
+		bufWriter = bufio.NewWriter(output)
+	}
+
+	return e.create(rv, bufWriter)
 }
 
 // EncodeBytes returns the MessagePack-encoded byte array of v.
@@ -267,7 +275,12 @@ func (e *encoder) calcSize(rv reflect.Value) (int, error) {
 	return ret, nil
 }
 
-func (e *encoder) create(rv reflect.Value, writer io.Writer) error {
+type Writer interface {
+	io.Writer
+	io.ByteWriter
+}
+
+func (e *encoder) create(rv reflect.Value, writer Writer) error {
 
 	switch rv.Kind() {
 	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
