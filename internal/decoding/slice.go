@@ -47,13 +47,13 @@ func (d *decoder) sliceLength(reader *bufio.Reader, k reflect.Kind) (int, error)
 		if err != nil {
 			return 0, err
 		}
-		return int(binary.BigEndian.Uint16(bs)), nil
+		return int(binary.BigEndian.Uint16(bs[:])), nil
 	case code == def.Array32:
 		bs, err := d.readSize4(reader)
 		if err != nil {
 			return 0, err
 		}
-		return int(binary.BigEndian.Uint32(bs)), nil
+		return int(binary.BigEndian.Uint32(bs[:])), nil
 	}
 	return 0, d.errorTemplate(code, k)
 }

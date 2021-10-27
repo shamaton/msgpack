@@ -3,9 +3,11 @@ package decoding
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"reflect"
+	"strconv"
 
 	"github.com/shamaton/msgpack/v2/internal/common"
 )
@@ -245,7 +247,9 @@ func (d *decoder) decode(rv reflect.Value, reader *bufio.Reader) error {
 				return err
 			}
 			if len(bs) > rv.Len() {
-				return fmt.Errorf("%v len is %d, but msgpack has %d elements", rv.Type(), rv.Len(), len(bs))
+				return errors.New(rv.Type().String() + " len is " +
+					strconv.FormatInt(int64(rv.Len()), 10) + ", but msgpack has "+
+					strconv.FormatInt(int64(len(bs)), 10) +" elements")
 			}
 			for i, b := range bs {
 				rv.Index(i).SetUint(uint64(b))
@@ -259,7 +263,9 @@ func (d *decoder) decode(rv reflect.Value, reader *bufio.Reader) error {
 				return err
 			}
 			if l > rv.Len() {
-				return fmt.Errorf("%v len is %d, but msgpack has %d elements", rv.Type(), rv.Len(), l)
+				return errors.New(rv.Type().String() + " len is " +
+					strconv.FormatInt(int64(rv.Len()), 10) + ", but msgpack has "+
+					strconv.FormatInt(int64(l), 10) +" elements")
 			}
 			bs, err := d.asStringByteByLength(reader, l, k)
 			if err != nil {
@@ -278,7 +284,9 @@ func (d *decoder) decode(rv reflect.Value, reader *bufio.Reader) error {
 		}
 
 		if l > rv.Len() {
-			return fmt.Errorf("%v len is %d, but msgpack has %d elements", rv.Type(), rv.Len(), l)
+			return errors.New(rv.Type().String() + " len is " +
+				strconv.FormatInt(int64(rv.Len()), 10) + ", but msgpack has "+
+				strconv.FormatInt(int64(l), 10) +" elements")
 		}
 
 		// create array dynamically
@@ -389,5 +397,5 @@ func (d *decoder) decode(rv reflect.Value, reader *bufio.Reader) error {
 }
 
 func (d *decoder) errorTemplate(code byte, k reflect.Kind) error {
-	return fmt.Errorf("msgpack : invalid code %x decoding %v", code, k)
+	return errors.New("msgpack : invalid code " + strconv.FormatInt(int64(code), 16) + " decoding " + k.String())
 }

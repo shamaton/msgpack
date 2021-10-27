@@ -26,7 +26,7 @@ func (d *decoder) asFloat32(reader *bufio.Reader, k reflect.Kind) (float32, erro
 		if err != nil {
 			return 0, err
 		}
-		v := math.Float32frombits(binary.BigEndian.Uint32(bs))
+		v := math.Float32frombits(binary.BigEndian.Uint32(bs[:]))
 		return v, nil
 
 	case d.isPositiveFixNum(code), code == def.Uint8, code == def.Uint16, code == def.Uint32, code == def.Uint64:
@@ -72,7 +72,7 @@ func (d *decoder) asFloat64(reader *bufio.Reader, k reflect.Kind) (float64, erro
 		if err != nil {
 			return 0, err
 		}
-		v := math.Float64frombits(binary.BigEndian.Uint64(bs))
+		v := math.Float64frombits(binary.BigEndian.Uint64(bs[:]))
 		return v, nil
 
 	case code == def.Float32:
@@ -85,7 +85,7 @@ func (d *decoder) asFloat64(reader *bufio.Reader, k reflect.Kind) (float64, erro
 		if err != nil {
 			return 0, err
 		}
-		v := math.Float32frombits(binary.BigEndian.Uint32(bs))
+		v := math.Float32frombits(binary.BigEndian.Uint32(bs[:]))
 		return float64(v), nil
 
 	case d.isPositiveFixNum(code), code == def.Uint8, code == def.Uint16, code == def.Uint32, code == def.Uint64:

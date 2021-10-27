@@ -41,14 +41,14 @@ func (d *decoder) stringByteLength(reader *bufio.Reader, k reflect.Kind) (int, e
 			return 0, err
 		}
 
-		return int(binary.BigEndian.Uint16(b)), nil
+		return int(binary.BigEndian.Uint16(b[:])), nil
 	} else if code == def.Str32 {
 		b, err := d.readSize4(reader)
 		if err != nil {
 			return 0, err
 		}
 
-		return int(binary.BigEndian.Uint32(b)), nil
+		return int(binary.BigEndian.Uint32(b[:])), nil
 	} else if code == def.Nil {
 		return 0, nil
 	}

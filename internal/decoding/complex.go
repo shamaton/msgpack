@@ -33,8 +33,8 @@ func (d *decoder) asComplex64(reader *bufio.Reader, k reflect.Kind) (complex64, 
 		if err != nil {
 			return complex(0, 0), err
 		}
-		r := math.Float32frombits(binary.BigEndian.Uint32(rb))
-		i := math.Float32frombits(binary.BigEndian.Uint32(ib))
+		r := math.Float32frombits(binary.BigEndian.Uint32(rb[:]))
+		i := math.Float32frombits(binary.BigEndian.Uint32(ib[:]))
 		return complex(r, i), nil
 
 	case def.Fixext16:
@@ -53,8 +53,8 @@ func (d *decoder) asComplex64(reader *bufio.Reader, k reflect.Kind) (complex64, 
 		if err != nil {
 			return complex(0, 0), err
 		}
-		r := math.Float64frombits(binary.BigEndian.Uint64(rb))
-		i := math.Float64frombits(binary.BigEndian.Uint64(ib))
+		r := math.Float64frombits(binary.BigEndian.Uint64(rb[:]))
+		i := math.Float64frombits(binary.BigEndian.Uint64(ib[:]))
 		return complex64(complex(r, i)), nil
 
 	}
@@ -85,8 +85,8 @@ func (d *decoder) asComplex128(reader *bufio.Reader, k reflect.Kind) (complex128
 		if err != nil {
 			return complex(0, 0), err
 		}
-		r := math.Float32frombits(binary.BigEndian.Uint32(rb))
-		i := math.Float32frombits(binary.BigEndian.Uint32(ib))
+		r := math.Float32frombits(binary.BigEndian.Uint32(rb[:]))
+		i := math.Float32frombits(binary.BigEndian.Uint32(ib[:]))
 		return complex128(complex(r, i)), nil
 
 	case def.Fixext16:
@@ -105,8 +105,8 @@ func (d *decoder) asComplex128(reader *bufio.Reader, k reflect.Kind) (complex128
 		if err != nil {
 			return complex(0, 0), err
 		}
-		r := math.Float64frombits(binary.BigEndian.Uint64(rb))
-		i := math.Float64frombits(binary.BigEndian.Uint64(ib))
+		r := math.Float64frombits(binary.BigEndian.Uint64(rb[:]))
+		i := math.Float64frombits(binary.BigEndian.Uint64(ib[:]))
 		return complex(r, i), nil
 
 	}

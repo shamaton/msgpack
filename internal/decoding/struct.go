@@ -3,8 +3,9 @@ package decoding
 import (
 	"bufio"
 	"encoding/binary"
-	"fmt"
+	"errors"
 	"reflect"
+	"strconv"
 	"sync"
 
 	"github.com/shamaton/msgpack/v2/def"
@@ -208,7 +209,7 @@ func (d *decoder) jumpOffset(reader *bufio.Reader) error {
 			return err
 		}
 
-		err = skipN(reader, int(binary.BigEndian.Uint16(bs)))
+		err = skipN(reader, int(binary.BigEndian.Uint16(bs[:])))
 		if err != nil {
 			return err
 		}
@@ -218,7 +219,7 @@ func (d *decoder) jumpOffset(reader *bufio.Reader) error {
 			return err
 		}
 
-		err = skipN(reader, int(binary.BigEndian.Uint32(bs)))
+		err = skipN(reader, int(binary.BigEndian.Uint32(bs[:])))
 		if err != nil {
 			return err
 		}
@@ -236,7 +237,7 @@ func (d *decoder) jumpOffset(reader *bufio.Reader) error {
 		if err != nil {
 			return err
 		}
-		l := int(binary.BigEndian.Uint16(bs))
+		l := int(binary.BigEndian.Uint16(bs[:]))
 		for i := 0; i < l; i++ {
 			err = d.jumpOffset(reader)
 			if err != nil {
@@ -248,7 +249,7 @@ func (d *decoder) jumpOffset(reader *bufio.Reader) error {
 		if err != nil {
 			return err
 		}
-		l := int(binary.BigEndian.Uint32(bs))
+		l := int(binary.BigEndian.Uint32(bs[:]))
 		for i := 0; i < l; i++ {
 			err = d.jumpOffset(reader)
 			if err != nil {
@@ -269,7 +270,7 @@ func (d *decoder) jumpOffset(reader *bufio.Reader) error {
 		if err != nil {
 			return err
 		}
-		l := int(binary.BigEndian.Uint16(bs))
+		l := int(binary.BigEndian.Uint16(bs[:]))
 		for i := 0; i < l*2; i++ {
 			err = d.jumpOffset(reader)
 			if err != nil {
@@ -281,7 +282,7 @@ func (d *decoder) jumpOffset(reader *bufio.Reader) error {
 		if err != nil {
 			return err
 		}
-		l := int(binary.BigEndian.Uint32(bs))
+		l := int(binary.BigEndian.Uint32(bs[:]))
 		for i := 0; i < l*2; i++ {
 			err = d.jumpOffset(reader)
 			if err != nil {
@@ -331,7 +332,7 @@ func (d *decoder) jumpOffset(reader *bufio.Reader) error {
 			return err
 		}
 
-		err = skipN(reader, def.Byte1+int(binary.BigEndian.Uint16(bs)))
+		err = skipN(reader, def.Byte1+int(binary.BigEndian.Uint16(bs[:])))
 		if err != nil {
 			return err
 		}
@@ -341,13 +342,13 @@ func (d *decoder) jumpOffset(reader *bufio.Reader) error {
 			return err
 		}
 
-		err = skipN(reader, def.Byte1+int(binary.BigEndian.Uint32(bs)))
+		err = skipN(reader, def.Byte1+int(binary.BigEndian.Uint32(bs[:])))
 		if err != nil {
 			return err
 		}
 
 	default:
-		return fmt.Errorf("unrecognized code: %d", code)
+		return errors.New("unrecognized code: " + strconv.FormatInt(int64(code), 16))
 
 	}
 

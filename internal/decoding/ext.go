@@ -91,21 +91,21 @@ func (d *decoder) readExt(reader *bufio.Reader) (byte, []byte, error) {
 			return 0, nil, err
 		}
 		data, err := d.readSize2(reader)
-		return code, data, err
+		return code, data[:], err
 	case def.Fixext4:
 		code, err = reader.ReadByte()
 		if err != nil {
 			return 0, nil, err
 		}
 		data, err := d.readSize4(reader)
-		return code, data, err
+		return code, data[:], err
 	case def.Fixext8:
 		code, err = reader.ReadByte()
 		if err != nil {
 			return 0, nil, err
 		}
 		data, err := d.readSize8(reader)
-		return code, data, err
+		return code, data[:], err
 	case def.Fixext16:
 		code, err = reader.ReadByte()
 		if err != nil {
@@ -134,7 +134,7 @@ func (d *decoder) readExt(reader *bufio.Reader) (byte, []byte, error) {
 		if err != nil {
 			return 0, nil, err
 		}
-		v := binary.BigEndian.Uint16(bs)
+		v := binary.BigEndian.Uint16(bs[:])
 		data, err := d.readSizeN(reader, int(v))
 		return code, data, err
 	case def.Ext32:
@@ -146,7 +146,7 @@ func (d *decoder) readExt(reader *bufio.Reader) (byte, []byte, error) {
 		if err != nil {
 			return 0, nil, err
 		}
-		v := binary.BigEndian.Uint32(bs)
+		v := binary.BigEndian.Uint32(bs[:])
 		data, err := d.readSizeN(reader, int(v))
 		return code, data, err
 

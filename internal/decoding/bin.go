@@ -36,14 +36,14 @@ func (d *decoder) asBin(reader *bufio.Reader, k reflect.Kind) ([]byte, error) {
 			return nil, err
 		}
 
-		return d.readSizeN(reader, int(binary.BigEndian.Uint16(bs)))
+		return d.readSizeN(reader, int(binary.BigEndian.Uint16(bs[:])))
 	case def.Bin32:
 		bs, err := d.readSize4(reader)
 		if err != nil {
 			return nil, err
 		}
 
-		return d.readSizeN(reader, int(binary.BigEndian.Uint32(bs)))
+		return d.readSizeN(reader, int(binary.BigEndian.Uint32(bs[:])))
 	}
 
 	return emptyBytes, d.errorTemplate(code, k)

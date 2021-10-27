@@ -71,7 +71,7 @@ func (d *decoder) asInt(reader *bufio.Reader, k reflect.Kind) (int64, error) {
 		if err != nil {
 			return 0, err
 		}
-		v := binary.BigEndian.Uint16(bs)
+		v := binary.BigEndian.Uint16(bs[:])
 		return int64(v), nil
 
 	case code == def.Int16:
@@ -84,7 +84,7 @@ func (d *decoder) asInt(reader *bufio.Reader, k reflect.Kind) (int64, error) {
 		if err != nil {
 			return 0, err
 		}
-		v := int16(binary.BigEndian.Uint16(bs))
+		v := int16(binary.BigEndian.Uint16(bs[:]))
 		return int64(v), nil
 
 	case code == def.Uint32:
@@ -97,7 +97,7 @@ func (d *decoder) asInt(reader *bufio.Reader, k reflect.Kind) (int64, error) {
 		if err != nil {
 			return 0, err
 		}
-		v := binary.BigEndian.Uint32(bs)
+		v := binary.BigEndian.Uint32(bs[:])
 		return int64(v), nil
 
 	case code == def.Int32:
@@ -110,7 +110,7 @@ func (d *decoder) asInt(reader *bufio.Reader, k reflect.Kind) (int64, error) {
 		if err != nil {
 			return 0, err
 		}
-		v := int32(binary.BigEndian.Uint32(bs))
+		v := int32(binary.BigEndian.Uint32(bs[:]))
 		return int64(v), nil
 
 	case code == def.Uint64:
@@ -123,7 +123,7 @@ func (d *decoder) asInt(reader *bufio.Reader, k reflect.Kind) (int64, error) {
 		if err != nil {
 			return 0, err
 		}
-		return int64(binary.BigEndian.Uint64(bs)), nil
+		return int64(binary.BigEndian.Uint64(bs[:])), nil
 
 	case code == def.Int64:
 		err = skipOne(reader)
@@ -135,7 +135,7 @@ func (d *decoder) asInt(reader *bufio.Reader, k reflect.Kind) (int64, error) {
 		if err != nil {
 			return 0, err
 		}
-		return int64(binary.BigEndian.Uint64(bs)), nil
+		return int64(binary.BigEndian.Uint64(bs[:])), nil
 
 	case code == def.Float32:
 		v, err := d.asFloat32(reader, k)
