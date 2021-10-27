@@ -2,6 +2,7 @@ package decoding
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"reflect"
@@ -116,25 +117,20 @@ func (d *decoder) setStructFromMap(rv reflect.Value, reader *bufio.Reader, k ref
 		sctm = cache.(*structCacheTypeMap)
 	}
 
+	keyBuf := make([]byte, 32)
 	for i := 0; i < l; i++ {
-		dataKey, err := d.asStringByte(reader, k)
+		dataKey, err := d.asStringByte(reader, keyBuf, k)
 		if err != nil {
 			return err
 		}
 
 		fieldIndex := -1
 		for keyIndex, keyBytes := range sctm.keys {
-			if len(keyBytes) != len(dataKey) {
+			if !bytes.Equal(keyBytes, dataKey){
 				continue
 			}
 
 			fieldIndex = sctm.indexes[keyIndex]
-			for dataIndex := range dataKey {
-				if dataKey[dataIndex] != keyBytes[dataIndex] {
-					fieldIndex = -1
-					break
-				}
-			}
 			if fieldIndex >= 0 {
 				break
 			}

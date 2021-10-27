@@ -25,6 +25,10 @@ func (d *decoder) stringByteLength(reader *bufio.Reader, k reflect.Kind) (int, e
 		return 0, err
 	}
 
+	return d.stringByteLengthC(reader, code, k)
+}
+
+func (d *decoder) stringByteLengthC(reader *bufio.Reader, code byte, k reflect.Kind) (int, error) {
 	if def.FixStr <= code && code <= def.FixStr+0x1f {
 		l := int(code - def.FixStr)
 		return l, nil
@@ -56,26 +60,38 @@ func (d *decoder) stringByteLength(reader *bufio.Reader, k reflect.Kind) (int, e
 }
 
 func (d *decoder) asString(reader *bufio.Reader, k reflect.Kind) (string, error) {
-	bs, err := d.asStringByte(reader, k)
+	code, err := reader.ReadByte()
 	if err != nil {
 		return emptyString, err
 	}
+
+	bs, err := d.asStringByteC(reader, code, nil, k)
+	if err != nil {
+		return emptyString, err
+	}
+
 	return string(bs), nil
 }
 
-func (d *decoder) asStringByte(reader *bufio.Reader, k reflect.Kind) ([]byte, error) {
-	l, err := d.stringByteLength(reader, k)
+func (d *decoder) asStringByteC(reader *bufio.Reader, code byte, buf []byte, k reflect.Kind) ([]byte, error) {
+	l, err := d.stringByteLengthC(reader, code, k)
 	if err != nil {
 		return emptyBytes, err
 	}
 
-	return d.asStringByteByLength(reader, l, k)
-}
-
-func (d *decoder) asStringByteByLength(reader *bufio.Reader, l int, k reflect.Kind) ([]byte, error) {
 	if l < 1 {
 		return emptyBytes, nil
 	}
 
-	return d.readSizeN(reader, l)
+	return d.readSizeNBuf(reader, buf, l)
+}
+
+
+func (d *decoder) asStringByte(reader *bufio.Reader, buf []byte, k reflect.Kind) ([]byte, error) {
+	code, err := reader.ReadByte()
+	if err != nil {
+		return emptyBytes, err
+	}
+
+	return d.asStringByteC(reader, code, buf, k)
 }

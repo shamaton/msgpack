@@ -28,6 +28,15 @@ func (d *decoder) readSizeN(reader *bufio.Reader, n int) (p []byte, err error) {
 	return p, readFull(reader, p)
 }
 
+func (d *decoder) readSizeNBuf(reader *bufio.Reader, buf []byte, n int) ([]byte, error) {
+	if n > len(buf) {
+		return d.readSizeN(reader, n)
+	}
+
+	buf = buf[:n]
+	return buf, readFull(reader, buf)
+}
+
 func readFull(reader *bufio.Reader, buf []byte) (err error) {
 	for i := 0; i < len(buf); {
 		b, err := reader.Peek(len(buf)-i)

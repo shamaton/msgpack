@@ -65,6 +65,10 @@ func (d *decoder) mapLength(reader *bufio.Reader, k reflect.Kind) (int, error) {
 		return 0, err
 	}
 
+	return d.mapLengthC(reader, code, k)
+}
+
+func (d *decoder) mapLengthC(reader *bufio.Reader, code byte, k reflect.Kind) (int, error) {
 	switch {
 	case d.isFixMap(code):
 		return int(code - def.FixMap), nil

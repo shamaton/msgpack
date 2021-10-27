@@ -39,6 +39,10 @@ func (d *decoder) sliceLength(reader *bufio.Reader, k reflect.Kind) (int, error)
 		return 0, err
 	}
 
+	return d.sliceLengthC(reader, code, k)
+}
+
+func (d *decoder) sliceLengthC(reader *bufio.Reader, code byte, k reflect.Kind) (int, error) {
 	switch {
 	case d.isFixSlice(code):
 		return int(code - def.FixArray), nil

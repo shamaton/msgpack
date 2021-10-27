@@ -17,32 +17,19 @@ func (d *decoder) isNegativeFixNum(v byte) bool {
 }
 
 func (d *decoder) asInt(reader *bufio.Reader, k reflect.Kind) (int64, error) {
-	code, err := peekCode(reader)
+	code, err := d.readSize1(reader)
 	if err != nil {
 		return 0, err
 	}
 
 	switch {
 	case d.isPositiveFixNum(code):
-		b, err := d.readSize1(reader)
-		if err != nil {
-			return 0, err
-		}
-		return int64(b), nil
+		return int64(code), nil
 
 	case d.isNegativeFixNum(code):
-		b, err := d.readSize1(reader)
-		if err != nil {
-			return 0, err
-		}
-		return int64(int8(b)), nil
+		return int64(int8(code)), nil
 
 	case code == def.Uint8:
-		err = skipOne(reader)
-		if err != nil {
-			return 0, err
-		}
-
 		b, err := d.readSize1(reader)
 		if err != nil {
 			return 0, err
@@ -50,11 +37,6 @@ func (d *decoder) asInt(reader *bufio.Reader, k reflect.Kind) (int64, error) {
 		return int64(uint8(b)), nil
 
 	case code == def.Int8:
-		err = skipOne(reader)
-		if err != nil {
-			return 0, err
-		}
-
 		b, err := d.readSize1(reader)
 		if err != nil {
 			return 0, err
@@ -62,11 +44,6 @@ func (d *decoder) asInt(reader *bufio.Reader, k reflect.Kind) (int64, error) {
 		return int64(int8(b)), nil
 
 	case code == def.Uint16:
-		err = skipOne(reader)
-		if err != nil {
-			return 0, err
-		}
-
 		bs, err := d.readSize2(reader)
 		if err != nil {
 			return 0, err
@@ -75,11 +52,6 @@ func (d *decoder) asInt(reader *bufio.Reader, k reflect.Kind) (int64, error) {
 		return int64(v), nil
 
 	case code == def.Int16:
-		err = skipOne(reader)
-		if err != nil {
-			return 0, err
-		}
-
 		bs, err := d.readSize2(reader)
 		if err != nil {
 			return 0, err
@@ -88,11 +60,6 @@ func (d *decoder) asInt(reader *bufio.Reader, k reflect.Kind) (int64, error) {
 		return int64(v), nil
 
 	case code == def.Uint32:
-		err = skipOne(reader)
-		if err != nil {
-			return 0, err
-		}
-
 		bs, err := d.readSize4(reader)
 		if err != nil {
 			return 0, err
@@ -101,11 +68,6 @@ func (d *decoder) asInt(reader *bufio.Reader, k reflect.Kind) (int64, error) {
 		return int64(v), nil
 
 	case code == def.Int32:
-		err = skipOne(reader)
-		if err != nil {
-			return 0, err
-		}
-
 		bs, err := d.readSize4(reader)
 		if err != nil {
 			return 0, err
@@ -114,11 +76,6 @@ func (d *decoder) asInt(reader *bufio.Reader, k reflect.Kind) (int64, error) {
 		return int64(v), nil
 
 	case code == def.Uint64:
-		err = skipOne(reader)
-		if err != nil {
-			return 0, err
-		}
-
 		bs, err := d.readSize8(reader)
 		if err != nil {
 			return 0, err
@@ -126,11 +83,6 @@ func (d *decoder) asInt(reader *bufio.Reader, k reflect.Kind) (int64, error) {
 		return int64(binary.BigEndian.Uint64(bs[:])), nil
 
 	case code == def.Int64:
-		err = skipOne(reader)
-		if err != nil {
-			return 0, err
-		}
-
 		bs, err := d.readSize8(reader)
 		if err != nil {
 			return 0, err
@@ -138,14 +90,14 @@ func (d *decoder) asInt(reader *bufio.Reader, k reflect.Kind) (int64, error) {
 		return int64(binary.BigEndian.Uint64(bs[:])), nil
 
 	case code == def.Float32:
-		v, err := d.asFloat32(reader, k)
+		v, err := d.asFloat32C(reader, code, k)
 		if err != nil {
 			return 0, err
 		}
 		return int64(v), nil
 
 	case code == def.Float64:
-		v, err := d.asFloat64(reader, k)
+		v, err := d.asFloat64C(reader, code, k)
 		if err != nil {
 			return 0, err
 		}

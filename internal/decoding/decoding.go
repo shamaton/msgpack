@@ -121,25 +121,25 @@ func (d *decoder) decode(rv reflect.Value, reader *bufio.Reader) error {
 		rv.SetFloat(v)
 
 	case reflect.String:
-		code, err := peekCode(reader)
+		code, err := reader.ReadByte()
 		if err != nil {
 			return err
 		}
 
 		// byte slice
 		if d.isCodeBin(code) {
-			v, err := d.asBinString(reader, k)
+			v, err := d.asBinStringC(reader, code, k)
 			if err != nil {
 				return err
 			}
 			rv.SetString(v)
 			return nil
 		}
-		v, err := d.asString(reader, k)
+		v, err := d.asStringByteC(reader, code, nil, k)
 		if err != nil {
 			return err
 		}
-		rv.SetString(v)
+		rv.SetString(string(v))
 
 	case reflect.Bool:
 		v, err := d.asBool(reader, k)
@@ -149,20 +149,19 @@ func (d *decoder) decode(rv reflect.Value, reader *bufio.Reader) error {
 		rv.SetBool(v)
 
 	case reflect.Slice:
-		code, err := peekCode(reader)
+		code, err := reader.ReadByte()
 		if err != nil {
 			return err
 		}
 
 		// nil
 		if d.isCodeNil(code) {
-			_, err = reader.ReadByte()
-			return err
+			return nil
 		}
 
 		// byte slice
 		if d.isCodeBin(code) {
-			bs, err := d.asBin(reader, k)
+			bs, err := d.asBinC(reader, code, k)
 			if err != nil {
 				return err
 			}
@@ -172,11 +171,7 @@ func (d *decoder) decode(rv reflect.Value, reader *bufio.Reader) error {
 
 		// string to bytes
 		if d.isCodeString(code) {
-			l, err := d.stringByteLength(reader, k)
-			if err != nil {
-				return err
-			}
-			bs, err := d.asStringByteByLength(reader, l, k)
+			bs, err := d.asStringByteC(reader, code, nil, k)
 			if err != nil {
 				return err
 			}
@@ -185,7 +180,7 @@ func (d *decoder) decode(rv reflect.Value, reader *bufio.Reader) error {
 		}
 
 		// get slice length
-		l, err := d.sliceLength(reader, k)
+		l, err := d.sliceLengthC(reader, code, k)
 		if err != nil {
 			return err
 		}
@@ -229,20 +224,19 @@ func (d *decoder) decode(rv reflect.Value, reader *bufio.Reader) error {
 		rv.SetComplex(v)
 
 	case reflect.Array:
-		code, err := peekCode(reader)
+		code, err := reader.ReadByte()
 		if err != nil {
 			return err
 		}
 
 		// nil
 		if d.isCodeNil(code) {
-			_, err = reader.ReadByte()
-			return err
+			return nil
 		}
 
 		// byte slice
 		if d.isCodeBin(code) {
-			bs, err := d.asBin(reader, k)
+			bs, err := d.asBinC(reader, code, k)
 			if err != nil {
 				return err
 			}
@@ -258,16 +252,7 @@ func (d *decoder) decode(rv reflect.Value, reader *bufio.Reader) error {
 		}
 		// string to bytes
 		if d.isCodeString(code) {
-			l, err := d.stringByteLength(reader, k)
-			if err != nil {
-				return err
-			}
-			if l > rv.Len() {
-				return errors.New(rv.Type().String() + " len is " +
-					strconv.FormatInt(int64(rv.Len()), 10) + ", but msgpack has "+
-					strconv.FormatInt(int64(l), 10) +" elements")
-			}
-			bs, err := d.asStringByteByLength(reader, l, k)
+			bs, err := d.asStringByteC(reader, code, nil, k)
 			if err != nil {
 				return err
 			}
@@ -278,7 +263,7 @@ func (d *decoder) decode(rv reflect.Value, reader *bufio.Reader) error {
 		}
 
 		// get slice length
-		l, err := d.sliceLength(reader, k)
+		l, err := d.sliceLengthC(reader, code, k)
 		if err != nil {
 			return err
 		}
@@ -298,19 +283,18 @@ func (d *decoder) decode(rv reflect.Value, reader *bufio.Reader) error {
 		}
 
 	case reflect.Map:
-		code, err := peekCode(reader)
+		code, err := reader.ReadByte()
 		if err != nil {
 			return err
 		}
 
 		// nil
 		if d.isCodeNil(code) {
-			_, err = reader.ReadByte()
-			return err
+			return nil
 		}
 
 		// get map length
-		l, err := d.mapLength(reader, k)
+		l, err := d.mapLengthC(reader, code, k)
 		if err != nil {
 			return err
 		}

@@ -22,6 +22,10 @@ func (d *decoder) asBin(reader *bufio.Reader, k reflect.Kind) ([]byte, error) {
 		return nil, err
 	}
 
+	return d.asBinC(reader, code, k)
+}
+
+func (d *decoder) asBinC(reader *bufio.Reader, code byte, k reflect.Kind) ([]byte, error) {
 	switch code {
 	case def.Bin8:
 		l, err := d.readSize1(reader)
@@ -49,7 +53,7 @@ func (d *decoder) asBin(reader *bufio.Reader, k reflect.Kind) ([]byte, error) {
 	return emptyBytes, d.errorTemplate(code, k)
 }
 
-func (d *decoder) asBinString(reader *bufio.Reader, k reflect.Kind) (string, error) {
-	bs, err := d.asBin(reader, k)
+func (d *decoder) asBinStringC(reader *bufio.Reader, code byte, k reflect.Kind) (string, error) {
+	bs, err := d.asBinC(reader, code, k)
 	return string(bs), err
 }

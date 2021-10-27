@@ -53,7 +53,7 @@ func updateExtCoders() {
 var errNotExt = errors.New("not an Ext value")
 
 func (d *decoder) readExt(reader *bufio.Reader) (byte, []byte, error) {
-	code, err := peekCode(reader)
+	code, err := reader.ReadByte()
 	if err != nil {
 		return 0, nil, err
 	}
@@ -69,12 +69,11 @@ func (d *decoder) readExt(reader *bufio.Reader) (byte, []byte, error) {
 	case def.Ext16:
 	case def.Ext32:
 	default:
+		err = reader.UnreadByte()
+		if err != nil {
+			return 0, nil, err
+		}
 		return 0, nil, errNotExt
-	}
-
-	err = skipOne(reader)
-	if err != nil {
-		return 0, nil, err
 	}
 
 	switch code {
