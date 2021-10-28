@@ -36,7 +36,14 @@ func Encode(v interface{}, output io.Writer, asArray bool) (err error) {
 	bufWriter, ok := output.(Writer)
 	if !ok {
 		// otherwise, wrap the output in a bufio writer
-		bufWriter = bufio.NewWriter(output)
+		bW := bufio.NewWriter(output)
+		defer func() {
+			err2 := bW.Flush()
+			if err == nil && err2 != nil {
+				err = err2
+			}
+		}()
+		bufWriter = bW
 	}
 
 	return e.create(rv, bufWriter)
