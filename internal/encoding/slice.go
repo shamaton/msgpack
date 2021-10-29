@@ -4,6 +4,7 @@ import (
 	"errors"
 	"math"
 	"reflect"
+	"strconv"
 
 	"github.com/shamaton/msgpack/v2/def"
 )
@@ -118,7 +119,7 @@ func (e *encoder) writeSliceLength(l int, writer Writer) (err error) {
 		return e.setByte4Int(l, writer)
 	}
 
-	return errors.New("todo: unhandled slice length")
+	return errors.New("slice too large: " + strconv.FormatInt(int64(l), 10) + " elements")
 }
 
 func (e *encoder) writeFixedSlice(rv reflect.Value, writer Writer) (bool, error) {
