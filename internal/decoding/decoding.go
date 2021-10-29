@@ -140,7 +140,7 @@ func (d *decoder) decode(rv reflect.Value, reader *bufio.Reader) error {
 			rv.SetString(v)
 			return nil
 		}
-		v, err := d.asStringByteC(reader, code, nil, k)
+		v, err := d.asStringByteC(reader, code, k)
 		if err != nil {
 			return err
 		}
@@ -176,7 +176,7 @@ func (d *decoder) decode(rv reflect.Value, reader *bufio.Reader) error {
 
 		// string to bytes
 		if d.isCodeString(code) {
-			bs, err := d.asStringByteC(reader, code, nil, k)
+			bs, err := d.asStringByteC(reader, code, k)
 			if err != nil {
 				return err
 			}
@@ -257,7 +257,7 @@ func (d *decoder) decode(rv reflect.Value, reader *bufio.Reader) error {
 		}
 		// string to bytes
 		if d.isCodeString(code) {
-			bs, err := d.asStringByteC(reader, code, nil, k)
+			bs, err := d.asStringByteC(reader, code, k)
 			if err != nil {
 				return err
 			}

@@ -56,7 +56,7 @@ func (d *decoder) asString(reader *bufio.Reader, k reflect.Kind) (string, error)
 		return emptyString, err
 	}
 
-	bs, err := d.asStringByteC(reader, code, nil, k)
+	bs, err := d.asStringByteC(reader, code, k)
 	if err != nil {
 		return emptyString, err
 	}
@@ -64,7 +64,25 @@ func (d *decoder) asString(reader *bufio.Reader, k reflect.Kind) (string, error)
 	return d.maybeInternString(bs), nil
 }
 
-func (d *decoder) asStringByteC(reader *bufio.Reader, code byte, buf []byte, k reflect.Kind) ([]byte, error) {
+func (d *decoder) asStringByteC(reader *bufio.Reader, code byte, k reflect.Kind) ([]byte, error) {
+	l, err := d.stringByteLengthC(reader, code, k)
+	if err != nil {
+		return emptyBytes, err
+	}
+
+	if l < 1 {
+		return emptyBytes, nil
+	}
+
+	return d.readSizeN(reader, l)
+}
+
+func (d *decoder) asStringByte(reader *bufio.Reader, buf []byte, k reflect.Kind) ([]byte, error) {
+	code, err := reader.ReadByte()
+	if err != nil {
+		return emptyBytes, err
+	}
+
 	l, err := d.stringByteLengthC(reader, code, k)
 	if err != nil {
 		return emptyBytes, err
@@ -75,15 +93,6 @@ func (d *decoder) asStringByteC(reader *bufio.Reader, code byte, buf []byte, k r
 	}
 
 	return d.readSizeNBuf(reader, buf, l)
-}
-
-func (d *decoder) asStringByte(reader *bufio.Reader, buf []byte, k reflect.Kind) ([]byte, error) {
-	code, err := reader.ReadByte()
-	if err != nil {
-		return emptyBytes, err
-	}
-
-	return d.asStringByteC(reader, code, buf, k)
 }
 
 // this is inlined everywhere that it is used, appears to have no performance impact when internStrings == false
