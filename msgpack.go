@@ -42,8 +42,8 @@ func (e Encoder) Encode(v interface{}) error {
 	return encoding.Encode(v, e.writer, e.StructAsArray)
 }
 
-func (e Encoder) WithStructAsArray() Encoder {
-	e.StructAsArray = true
+func (e Encoder) WithStructAsArray(structAsArray bool) Encoder {
+	e.StructAsArray = structAsArray
 	return e
 }
 
@@ -70,13 +70,13 @@ func (d Decoder) Decode(v interface{}) error {
 	return decoding.Decode(d.reader, v, d.StructAsArray, d.InternStrings)
 }
 
-func (d Decoder) WithStructAsArray() Decoder {
-	d.StructAsArray = true
+func (d Decoder) WithStructAsArray(structAsArray bool) Decoder {
+	d.StructAsArray = structAsArray
 	return d
 }
 
-func (d Decoder) WithInternStrings() Decoder {
-	d.InternStrings = true
+func (d Decoder) WithInternStrings(internStrings bool) Decoder {
+	d.InternStrings = internStrings
 	return d
 }
 
