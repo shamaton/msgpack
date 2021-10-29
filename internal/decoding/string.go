@@ -86,7 +86,6 @@ func (d *decoder) asStringByteC(reader *bufio.Reader, code byte, buf []byte, k r
 	return d.readSizeNBuf(reader, buf, l)
 }
 
-
 func (d *decoder) asStringByte(reader *bufio.Reader, buf []byte, k reflect.Kind) ([]byte, error) {
 	code, err := reader.ReadByte()
 	if err != nil {

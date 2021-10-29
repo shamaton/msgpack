@@ -126,7 +126,7 @@ func (d *decoder) setStructFromMap(rv reflect.Value, reader *bufio.Reader, k ref
 
 		fieldIndex := -1
 		for keyIndex, keyBytes := range sctm.keys {
-			if !bytes.Equal(keyBytes, dataKey){
+			if !bytes.Equal(keyBytes, dataKey) {
 				continue
 			}
 
