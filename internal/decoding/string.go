@@ -19,15 +19,6 @@ func (d *decoder) isFixString(v byte) bool {
 	return def.FixStr <= v && v <= def.FixStr+0x1f
 }
 
-func (d *decoder) stringByteLength(reader *bufio.Reader, k reflect.Kind) (int, error) {
-	code, err := reader.ReadByte()
-	if err != nil {
-		return 0, err
-	}
-
-	return d.stringByteLengthC(reader, code, k)
-}
-
 func (d *decoder) stringByteLengthC(reader *bufio.Reader, code byte, k reflect.Kind) (int, error) {
 	if def.FixStr <= code && code <= def.FixStr+0x1f {
 		l := int(code - def.FixStr)

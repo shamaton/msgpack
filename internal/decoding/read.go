@@ -48,6 +48,10 @@ func readFull(reader *bufio.Reader, buf []byte) (err error) {
 
 		i += len(b)
 		_, err = reader.Discard(len(b))
+		if err != nil {
+			return err
+		}
 	}
-	return err
+
+	return nil
 }

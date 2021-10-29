@@ -89,7 +89,10 @@ func (d *decoder) setStructFromArray(rv reflect.Value, reader *bufio.Reader, k r
 				return err
 			}
 		} else {
-			d.jumpOffset(reader)
+			err = d.jumpOffset(reader)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
