@@ -321,11 +321,16 @@ func (e *encoder) create(rv reflect.Value, writer Writer) error {
 			return e.writeNil(writer)
 		}
 		l := rv.Len()
+
 		// bin format
 		if e.isByteSlice(rv) {
 			err := e.writeByteSliceLength(l, writer)
 			if err != nil {
 				return err
+			}
+
+			if l == 0 {
+				return nil
 			}
 
 			return e.setBytes(rv.Bytes(), writer)
@@ -335,6 +340,10 @@ func (e *encoder) create(rv reflect.Value, writer Writer) error {
 		err := e.writeSliceLength(l, writer)
 		if err != nil {
 			return err
+		}
+
+		if l == 0 {
+			return nil
 		}
 
 		if found, err := e.writeFixedSlice(rv, writer); found {
@@ -369,6 +378,10 @@ func (e *encoder) create(rv reflect.Value, writer Writer) error {
 				return err
 			}
 
+			if l == 0 {
+				return nil
+			}
+
 			// objects
 			for i := 0; i < l; i++ {
 				err = e.setByte1Uint64(rv.Index(i).Uint(), writer)
@@ -384,6 +397,10 @@ func (e *encoder) create(rv reflect.Value, writer Writer) error {
 		err := e.writeSliceLength(l, writer)
 		if err != nil {
 			return err
+		}
+
+		if l == 0 {
+			return nil
 		}
 
 		// func
@@ -414,6 +431,10 @@ func (e *encoder) create(rv reflect.Value, writer Writer) error {
 		err := e.writeMapLength(l, writer)
 		if err != nil {
 			return err
+		}
+
+		if l == 0 {
+			return nil
 		}
 
 		if found, err := e.writeFixedMap(rv, writer); found {
