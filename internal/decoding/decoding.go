@@ -7,20 +7,32 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"sync"
 
 	"github.com/shamaton/msgpack/v2/internal/common"
 )
 
 type decoder struct {
-	asArray bool
-	internStrings bool
+	asArray       bool
+	internStrings map[string]string
 	common.Common
+}
+
+var internMapPool = &sync.Pool{
+	New: func() interface{} {
+		return make(map[string]string, 1024)
+	},
 }
 
 // Decode analyzes the MessagePack-encoded data and stores
 // the result into the pointer of v.
 func Decode(input *bufio.Reader, v interface{}, asArray, internStrings bool) error {
-	d := decoder{asArray: asArray, internStrings: internStrings}
+	d := decoder{asArray: asArray}
+
+	if internStrings {
+		d.internStrings = internMapPool.Get().(map[string]string)
+		defer internMapPool.Put(d.internStrings)
+	}
 
 	if input == nil {
 		return fmt.Errorf("data is nil")
@@ -235,8 +247,8 @@ func (d *decoder) decode(rv reflect.Value, reader *bufio.Reader) error {
 			}
 			if len(bs) > rv.Len() {
 				return errors.New(rv.Type().String() + " len is " +
-					strconv.FormatInt(int64(rv.Len()), 10) + ", but msgpack has "+
-					strconv.FormatInt(int64(len(bs)), 10) +" elements")
+					strconv.FormatInt(int64(rv.Len()), 10) + ", but msgpack has " +
+					strconv.FormatInt(int64(len(bs)), 10) + " elements")
 			}
 			for i, b := range bs {
 				rv.Index(i).SetUint(uint64(b))
@@ -263,8 +275,8 @@ func (d *decoder) decode(rv reflect.Value, reader *bufio.Reader) error {
 
 		if l > rv.Len() {
 			return errors.New(rv.Type().String() + " len is " +
-				strconv.FormatInt(int64(rv.Len()), 10) + ", but msgpack has "+
-				strconv.FormatInt(int64(l), 10) +" elements")
+				strconv.FormatInt(int64(rv.Len()), 10) + ", but msgpack has " +
+				strconv.FormatInt(int64(l), 10) + " elements")
 		}
 
 		// create array dynamically
