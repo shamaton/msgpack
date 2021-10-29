@@ -55,5 +55,5 @@ func (d *decoder) asBinC(reader *bufio.Reader, code byte, k reflect.Kind) ([]byt
 
 func (d *decoder) asBinStringC(reader *bufio.Reader, code byte, k reflect.Kind) (string, error) {
 	bs, err := d.asBinC(reader, code, k)
-	return string(bs), err
+	return d.maybeInternString(bs), err
 }

@@ -1,6 +1,7 @@
 package msgpack
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 
@@ -27,29 +28,56 @@ func Unmarshal(data []byte, v interface{}) error {
 
 type Encoder struct {
 	writer io.Writer
+
+	StructAsArray bool
 }
 
 // NewEncoder will create an Encoder that will encode values into a stream
-func NewEncoder(output io.Writer) *Encoder {
-	return &Encoder{writer: output}
+func NewEncoder(output io.Writer) Encoder {
+	return Encoder{writer: output}
 }
 
 // Encode a single value into the output stream
-func (e *Encoder) Encode(v interface{}) error {
-	return encoding.Encode(v, e.writer, StructAsArray)
+func (e Encoder) Encode(v interface{}) error {
+	return encoding.Encode(v, e.writer, e.StructAsArray)
+}
+
+func (e Encoder) WithStructAsArray() Encoder {
+	e.StructAsArray = true
+	return e
 }
 
 type Decoder struct {
-	reader io.Reader
+	reader *bufio.Reader
+
+	StructAsArray bool
+	InternStrings bool
 }
 
 // NewDecoder will create an Decoder that will decode values from a stream one at a time
-func NewDecoder(input io.Reader) *Decoder {
-	return &Decoder{reader: input}
+func NewDecoder(input io.Reader) Decoder {
+	// if input is already a bufio.Reader, just type assert it
+	bufReader, ok := input.(*bufio.Reader)
+	if !ok {
+		// otherwise, wrap the input in a bufio reader
+		bufReader = bufio.NewReader(input)
+	}
+
+	return Decoder{reader: bufReader}
 }
 
-func (e *Decoder) Decode(v interface{}) error {
-	return decoding.Decode(e.reader, v, StructAsArray)
+func (d Decoder) Decode(v interface{}) error {
+	return decoding.Decode(d.reader, v, d.StructAsArray, d.InternStrings)
+}
+
+func (d Decoder) WithStructAsArray() Decoder {
+	d.StructAsArray = true
+	return d
+}
+
+func (d Decoder) WithInternStrings() Decoder {
+	d.InternStrings = true
+	return d
 }
 
 // AddExtCoder adds encoders for extension types.

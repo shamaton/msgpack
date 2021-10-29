@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"reflect"
 	"strconv"
 
@@ -14,13 +13,14 @@ import (
 
 type decoder struct {
 	asArray bool
+	internStrings bool
 	common.Common
 }
 
 // Decode analyzes the MessagePack-encoded data and stores
 // the result into the pointer of v.
-func Decode(input io.Reader, v interface{}, asArray bool) error {
-	d := decoder{asArray: asArray}
+func Decode(input *bufio.Reader, v interface{}, asArray, internStrings bool) error {
+	d := decoder{asArray: asArray, internStrings: internStrings}
 
 	if input == nil {
 		return fmt.Errorf("data is nil")
@@ -33,14 +33,7 @@ func Decode(input io.Reader, v interface{}, asArray bool) error {
 
 	rv = rv.Elem()
 
-	// if input is already a bufio.Reader, just type assert it
-	bufReader, ok := input.(*bufio.Reader)
-	if !ok {
-		// otherwise, wrap the input in a bufio reader
-		bufReader = bufio.NewReader(input)
-	}
-
-	return d.decode(rv, bufReader)
+	return d.decode(rv, input)
 }
 
 // DecodeBytes analyzes the MessagePack-encoded data and stores
@@ -139,7 +132,7 @@ func (d *decoder) decode(rv reflect.Value, reader *bufio.Reader) error {
 		if err != nil {
 			return err
 		}
-		rv.SetString(string(v))
+		rv.SetString(d.maybeInternString(v))
 
 	case reflect.Bool:
 		v, err := d.asBool(reader, k)

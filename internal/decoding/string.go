@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"reflect"
 
+	"github.com/josharian/intern"
 	"github.com/shamaton/msgpack/v2/def"
 )
 
@@ -70,7 +71,7 @@ func (d *decoder) asString(reader *bufio.Reader, k reflect.Kind) (string, error)
 		return emptyString, err
 	}
 
-	return string(bs), nil
+	return d.maybeInternString(bs), nil
 }
 
 func (d *decoder) asStringByteC(reader *bufio.Reader, code byte, buf []byte, k reflect.Kind) ([]byte, error) {
@@ -94,4 +95,13 @@ func (d *decoder) asStringByte(reader *bufio.Reader, buf []byte, k reflect.Kind)
 	}
 
 	return d.asStringByteC(reader, code, buf, k)
+}
+
+// this is inlined everywhere that it is used, appears to have no performance impact when internStrings == false
+func (d *decoder) maybeInternString(bs []byte) string {
+	if d.internStrings {
+		return intern.Bytes(bs)
+	}
+
+	return string(bs)
 }
