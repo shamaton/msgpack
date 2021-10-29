@@ -24,12 +24,18 @@ func (d *decoder) readSize8(reader *bufio.Reader) (p [def.Byte8]byte, err error)
 }
 
 func (d *decoder) readSizeN(reader *bufio.Reader, n int) (p []byte, err error) {
+	if n == 0 {
+		return nil, nil
+	}
+
 	p = make([]byte, n)
 	return p, readFull(reader, p)
 }
 
 func (d *decoder) readSizeNBuf(reader *bufio.Reader, buf []byte, n int) ([]byte, error) {
-	if n > len(buf) {
+	if n == 0 {
+		return nil, nil
+	} else if n > len(buf) {
 		return d.readSizeN(reader, n)
 	}
 

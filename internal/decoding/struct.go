@@ -67,6 +67,10 @@ func (d *decoder) setStructFromArray(rv reflect.Value, reader *bufio.Reader, k r
 		return err
 	}
 
+	if l == 0 {
+		return nil
+	}
+
 	// find or create reference
 	var scta *structCacheTypeArray
 	cache, findCache := mapSCTA.Load(rv.Type())
@@ -103,6 +107,10 @@ func (d *decoder) setStructFromMap(rv reflect.Value, reader *bufio.Reader, k ref
 	l, err := d.mapLength(reader, k)
 	if err != nil {
 		return err
+	}
+
+	if l == 0 {
+		return nil
 	}
 
 	var sctm *structCacheTypeMap
