@@ -26,19 +26,50 @@ func Unmarshal(data []byte, v interface{}) error {
 	return decoding.DecodeBytes(data, v, StructAsArray)
 }
 
+// Writer is the set of interfaces that Encoder expects a writer to implement for best performance
+type Writer = encoding.Writer
+
 type Encoder struct {
-	writer io.Writer
+	writer Writer
+
+	flusher interface { Flush() error }
 
 	StructAsArray bool
 }
 
-// NewEncoder will create an Encoder that will encode values into a stream
+// NewEncoder will create an Encoder that will encode values into a stream.
+// if the given io.Writer does not implement Writer, then it may be wrapped
+// in a *bufio.Writer automatically.
 func NewEncoder(output io.Writer) Encoder {
+	// if output is already the right kind of Writer, just type assert it
+	writer, ok := output.(Writer)
+	if ok {
+		return Encoder{writer: writer}
+	}
+
+	// otherwise, wrap the output in a bufio writer
+	bufWriter := bufio.NewWriter(output)
+
+	return Encoder{writer: bufWriter, flusher: bufWriter}
+}
+
+// NewUnwrappedEncoder guarantees that the output implements the Writer
+// interface so that no additional *bufio.Writer will be allocated.
+func NewUnwrappedEncoder(output Writer) Encoder {
 	return Encoder{writer: output}
 }
 
 // Encode a single value into the output stream
-func (e Encoder) Encode(v interface{}) error {
+func (e Encoder) Encode(v interface{}) (err error) {
+	if e.flusher != nil {
+		defer func() {
+			err2 := e.flusher.Flush()
+			if err == nil && err2 != nil {
+				err = err2
+			}
+		}()
+	}
+
 	return encoding.Encode(v, e.writer, e.StructAsArray)
 }
 

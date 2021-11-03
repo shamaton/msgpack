@@ -1,7 +1,6 @@
 package encoding
 
 import (
-	"io"
 	"math"
 
 	"github.com/shamaton/msgpack/v2/def"
@@ -58,6 +57,6 @@ func (e *encoder) writeString(str string, writer Writer) (err error) {
 		}
 	}
 
-	_, err = io.WriteString(writer, str)
+	_, err = writer.WriteString(str)
 	return err
 }
