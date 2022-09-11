@@ -36,11 +36,23 @@ func TestCrashBinary(t *testing.T) {
 }
 
 func check(t *testing.T, wg *sync.WaitGroup, ch <-chan string) {
+	var (
+		path string
+		ok   bool
+		data []byte
+	)
 	t.Helper()
 	defer wg.Done()
+	defer func() {
+		if e := recover(); e != nil {
+			t.Logf("panic occurred.\nfile: %s\nlen: %d\nbin: % x\nerr: %+v",
+				path, len(data), data, e,
+			)
+		}
+	}()
 
 	for {
-		path, ok := <-ch // closeされると ok が false になる
+		path, ok = <-ch // closeされると ok が false になる
 		if !ok {
 			return
 		}
@@ -68,5 +80,8 @@ func check(t *testing.T, wg *sync.WaitGroup, ch <-chan string) {
 			t.Fail()
 			return
 		}
+
+		path = ""
+		data = nil
 	}
 }
