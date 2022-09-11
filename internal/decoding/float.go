@@ -9,12 +9,18 @@ import (
 )
 
 func (d *decoder) asFloat32(offset int, k reflect.Kind) (float32, int, error) {
-	code := d.data[offset]
+	code, _, err := d.readSize1(offset)
+	if err != nil {
+		return 0, 0, err
+	}
 
 	switch {
 	case code == def.Float32:
 		offset++
-		bs, offset := d.readSize4(offset)
+		bs, offset, err := d.readSize4(offset)
+		if err != nil {
+			return 0, 0, err
+		}
 		v := math.Float32frombits(binary.BigEndian.Uint32(bs))
 		return v, offset, nil
 
@@ -40,18 +46,27 @@ func (d *decoder) asFloat32(offset int, k reflect.Kind) (float32, int, error) {
 }
 
 func (d *decoder) asFloat64(offset int, k reflect.Kind) (float64, int, error) {
-	code := d.data[offset]
+	code, _, err := d.readSize1(offset)
+	if err != nil {
+		return 0, 0, err
+	}
 
 	switch {
 	case code == def.Float64:
 		offset++
-		bs, offset := d.readSize8(offset)
+		bs, offset, err := d.readSize8(offset)
+		if err != nil {
+			return 0, 0, err
+		}
 		v := math.Float64frombits(binary.BigEndian.Uint64(bs))
 		return v, offset, nil
 
 	case code == def.Float32:
 		offset++
-		bs, offset := d.readSize4(offset)
+		bs, offset, err := d.readSize4(offset)
+		if err != nil {
+			return 0, 0, err
+		}
 		v := math.Float32frombits(binary.BigEndian.Uint32(bs))
 		return float64(v), offset, nil
 

@@ -18,10 +18,9 @@ type decoder struct {
 func Decode(data []byte, v interface{}, asArray bool) error {
 	d := decoder{data: data, asArray: asArray}
 
-	if d.data == nil {
-		return fmt.Errorf("data is nil")
+	if d.data == nil || len(d.data) < 1 {
+		return fmt.Errorf("data is emtpy")
 	}
-
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr {
 		return fmt.Errorf("holder must set pointer value. but got: %t", v)
@@ -120,7 +119,10 @@ func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
 			if err != nil {
 				return 0, err
 			}
-			bs, offset := d.asStringByteByLength(offset, l, k)
+			bs, offset, err := d.asStringByteByLength(offset, l, k)
+			if err != nil {
+				return 0, err
+			}
 			rv.SetBytes(bs)
 			return offset, nil
 		}
@@ -201,7 +203,10 @@ func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
 			if l > rv.Len() {
 				return 0, fmt.Errorf("%v len is %d, but msgpack has %d elements", rv.Type(), rv.Len(), l)
 			}
-			bs, offset := d.asStringByteByLength(offset, l, k)
+			bs, offset, err := d.asStringByteByLength(offset, l, k)
+			if err != nil {
+				return 0, err
+			}
 			for i, b := range bs {
 				rv.Index(i).SetUint(uint64(b))
 			}
