@@ -61,6 +61,10 @@ func (d *decoder) setStructFromArray(rv reflect.Value, offset int, k reflect.Kin
 		return 0, err
 	}
 
+	if err = d.hasRequiredLeastSliceSize(o, l); err != nil {
+		return 0, err
+	}
+
 	// find or create reference
 	var scta *structCacheTypeArray
 	cache, findCache := mapSCTA.Load(rv.Type())
@@ -96,6 +100,10 @@ func (d *decoder) setStructFromMap(rv reflect.Value, offset int, k reflect.Kind)
 	// get length
 	l, o, err := d.mapLength(offset, k)
 	if err != nil {
+		return 0, err
+	}
+
+	if err = d.hasRequiredLeastMapSize(o, l); err != nil {
 		return 0, err
 	}
 
