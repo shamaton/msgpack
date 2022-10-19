@@ -2,6 +2,7 @@ package decoding
 
 import (
 	"encoding/binary"
+	"errors"
 	"reflect"
 
 	"github.com/shamaton/msgpack/v2/def"
@@ -80,7 +81,16 @@ func (d *decoder) mapLength(offset int, k reflect.Kind) (int, int, error) {
 		}
 		return int(binary.BigEndian.Uint32(bs)), offset, nil
 	}
+
 	return 0, 0, d.errorTemplate(code, k)
+}
+
+func (d *decoder) hasRequiredLeastMapSize(offset, length int) error {
+	// minimum check (byte length)
+	if len(d.data[offset:]) < length*2 {
+		return errors.New("data length lacks to create map")
+	}
+	return nil
 }
 
 func (d *decoder) asFixedMap(rv reflect.Value, offset int, l int) (int, bool, error) {

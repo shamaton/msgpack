@@ -133,6 +133,10 @@ func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
 			return 0, err
 		}
 
+		if err = d.hasRequiredLeastSliceSize(o, l); err != nil {
+			return 0, err
+		}
+
 		// check fixed type
 		fixedOffset, found, err := d.asFixedSlice(rv, o, l)
 		if err != nil {
@@ -223,6 +227,10 @@ func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
 			return 0, fmt.Errorf("%v len is %d, but msgpack has %d elements", rv.Type(), rv.Len(), l)
 		}
 
+		if err = d.hasRequiredLeastSliceSize(o, l); err != nil {
+			return 0, err
+		}
+
 		// create array dynamically
 		for i := 0; i < l; i++ {
 			o, err = d.decode(rv.Index(i), o)
@@ -242,6 +250,10 @@ func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
 		// get map length
 		l, o, err := d.mapLength(offset, k)
 		if err != nil {
+			return 0, err
+		}
+
+		if err = d.hasRequiredLeastMapSize(o, l); err != nil {
 			return 0, err
 		}
 
