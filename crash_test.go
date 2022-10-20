@@ -64,7 +64,7 @@ func check(t *testing.T, wg *sync.WaitGroup, ch <-chan string) {
 			return
 		}
 
-		data, err := io.ReadAll(file)
+		data, err = io.ReadAll(file)
 		if err != nil {
 			t.Logf("%s io.ReadAll error. err: %+v", path, err)
 			t.Fail()
