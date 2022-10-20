@@ -19,7 +19,7 @@ func Decode(data []byte, v interface{}, asArray bool) error {
 	d := decoder{data: data, asArray: asArray}
 
 	if d.data == nil || len(d.data) < 1 {
-		return fmt.Errorf("data is emtpy")
+		return fmt.Errorf("data is empty")
 	}
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr {
