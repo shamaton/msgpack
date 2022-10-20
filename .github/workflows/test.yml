@@ -62,3 +62,5 @@ jobs:
         uses: reviewdog/action-golangci-lint@v2
         with:
           workdir: ${{ env.WORKSPACE }}
+          level: warning
+          reporter: github-pr-review
