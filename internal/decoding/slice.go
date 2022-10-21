@@ -2,6 +2,7 @@ package decoding
 
 import (
 	"encoding/binary"
+	"errors"
 	"reflect"
 
 	"github.com/shamaton/msgpack/v2/def"
@@ -33,19 +34,36 @@ func (d *decoder) isFixSlice(v byte) bool {
 }
 
 func (d *decoder) sliceLength(offset int, k reflect.Kind) (int, int, error) {
-	code, offset := d.readSize1(offset)
+	code, offset, err := d.readSize1(offset)
+	if err != nil {
+		return 0, 0, err
+	}
 
 	switch {
 	case d.isFixSlice(code):
 		return int(code - def.FixArray), offset, nil
 	case code == def.Array16:
-		bs, offset := d.readSize2(offset)
+		bs, offset, err := d.readSize2(offset)
+		if err != nil {
+			return 0, 0, err
+		}
 		return int(binary.BigEndian.Uint16(bs)), offset, nil
 	case code == def.Array32:
-		bs, offset := d.readSize4(offset)
+		bs, offset, err := d.readSize4(offset)
+		if err != nil {
+			return 0, 0, err
+		}
 		return int(binary.BigEndian.Uint32(bs)), offset, nil
 	}
 	return 0, 0, d.errorTemplate(code, k)
+}
+
+func (d *decoder) hasRequiredLeastSliceSize(offset, length int) error {
+	// minimum check (byte length)
+	if len(d.data[offset:]) < length {
+		return errors.New("data length lacks to create map")
+	}
+	return nil
 }
 
 func (d *decoder) asFixedSlice(rv reflect.Value, offset int, l int) (int, bool, error) {

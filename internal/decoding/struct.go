@@ -61,6 +61,10 @@ func (d *decoder) setStructFromArray(rv reflect.Value, offset int, k reflect.Kin
 		return 0, err
 	}
 
+	if err = d.hasRequiredLeastSliceSize(o, l); err != nil {
+		return 0, err
+	}
+
 	// find or create reference
 	var scta *structCacheTypeArray
 	cache, findCache := mapSCTA.Load(rv.Type())
@@ -83,7 +87,10 @@ func (d *decoder) setStructFromArray(rv reflect.Value, offset int, k reflect.Kin
 				return 0, err
 			}
 		} else {
-			o = d.jumpOffset(o)
+			o, err = d.jumpOffset(o)
+			if err != nil {
+				return 0, err
+			}
 		}
 	}
 	return o, nil
@@ -93,6 +100,10 @@ func (d *decoder) setStructFromMap(rv reflect.Value, offset int, k reflect.Kind)
 	// get length
 	l, o, err := d.mapLength(offset, k)
 	if err != nil {
+		return 0, err
+	}
+
+	if err = d.hasRequiredLeastMapSize(o, l); err != nil {
 		return 0, err
 	}
 
@@ -141,15 +152,22 @@ func (d *decoder) setStructFromMap(rv reflect.Value, offset int, k reflect.Kind)
 				return 0, err
 			}
 		} else {
-			o2 = d.jumpOffset(o2)
+			o2, err = d.jumpOffset(o2)
+			if err != nil {
+				return 0, err
+			}
 		}
 		o = o2
 	}
 	return o, nil
 }
 
-func (d *decoder) jumpOffset(offset int) int {
-	code, offset := d.readSize1(offset)
+func (d *decoder) jumpOffset(offset int) (int, error) {
+	code, offset, err := d.readSize1(offset)
+	if err != nil {
+		return 0, err
+	}
+
 	switch {
 	case code == def.True, code == def.False, code == def.Nil:
 		// do nothing
@@ -168,55 +186,94 @@ func (d *decoder) jumpOffset(offset int) int {
 	case d.isFixString(code):
 		offset += int(code - def.FixStr)
 	case code == def.Str8, code == def.Bin8:
-		b, o := d.readSize1(offset)
+		b, o, err := d.readSize1(offset)
+		if err != nil {
+			return 0, err
+		}
 		o += int(b)
 		offset = o
 	case code == def.Str16, code == def.Bin16:
-		bs, o := d.readSize2(offset)
+		bs, o, err := d.readSize2(offset)
+		if err != nil {
+			return 0, err
+		}
 		o += int(binary.BigEndian.Uint16(bs))
 		offset = o
 	case code == def.Str32, code == def.Bin32:
-		bs, o := d.readSize4(offset)
+		bs, o, err := d.readSize4(offset)
+		if err != nil {
+			return 0, err
+		}
 		o += int(binary.BigEndian.Uint32(bs))
 		offset = o
 
 	case d.isFixSlice(code):
 		l := int(code - def.FixArray)
 		for i := 0; i < l; i++ {
-			offset = d.jumpOffset(offset)
+			offset, err = d.jumpOffset(offset)
+			if err != nil {
+				return 0, err
+			}
 		}
 	case code == def.Array16:
-		bs, o := d.readSize2(offset)
+		bs, o, err := d.readSize2(offset)
+		if err != nil {
+			return 0, err
+		}
 		l := int(binary.BigEndian.Uint16(bs))
 		for i := 0; i < l; i++ {
-			o = d.jumpOffset(o)
+			o, err = d.jumpOffset(o)
+			if err != nil {
+				return 0, err
+			}
 		}
 		offset = o
 	case code == def.Array32:
-		bs, o := d.readSize4(offset)
+		bs, o, err := d.readSize4(offset)
+		if err != nil {
+			return 0, err
+		}
 		l := int(binary.BigEndian.Uint32(bs))
 		for i := 0; i < l; i++ {
-			o = d.jumpOffset(o)
+			o, err = d.jumpOffset(o)
+			if err != nil {
+				return 0, err
+			}
 		}
 		offset = o
 
 	case d.isFixMap(code):
 		l := int(code - def.FixMap)
 		for i := 0; i < l*2; i++ {
-			offset = d.jumpOffset(offset)
+			offset, err = d.jumpOffset(offset)
+			if err != nil {
+				return 0, err
+			}
 		}
 	case code == def.Map16:
-		bs, o := d.readSize2(offset)
+		bs, o, err := d.readSize2(offset)
+		if err != nil {
+			return 0, err
+		}
 		l := int(binary.BigEndian.Uint16(bs))
 		for i := 0; i < l*2; i++ {
-			o = d.jumpOffset(o)
+			o, err = d.jumpOffset(o)
+			if err != nil {
+				return 0, err
+			}
 		}
 		offset = o
 	case code == def.Map32:
-		bs, o := d.readSize4(offset)
+		bs, o, err := d.readSize4(offset)
+		if err != nil {
+			return 0, err
+		}
 		l := int(binary.BigEndian.Uint32(bs))
 		for i := 0; i < l*2; i++ {
-			o = d.jumpOffset(o)
+			o, err = d.jumpOffset(o)
+			if err != nil {
+				return 0, err
+			}
 		}
 		offset = o
 
@@ -232,18 +289,27 @@ func (d *decoder) jumpOffset(offset int) int {
 		offset += def.Byte1 + def.Byte16
 
 	case code == def.Ext8:
-		b, o := d.readSize1(offset)
+		b, o, err := d.readSize1(offset)
+		if err != nil {
+			return 0, err
+		}
 		o += def.Byte1 + int(b)
 		offset = o
 	case code == def.Ext16:
-		bs, o := d.readSize2(offset)
+		bs, o, err := d.readSize2(offset)
+		if err != nil {
+			return 0, err
+		}
 		o += def.Byte1 + int(binary.BigEndian.Uint16(bs))
 		offset = o
 	case code == def.Ext32:
-		bs, o := d.readSize4(offset)
+		bs, o, err := d.readSize4(offset)
+		if err != nil {
+			return 0, err
+		}
 		o += def.Byte1 + int(binary.BigEndian.Uint32(bs))
 		offset = o
 
 	}
-	return offset
+	return offset, nil
 }

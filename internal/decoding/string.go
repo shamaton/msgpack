@@ -19,20 +19,31 @@ func (d *decoder) isFixString(v byte) bool {
 }
 
 func (d *decoder) stringByteLength(offset int, k reflect.Kind) (int, int, error) {
-	code := d.data[offset]
-	offset++
+	code, offset, err := d.readSize1(offset)
+	if err != nil {
+		return 0, 0, err
+	}
 
 	if def.FixStr <= code && code <= def.FixStr+0x1f {
 		l := int(code - def.FixStr)
 		return l, offset, nil
 	} else if code == def.Str8 {
-		b, offset := d.readSize1(offset)
+		b, offset, err := d.readSize1(offset)
+		if err != nil {
+			return 0, 0, err
+		}
 		return int(b), offset, nil
 	} else if code == def.Str16 {
-		b, offset := d.readSize2(offset)
+		b, offset, err := d.readSize2(offset)
+		if err != nil {
+			return 0, 0, err
+		}
 		return int(binary.BigEndian.Uint16(b)), offset, nil
 	} else if code == def.Str32 {
-		b, offset := d.readSize4(offset)
+		b, offset, err := d.readSize4(offset)
+		if err != nil {
+			return 0, 0, err
+		}
 		return int(binary.BigEndian.Uint32(b)), offset, nil
 	} else if code == def.Nil {
 		return 0, offset, nil
@@ -54,13 +65,12 @@ func (d *decoder) asStringByte(offset int, k reflect.Kind) ([]byte, int, error) 
 		return emptyBytes, 0, err
 	}
 
-	b, o := d.asStringByteByLength(offset, l, k)
-	return b, o, nil
+	return d.asStringByteByLength(offset, l, k)
 }
 
-func (d *decoder) asStringByteByLength(offset int, l int, k reflect.Kind) ([]byte, int) {
+func (d *decoder) asStringByteByLength(offset int, l int, k reflect.Kind) ([]byte, int, error) {
 	if l < 1 {
-		return emptyBytes, offset
+		return emptyBytes, offset, nil
 	}
 
 	return d.readSizeN(offset, l)
