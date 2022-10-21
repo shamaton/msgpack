@@ -1,13 +1,17 @@
 package decoding
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/shamaton/msgpack/v2/def"
 )
 
 func (d *decoder) asInterface(offset int, k reflect.Kind) (interface{}, int, error) {
-	code := d.data[offset]
+	code, _, err := d.readSize1(offset)
+	if err != nil {
+		return 0, 0, err
+	}
 
 	switch {
 	case code == def.Nil:
@@ -104,6 +108,10 @@ func (d *decoder) asInterface(offset int, k reflect.Kind) (interface{}, int, err
 			return nil, 0, err
 		}
 
+		if err = d.hasRequiredLeastSliceSize(o, l); err != nil {
+			return nil, 0, err
+		}
+
 		v := make([]interface{}, l)
 		for i := 0; i < l; i++ {
 			vv, o2, err := d.asInterface(o, k)
@@ -121,8 +129,14 @@ func (d *decoder) asInterface(offset int, k reflect.Kind) (interface{}, int, err
 		if err != nil {
 			return nil, 0, err
 		}
+		if err = d.hasRequiredLeastMapSize(o, l); err != nil {
+			return nil, 0, err
+		}
 		v := make(map[interface{}]interface{}, l)
 		for i := 0; i < l; i++ {
+			if d.canSetAsMapKey(o) != nil {
+				return nil, 0, err
+			}
 			key, o2, err := d.asInterface(o, k)
 			if err != nil {
 				return nil, 0, err
@@ -158,6 +172,19 @@ func (d *decoder) asInterface(offset int, k reflect.Kind) (interface{}, int, err
 			return v, offset, nil
 		}
 	}
-
 	return nil, 0, d.errorTemplate(code, k)
+}
+
+func (d *decoder) canSetAsMapKey(index int) error {
+	code, _, err := d.readSize1(index)
+	if err != nil {
+		return err
+	}
+	switch {
+	case d.isFixSlice(code), code == def.Array16, code == def.Array32:
+		return fmt.Errorf("can not use slice code for map key/ code: %x", code)
+	case d.isFixMap(code), code == def.Map16, code == def.Map32:
+		return fmt.Errorf("can not use map code for map key/ code: %x", code)
+	}
+	return nil
 }

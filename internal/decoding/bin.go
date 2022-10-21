@@ -17,20 +17,32 @@ func (d *decoder) isCodeBin(v byte) bool {
 }
 
 func (d *decoder) asBin(offset int, k reflect.Kind) ([]byte, int, error) {
-	code, offset := d.readSize1(offset)
+	code, offset, err := d.readSize1(offset)
+	if err != nil {
+		return emptyBytes, 0, err
+	}
 
 	switch code {
 	case def.Bin8:
-		l, offset := d.readSize1(offset)
+		l, offset, err := d.readSize1(offset)
+		if err != nil {
+			return emptyBytes, 0, err
+		}
 		o := offset + int(uint8(l))
 		return d.data[offset:o], o, nil
 	case def.Bin16:
-		bs, offset := d.readSize2(offset)
+		bs, offset, err := d.readSize2(offset)
 		o := offset + int(binary.BigEndian.Uint16(bs))
+		if err != nil {
+			return emptyBytes, 0, err
+		}
 		return d.data[offset:o], o, nil
 	case def.Bin32:
-		bs, offset := d.readSize4(offset)
+		bs, offset, err := d.readSize4(offset)
 		o := offset + int(binary.BigEndian.Uint32(bs))
+		if err != nil {
+			return emptyBytes, 0, err
+		}
 		return d.data[offset:o], o, nil
 	}
 
