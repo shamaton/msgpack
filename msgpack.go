@@ -21,7 +21,8 @@ func Marshal(v interface{}) ([]byte, error) {
 // Unmarshal analyzes the MessagePack-encoded data and stores
 // the result into the pointer of v.
 func Unmarshal(data []byte, v interface{}) error {
-	return decoding.Decode(data, v, StructAsArray)
+	_, err := decoding.Decode(data, v, StructAsArray, true)
+	return err
 }
 
 // AddExtCoder adds encoders for extension types.

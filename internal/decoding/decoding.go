@@ -2,6 +2,7 @@ package decoding
 
 import (
 	"fmt"
+	"io"
 	"reflect"
 
 	"github.com/shamaton/msgpack/v2/internal/common"
@@ -15,27 +16,27 @@ type decoder struct {
 
 // Decode analyzes the MessagePack-encoded data and stores
 // the result into the pointer of v.
-func Decode(data []byte, v interface{}, asArray bool) error {
+func Decode(data []byte, v interface{}, asArray bool, strictLengthCheck bool) (int, error) {
 	d := decoder{data: data, asArray: asArray}
 
 	if d.data == nil || len(d.data) < 1 {
-		return fmt.Errorf("data is empty")
+		return 0, io.EOF
 	}
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr {
-		return fmt.Errorf("holder must set pointer value. but got: %t", v)
+		return 0, fmt.Errorf("holder must set pointer value. but got: %t", v)
 	}
 
 	rv = rv.Elem()
 
 	last, err := d.decode(rv, 0)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	if len(data) != last {
-		return fmt.Errorf("failed deserialization size=%d, last=%d", len(data), last)
+	if strictLengthCheck && len(data) != last {
+		return 0, fmt.Errorf("failed deserialization size=%d, last=%d", len(data), last)
 	}
-	return err
+	return last, err
 }
 
 func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
