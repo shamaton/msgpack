@@ -1932,7 +1932,7 @@ func TestExt(t *testing.T) {
 			Uint16:      math.MaxUint16,
 			Uint32:      math.MaxUint32,
 			Uint64:      math.MaxUint32 + 1,
-			Byte2Int:    rand.Intn(math.MaxUint16) - math.MinInt16,
+			Byte2Int:    rand.Intn(math.MaxUint16),
 			Byte4Int:    rand.Intn(math.MaxInt32) - rand.Intn(math.MaxInt32-1),
 			Byte4Uint32: math.MaxUint32 - 1,
 			Bytes:       []byte{1, 2, 3}, // 3
@@ -1967,7 +1967,7 @@ func TestExt(t *testing.T) {
 			Uint16:      math.MaxUint16,
 			Uint32:      math.MaxUint32,
 			Uint64:      math.MaxUint32 + 1,
-			Byte2Int:    rand.Intn(math.MaxUint16) - math.MinInt16,
+			Byte2Int:    rand.Intn(math.MaxUint16),
 			Byte4Int:    rand.Intn(math.MaxInt32) - rand.Intn(math.MaxInt32-1),
 			Byte4Uint32: math.MaxUint32 - 1,
 			Bytes:       []byte{4, 5, 6}, // 3
