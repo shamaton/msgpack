@@ -54,11 +54,11 @@ func (d *decoder) readIfExtType(code byte) (innerType int8, data []byte, err err
 		if err != nil {
 			return 0, nil, err
 		}
-		data, err = d.readSizeN(def.Byte1)
+		v, err := d.readSize1()
 		if err != nil {
 			return 0, nil, err
 		}
-		return int8(typ), data, nil
+		return int8(typ), []byte{v}, nil
 
 	case def.Fixext2:
 		typ, err := d.readSize1()
@@ -98,7 +98,7 @@ func (d *decoder) readIfExtType(code byte) (innerType int8, data []byte, err err
 		if err != nil {
 			return 0, nil, err
 		}
-		data, err = d.readSizeN(def.Byte16)
+		data, err = d.readSize16()
 		if err != nil {
 			return 0, nil, err
 		}

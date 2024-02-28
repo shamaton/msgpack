@@ -2,7 +2,6 @@ package decoding
 
 import (
 	"fmt"
-	"github.com/shamaton/msgpack/v2/def"
 	"io"
 	"reflect"
 
@@ -12,8 +11,13 @@ import (
 type decoder struct {
 	r       io.Reader
 	asArray bool
-	b1      []byte
-	b       []byte
+	*buffer
+	data []byte
+	b16  []byte
+	b8   []byte
+	b4   []byte
+	b2   []byte
+	b1   []byte
 	common.Common
 }
 
@@ -31,17 +35,28 @@ func Decode(r io.Reader, v interface{}, asArray bool) error {
 
 	rv = rv.Elem()
 
-	d := decoder{r: r,
-		b1: make([]byte, def.Byte1),
-		b:  make([]byte, def.Byte32), asArray: asArray}
-	err := d.decode(rv)
-	if err != nil {
-		return err
-	}
-	// todo : maybe enable to delete
-	//if len(data) != last {
-	//	return fmt.Errorf("failed deserialization size=%d, last=%d", len(data), last)
+	//bb := make([]byte, def.Byte32)
+	//buff := buf{
+	//	b:   bb,
+	//	b16: bb[:16],
+	//	b8:  bb[:8],
+	//	b4:  bb[:4],
+	//	b2:  bb[:2],
+	//	b1:  bb[:1],
 	//}
+	d := decoder{r: r,
+		//buf:     buff, // ここで先に参照を作る
+		//data:    bb,
+		//b16:     bb[:16],
+		//b8:      bb[:8],
+		//b4:      bb[:4],
+		//b2:      bb[:2],
+		//b1:      bb[:1],
+		buffer:  bufPool.Get().(*buffer),
+		asArray: asArray,
+	}
+	err := d.decode(rv)
+	bufPool.Put(d.buffer)
 	return err
 }
 
