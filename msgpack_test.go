@@ -1,10 +1,12 @@
 package msgpack_test
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"math/rand"
 	"reflect"
@@ -23,6 +25,64 @@ var now time.Time
 func init() {
 	n := time.Now()
 	now = time.Unix(n.Unix(), int64(n.Nanosecond()))
+}
+
+type Hoge struct {
+	Int    int
+	String string
+	Bool   bool
+}
+
+var hoge Hoge = Hoge{
+	Int:    777,
+	String: "string",
+	Bool:   true,
+}
+
+func BenchmarkA(b *testing.B) {
+	ttt, errr := msgpack.Marshal(hoge)
+	if errr != nil {
+		panic(errr)
+	}
+	buf := bytes.NewReader(ttt)
+	b.ResetTimer()
+
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		var fuga Hoge
+		errr = msgpack.UnmarshalRead(buf, &fuga)
+		if errr != nil {
+			panic(errr)
+		}
+		_, _ = buf.Seek(0, 0)
+	}
+	b.StopTimer()
+	b.SetBytes(int64(len(ttt)))
+}
+
+func BenchmarkB(b *testing.B) {
+	ttt, errr := msgpack.Marshal(hoge)
+	if errr != nil {
+		panic(errr)
+	}
+	buf := bytes.NewReader(ttt)
+	b.ResetTimer()
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		data, err := io.ReadAll(buf)
+		if err != nil {
+			panic(err)
+		}
+		var fuga Hoge
+		errr = msgpack.Unmarshal(data, &fuga)
+		if errr != nil {
+			panic(errr)
+		}
+		_, _ = buf.Seek(0, 0)
+	}
+	b.StopTimer()
+	b.SetBytes(int64(len(ttt)))
 }
 
 func TestInt(t *testing.T) {
@@ -2179,7 +2239,7 @@ func encdec(v, r interface{}, j func(d byte) bool) error {
 	if !j(d[0]) {
 		return fmt.Errorf("different %s", hex.Dump(d))
 	}
-	if err := msgpack.Unmarshal(d, r); err != nil {
+	if err := msgpack.UnmarshalRead(bytes.NewReader(d), r); err != nil {
 		return err
 	}
 	if err := equalCheck(v, r); err != nil {

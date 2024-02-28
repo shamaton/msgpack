@@ -2,11 +2,13 @@ package msgpack
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/shamaton/msgpack/v2/def"
 	"github.com/shamaton/msgpack/v2/ext"
 	"github.com/shamaton/msgpack/v2/internal/decoding"
 	"github.com/shamaton/msgpack/v2/internal/encoding"
+	d2 "github.com/shamaton/msgpack/v2/internal/io/decoding"
 )
 
 // StructAsArray is encoding option.
@@ -22,6 +24,10 @@ func Marshal(v interface{}) ([]byte, error) {
 // the result into the pointer of v.
 func Unmarshal(data []byte, v interface{}) error {
 	return decoding.Decode(data, v, StructAsArray)
+}
+
+func UnmarshalRead(r io.Reader, v interface{}) error {
+	return d2.Decode(r, v, StructAsArray)
 }
 
 // AddExtCoder adds encoders for extension types.
