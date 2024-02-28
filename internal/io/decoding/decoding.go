@@ -2,6 +2,7 @@ package decoding
 
 import (
 	"fmt"
+	"github.com/shamaton/msgpack/v2/def"
 	"io"
 	"reflect"
 
@@ -11,6 +12,8 @@ import (
 type decoder struct {
 	r       io.Reader
 	asArray bool
+	b1      []byte
+	b       []byte
 	common.Common
 }
 
@@ -28,7 +31,9 @@ func Decode(r io.Reader, v interface{}, asArray bool) error {
 
 	rv = rv.Elem()
 
-	d := decoder{r: r, asArray: asArray}
+	d := decoder{r: r,
+		b1: make([]byte, def.Byte1),
+		b:  make([]byte, def.Byte32), asArray: asArray}
 	err := d.decode(rv)
 	if err != nil {
 		return err

@@ -98,22 +98,24 @@ func (d *decoder) readIfExtType(code byte) (innerType int8, data []byte, err err
 		if err != nil {
 			return 0, nil, err
 		}
-		data, err = d.readSizeN(def.Byte8 + def.Byte8)
+		data, err = d.readSizeN(def.Byte16)
 		if err != nil {
 			return 0, nil, err
 		}
 		return int8(typ), data, nil
 
 	case def.Ext8:
-		bs, err := d.readSizeN(def.Byte1)
+		bs, err := d.readSize1()
 		if err != nil {
 			return 0, nil, err
 		}
+		size := int(bs)
+
 		typ, err := d.readSize1()
 		if err != nil {
 			return 0, nil, err
 		}
-		data, err = d.readSizeN(int(binary.BigEndian.Uint32(bs)))
+		data, err = d.readSizeN(size)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -124,11 +126,13 @@ func (d *decoder) readIfExtType(code byte) (innerType int8, data []byte, err err
 		if err != nil {
 			return 0, nil, err
 		}
+		size := int(binary.BigEndian.Uint16(bs))
+
 		typ, err := d.readSize1()
 		if err != nil {
 			return 0, nil, err
 		}
-		data, err = d.readSizeN(int(binary.BigEndian.Uint32(bs)))
+		data, err = d.readSizeN(size)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -139,17 +143,19 @@ func (d *decoder) readIfExtType(code byte) (innerType int8, data []byte, err err
 		if err != nil {
 			return 0, nil, err
 		}
+		size := int(binary.BigEndian.Uint32(bs))
+
 		typ, err := d.readSize1()
 		if err != nil {
 			return 0, nil, err
 		}
-		data, err = d.readSizeN(int(binary.BigEndian.Uint32(bs)))
+		data, err = d.readSizeN(size)
 		if err != nil {
 			return 0, nil, err
 		}
 		return int8(typ), data, nil
 	}
-	
+
 	return 0, nil, nil
 }
 

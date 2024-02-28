@@ -2281,7 +2281,7 @@ func encdec(v, r interface{}, j func(d byte) bool) error {
 	if !j(d[0]) {
 		return fmt.Errorf("different %s", hex.Dump(d))
 	}
-	if err := msgpack.UnmarshalRead2(bytes.NewReader(d), r); err != nil {
+	if err := msgpack.UnmarshalRead(bytes.NewReader(d), r); err != nil {
 		return err
 	}
 	if err := equalCheck(v, r); err != nil {
