@@ -25,21 +25,42 @@ var now time.Time
 func init() {
 	n := time.Now()
 	now = time.Unix(n.Unix(), int64(n.Nanosecond()))
+
+	tt, err := msgpack.Marshal(hoge)
+	if err != nil {
+		panic(err)
+	}
+	var fuga Hoge
+	err = msgpack.UnmarshalRead(bytes.NewReader(tt), &fuga)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(hoge)
+	fmt.Println(fuga)
+	if !reflect.DeepEqual(hoge, fuga) {
+		panic("fuga is not equal to hoge")
+	}
 }
 
 type Hoge struct {
-	Int    int
-	String string
-	Bool   bool
+	Int     int
+	String  string
+	Bool    bool
+	Uints   []uint
+	Strings []string
+	Time    time.Time
 }
 
 var hoge Hoge = Hoge{
-	Int:    777,
-	String: "string",
-	Bool:   true,
+	Int:     777,
+	String:  "string string string",
+	Bool:    true,
+	Uints:   []uint{1, 2, 3, 4, 5, 10000},
+	Strings: []string{"s", "h", "a", "maton"},
+	Time:    time.Unix(12345, 0),
 }
 
-func BenchmarkA(b *testing.B) {
+func BenchmarkStream(b *testing.B) {
 	ttt, errr := msgpack.Marshal(hoge)
 	if errr != nil {
 		panic(errr)
@@ -60,7 +81,28 @@ func BenchmarkA(b *testing.B) {
 	b.SetBytes(int64(len(ttt)))
 }
 
-func BenchmarkB(b *testing.B) {
+func BenchmarkStream2(b *testing.B) {
+	ttt, errr := msgpack.Marshal(hoge)
+	if errr != nil {
+		panic(errr)
+	}
+	buf := bytes.NewReader(ttt)
+	b.ResetTimer()
+
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		var fuga Hoge
+		errr = msgpack.UnmarshalRead2(buf, &fuga)
+		if errr != nil {
+			panic(errr)
+		}
+		_, _ = buf.Seek(0, 0)
+	}
+	b.StopTimer()
+	b.SetBytes(int64(len(ttt)))
+}
+
+func BenchmarkNoStream(b *testing.B) {
 	ttt, errr := msgpack.Marshal(hoge)
 	if errr != nil {
 		panic(errr)
@@ -2239,7 +2281,7 @@ func encdec(v, r interface{}, j func(d byte) bool) error {
 	if !j(d[0]) {
 		return fmt.Errorf("different %s", hex.Dump(d))
 	}
-	if err := msgpack.UnmarshalRead(bytes.NewReader(d), r); err != nil {
+	if err := msgpack.UnmarshalRead2(bytes.NewReader(d), r); err != nil {
 		return err
 	}
 	if err := equalCheck(v, r); err != nil {
