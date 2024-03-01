@@ -9,6 +9,7 @@ import (
 	"github.com/shamaton/msgpack/v2/internal/decoding"
 	"github.com/shamaton/msgpack/v2/internal/encoding"
 	d2 "github.com/shamaton/msgpack/v2/internal/io/decoding"
+	e2 "github.com/shamaton/msgpack/v2/internal/io/encoding"
 	d3 "github.com/shamaton/msgpack/v2/internal/io2/decoding"
 )
 
@@ -19,6 +20,10 @@ var StructAsArray = false
 // Marshal returns the MessagePack-encoded byte array of v.
 func Marshal(v interface{}) ([]byte, error) {
 	return encoding.Encode(v, StructAsArray)
+}
+
+func MarshalWrite(w io.Writer, v interface{}) error {
+	return e2.Encode(w, v, StructAsArray)
 }
 
 // Unmarshal analyzes the MessagePack-encoded data and stores

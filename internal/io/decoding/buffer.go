@@ -25,11 +25,5 @@ var bufPool = sync.Pool{
 	},
 }
 
-//buf := bufPool.Get().(*buffer)
-//data := encode(buf.data) // reuse buf.data
-//
-//newBuf := make([]byte, len(data))
-//copy(newBuf, buf)
-//
-//buf.data = data
-//bufPool.Put(buf)
+// todo : Limit
+// todo : data bytes のサイズ拡張メソッド
