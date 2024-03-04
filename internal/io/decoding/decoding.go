@@ -11,13 +11,7 @@ import (
 type decoder struct {
 	r       io.Reader
 	asArray bool
-	*buffer
-	data []byte
-	b16  []byte
-	b8   []byte
-	b4   []byte
-	b2   []byte
-	b1   []byte
+	buf     *common.Buffer
 	common.Common
 }
 
@@ -52,11 +46,11 @@ func Decode(r io.Reader, v interface{}, asArray bool) error {
 		//b4:      bb[:4],
 		//b2:      bb[:2],
 		//b1:      bb[:1],
-		buffer:  bufPool.Get().(*buffer),
+		buf:     common.GetBuffer(),
 		asArray: asArray,
 	}
 	err := d.decode(rv)
-	bufPool.Put(d.buffer)
+	common.PutBuffer(d.buf)
 	return err
 }
 

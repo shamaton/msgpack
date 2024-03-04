@@ -1,7 +1,7 @@
 package ext
 
 import (
-	"github.com/shamaton/msgpack/v2/def"
+	"github.com/shamaton/msgpack/v2/internal/common"
 	"io"
 	"reflect"
 )
@@ -17,28 +17,41 @@ type StreamDecoder interface {
 type DecoderStreamCommon struct {
 }
 
-func (d *DecoderStreamCommon) ReadSize1(r io.Reader) (byte, error) {
-	bs, err := d.ReadSizeN(r, def.Byte1)
-	if err != nil {
+func (d *DecoderStreamCommon) ReadSize1(r io.Reader, buf *common.Buffer) (byte, error) {
+	if _, err := r.Read(buf.B1); err != nil {
 		return 0, err
 	}
-	return bs[0], nil
+	return buf.B1[0], nil
 }
 
-func (d *DecoderStreamCommon) ReadSize2(r io.Reader) ([]byte, error) {
-	return d.ReadSizeN(r, def.Byte2)
+func (d *DecoderStreamCommon) ReadSize2(r io.Reader, buf *common.Buffer) ([]byte, error) {
+	if _, err := r.Read(buf.B2); err != nil {
+		return emptyBytes, err
+	}
+	return buf.B2, nil
 }
 
-func (d *DecoderStreamCommon) ReadSize4(r io.Reader) ([]byte, error) {
-	return d.ReadSizeN(r, def.Byte4)
+func (d *DecoderStreamCommon) ReadSize4(r io.Reader, buf *common.Buffer) ([]byte, error) {
+	if _, err := r.Read(buf.B4); err != nil {
+		return emptyBytes, err
+	}
+	return buf.B4, nil
 }
 
-func (d *DecoderStreamCommon) ReadSize8(r io.Reader) ([]byte, error) {
-	return d.ReadSizeN(r, def.Byte8)
+func (d *DecoderStreamCommon) ReadSize8(r io.Reader, buf *common.Buffer) ([]byte, error) {
+	if _, err := r.Read(buf.B8); err != nil {
+		return emptyBytes, err
+	}
+	return buf.B8, nil
 }
 
-func (d *DecoderStreamCommon) ReadSizeN(r io.Reader, n int) ([]byte, error) {
-	b := make([]byte, n)
+func (d *DecoderStreamCommon) ReadSizeN(r io.Reader, buf *common.Buffer, n int) ([]byte, error) {
+	var b []byte
+	if len(buf.Data) <= n {
+		b = buf.Data[:n]
+	} else {
+		b = make([]byte, n)
+	}
 	if _, err := r.Read(b); err != nil {
 		return emptyBytes, err
 	}
