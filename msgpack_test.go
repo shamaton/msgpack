@@ -703,652 +703,633 @@ func TestBin(t *testing.T) {
 }
 
 func TestArray(t *testing.T) {
-	// slice
-	{
-		var v, r []int
-		v = nil
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.Nil == code
-		}); err != nil {
-			t.Error(err)
+	t.Run("IntSlice", func(t *testing.T) {
+		args := []encdecArg[[]int]{
+			{
+				n: "Nil",
+				v: ([]int)(nil),
+				c: func(d []byte) bool {
+					return d[0] == def.Nil
+				},
+			},
+			{
+				n: "FixArray",
+				v: make([]int, 15),
+				c: func(d []byte) bool {
+					return def.FixArray <= d[0] && d[0] <= def.FixArray+0x0f
+				},
+			},
+			{
+				n: "Array16",
+				v: make([]int, 30015),
+				c: func(d []byte) bool {
+					return d[0] == def.Array16
+				},
+			},
+			{
+				n: "Array32",
+				v: make([]int, 1030015),
+				c: func(d []byte) bool {
+					return d[0] == def.Array32
+				},
+			},
 		}
-	}
-	{
-		var v, r []int
-		v = make([]int, 15)
-		for i := range v {
-			v[i] = rand.Intn(math.MaxInt32)
-		}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixArray <= code && code <= def.FixArray+0x0f
-		}); err != nil {
-			t.Error(err)
-		}
-	}
-	{
-		var v, r []int
-		v = make([]int, 30015)
-		for i := range v {
-			v[i] = rand.Intn(math.MaxInt32)
-		}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return code == def.Array16
-		}); err != nil {
-			t.Error(err)
-		}
-	}
-	{
-		var v, r []int
-		v = make([]int, 1030015)
-		for i := range v {
-			v[i] = rand.Intn(math.MaxInt32)
-		}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return code == def.Array32
-		}); err != nil {
-			t.Error(err)
-		}
-	}
-	// array
-	{
-		var v, r [8]float32
+		encdec(t, args...)
+	})
+
+	t.Run("FloatArray", func(t *testing.T) {
+		var v [8]float32
 		for i := range v {
 			v[i] = float32(rand.Intn(0xff))
 		}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixArray <= code && code <= def.FixArray+0x0f
-		}); err != nil && strings.Contains(err.Error(), "value different") {
-			for i := range v {
-				if v[i] != r[i] {
-					t.Error("value different")
-				}
-			}
-		} else if err != nil {
-			t.Error(err)
+		args := []encdecArg[[8]float32]{
+			{
+				n: "FixArray",
+				v: v,
+				c: func(d []byte) bool {
+					return def.FixArray <= d[0] && d[0] <= def.FixArray+0x0f
+				},
+			},
 		}
-	}
-	{
-		var v, r [31280]string
+		encdec(t, args...)
+	})
+
+	t.Run("StringArray", func(t *testing.T) {
+		var v [31280]string
 		for i := range v {
 			v[i] = "a"
 		}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return code == def.Array16
-		}); err != nil {
-			t.Error(err)
+		args := []encdecArg[[31280]string]{
+			{
+				n: "Array16",
+				v: v,
+				c: func(d []byte) bool {
+					return d[0] == def.Array16
+				},
+			},
 		}
-	}
-	{
-		var v, r [1031280]bool
+		encdec(t, args...)
+	})
+
+	t.Run("BoolArray", func(t *testing.T) {
+		var v [1031280]bool
 		for i := range v {
 			v[i] = rand.Intn(0xff) > 0x7f
 		}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return code == def.Array32
-		}); err != nil {
-			t.Error(err)
+		args := []encdecArg[[1031280]bool]{
+			{
+				n: "Array32",
+				v: v,
+				c: func(d []byte) bool {
+					return d[0] == def.Array32
+				},
+			},
 		}
-	}
-	{
-		var v []int
-		var r [1]int
-		v = nil
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return code == def.Nil
-		}); err == nil || !strings.Contains(err.Error(), "value different") {
-			t.Error("error")
+		encdec(t, args...)
+	})
+
+	t.Run("SliceToArray", func(t *testing.T) {
+		args := []encdecArg[[1]int]{
+			{
+				n: "Int",
+				v: ([]int)(nil),
+				c: func(d []byte) bool {
+					return d[0] == def.Nil
+				},
+				e: "value different",
+			},
 		}
-	}
-	{
-		v := "abcde"
-		var r [5]byte
-		b, err := msgpack.Marshal(v)
-		if err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+
+	t.Run("StringToBytes", func(t *testing.T) {
+		const v = "abcde"
+		args := []encdecArg[[5]byte]{
+			{
+				n:      "Test",
+				v:      v,
+				skipEq: true,
+				vc: func(t [5]byte) error {
+					if v != string(t[:]) {
+						return fmt.Errorf("value different %v, %v", v, string(t[:]))
+					}
+					return nil
+				},
+			},
 		}
-		err = msgpack.Unmarshal(b, &r)
-		if err != nil {
-			t.Error(err)
-		}
-		if v != string(r[:]) {
-			t.Errorf("value different %v, %v", v, string(r[:]))
-		}
-	}
+		encdec(t, args...)
+	})
 }
 
 func TestFixedSlice(t *testing.T) {
-	{
-		var v, r []int
-		v = []int{-1, 1}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixArray <= code && code <= def.FixArray+0x0f
-		}); err != nil {
-			t.Error(err)
-		}
+	c := func(d []byte) bool {
+		return def.FixArray <= d[0] && d[0] <= def.FixArray+0x0f
 	}
-	{
-		var v, r []uint
-		v = []uint{0, 100}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixArray <= code && code <= def.FixArray+0x0f
-		}); err != nil {
-			t.Error(err)
+
+	t.Run("IntSlice", func(t *testing.T) {
+		args := []encdecArg[[]int]{
+			{
+				v: []int{-1, 1},
+				c: c,
+			},
 		}
-	}
-	{
-		var v, r []int8
-		v = []int8{math.MinInt8, math.MaxInt8}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixArray <= code && code <= def.FixArray+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("UintSlice", func(t *testing.T) {
+		args := []encdecArg[[]uint]{
+			{
+				v: []uint{0, 100},
+				c: c,
+			},
 		}
-	}
-	{
-		var v, r []int16
-		v = []int16{math.MinInt16, math.MaxInt16}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixArray <= code && code <= def.FixArray+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("Int8Slice", func(t *testing.T) {
+		args := []encdecArg[[]int8]{
+			{
+				v: []int8{math.MinInt8, math.MaxInt8},
+				c: c,
+			},
 		}
-	}
-	{
-		var v, r []int32
-		v = []int32{math.MinInt32, math.MaxInt32}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixArray <= code && code <= def.FixArray+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("Int16Slice", func(t *testing.T) {
+		args := []encdecArg[[]int16]{
+			{
+				v: []int16{math.MinInt16, math.MaxInt16},
+				c: c,
+			},
 		}
-	}
-	{
-		var v, r []int64
-		v = []int64{math.MinInt64, math.MaxInt64}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixArray <= code && code <= def.FixArray+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("Int32Slice", func(t *testing.T) {
+		args := []encdecArg[[]int32]{
+			{
+				v: []int32{math.MinInt32, math.MaxInt32},
+				c: c,
+			},
 		}
-	}
-	{
-		// byte array
-		var v, r []uint8
-		v = []uint8{0, math.MaxUint8}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.Bin8 == code
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("Int64Slice", func(t *testing.T) {
+		args := []encdecArg[[]int64]{
+			{
+				v: []int64{math.MinInt64, math.MaxInt64},
+				c: c,
+			},
 		}
-	}
-	{
-		var v, r []uint16
-		v = []uint16{0, math.MaxUint16}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixArray <= code && code <= def.FixArray+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("Uint8Slice", func(t *testing.T) {
+		args := []encdecArg[[]uint8]{
+			{
+				v: []uint8{0, math.MaxUint8},
+				c: func(d []byte) bool {
+					// byte array
+					return def.Bin8 == d[0]
+				},
+			},
 		}
-	}
-	{
-		var v, r []uint32
-		v = []uint32{0, math.MaxUint32}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixArray <= code && code <= def.FixArray+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("Uint16Slice", func(t *testing.T) {
+		args := []encdecArg[[]uint16]{
+			{
+				v: []uint16{0, math.MaxUint16},
+				c: c,
+			},
 		}
-	}
-	{
-		var v, r []uint64
-		v = []uint64{0, math.MaxUint64}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixArray <= code && code <= def.FixArray+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("Uint32Slice", func(t *testing.T) {
+		args := []encdecArg[[]uint32]{
+			{
+				v: []uint32{0, math.MaxUint32},
+				c: c,
+			},
 		}
-	}
-	{
-		var v, r []float32
-		v = []float32{math.SmallestNonzeroFloat32, math.MaxFloat32}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixArray <= code && code <= def.FixArray+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("Uint64Slice", func(t *testing.T) {
+		args := []encdecArg[[]uint64]{
+			{
+				v: []uint64{0, math.MaxUint64},
+				c: c,
+			},
 		}
-	}
-	{
-		var v, r []float64
-		v = []float64{math.SmallestNonzeroFloat64, math.MaxFloat64}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixArray <= code && code <= def.FixArray+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("Float32Slice", func(t *testing.T) {
+		args := []encdecArg[[]float32]{
+			{
+				v: []float32{math.SmallestNonzeroFloat32, math.MaxFloat32},
+				c: c,
+			},
 		}
-	}
-	{
-		var v, r []string
-		v = []string{"aaa", "bbb"}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixArray <= code && code <= def.FixArray+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("Float64Slice", func(t *testing.T) {
+		args := []encdecArg[[]float64]{
+			{
+				v: []float64{math.SmallestNonzeroFloat64, math.MaxFloat64},
+				c: c,
+			},
 		}
-	}
-	{
-		var v, r []bool
-		v = []bool{true, false}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixArray <= code && code <= def.FixArray+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("StringSlice", func(t *testing.T) {
+		args := []encdecArg[[]string]{
+			{
+				v: []string{"aaa", "bbb"},
+				c: c,
+			},
 		}
-	}
+		encdec(t, args...)
+	})
+	t.Run("BoolSlice", func(t *testing.T) {
+		args := []encdecArg[[]bool]{
+			{
+				v: []bool{true, false},
+				c: c,
+			},
+		}
+		encdec(t, args...)
+	})
 }
 
 func TestFixedMap(t *testing.T) {
-	{
-		var v, r map[string]int
-		v = map[string]int{"a": 1, "b": 2}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
-		}
-	}
-	{
-		var v, r map[string]uint
-		v = map[string]uint{"a": math.MaxUint32, "b": 0}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
-		}
+	c := func(d []byte) bool {
+		return def.FixMap <= d[0] && d[0] <= def.FixMap+0x0f
 	}
 
-	{
-		var v, r map[string]string
-		v = map[string]string{"a": "12345", "abcdefghijklmnopqrstuvwxyz": "abcdefghijklmnopqrstuvwxyz"}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+	t.Run("MapStringInt", func(t *testing.T) {
+		args := []encdecArg[map[string]int]{
+			{
+				v: map[string]int{"a": 1, "b": 2},
+				c: c,
+			},
 		}
-	}
-
-	{
-		var v, r map[string]float32
-		v = map[string]float32{"a": math.MaxFloat32, "b": math.SmallestNonzeroFloat32}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("MapStringUint", func(t *testing.T) {
+		args := []encdecArg[map[string]uint]{
+			{
+				v: map[string]uint{"a": math.MaxUint32, "b": 0},
+				c: c,
+			},
 		}
-	}
-
-	{
-		var v, r map[string]float64
-		v = map[string]float64{"a": math.MaxFloat64, "b": math.SmallestNonzeroFloat64}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("MapStringString", func(t *testing.T) {
+		args := []encdecArg[map[string]string]{
+			{
+				v: map[string]string{"a": "12345", "abcdefghijklmnopqrstuvwxyz": "abcdefghijklmnopqrstuvwxyz"},
+				c: c,
+			},
 		}
-	}
-
-	{
-		var v, r map[string]bool
-		v = map[string]bool{"a": true, "b": false}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("MapStringFloat32", func(t *testing.T) {
+		args := []encdecArg[map[string]float32]{
+			{
+				v: map[string]float32{"a": math.MaxFloat32, "b": math.SmallestNonzeroFloat32},
+				c: c,
+			},
 		}
-	}
-
-	{
-		var v, r map[string]int8
-		v = map[string]int8{"a": math.MinInt8, "b": math.MaxInt8}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("MapStringFloat64", func(t *testing.T) {
+		args := []encdecArg[map[string]float64]{
+			{
+				v: map[string]float64{"a": math.MaxFloat64, "b": math.SmallestNonzeroFloat64},
+				c: c,
+			},
 		}
-	}
-
-	{
-		var v, r map[string]int16
-		v = map[string]int16{"a": math.MaxInt16, "b": math.MinInt16}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("MapStringBool", func(t *testing.T) {
+		args := []encdecArg[map[string]bool]{
+			{
+				v: map[string]bool{"a": true, "b": false},
+				c: c,
+			},
 		}
-	}
+		encdec(t, args...)
+	})
 
-	{
-		var v, r map[string]int32
-		v = map[string]int32{"a": math.MaxInt32, "b": math.MinInt32}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+	t.Run("MapStringInt8", func(t *testing.T) {
+		args := []encdecArg[map[string]int8]{
+			{
+				v: map[string]int8{"a": math.MinInt8, "b": math.MaxInt8},
+				c: c,
+			},
 		}
-	}
-
-	{
-		var v, r map[string]int64
-		v = map[string]int64{"a": math.MinInt64, "b": math.MaxInt64}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("MapStringInt16", func(t *testing.T) {
+		args := []encdecArg[map[string]int16]{
+			{
+				v: map[string]int16{"a": math.MaxInt16, "b": math.MinInt16},
+				c: c,
+			},
 		}
-	}
-
-	{
-		var v, r map[string]uint8
-		v = map[string]uint8{"a": 0, "b": math.MaxUint8}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("MapStringInt32", func(t *testing.T) {
+		args := []encdecArg[map[string]int32]{
+			{
+				v: map[string]int32{"a": math.MaxInt32, "b": math.MinInt32},
+				c: c,
+			},
 		}
-	}
-
-	{
-		var v, r map[string]uint16
-		v = map[string]uint16{"a": 0, "b": math.MaxUint16}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("MapStringInt64", func(t *testing.T) {
+		args := []encdecArg[map[string]int64]{
+			{
+				v: map[string]int64{"a": math.MinInt64, "b": math.MaxInt64},
+				c: c,
+			},
 		}
-	}
-
-	{
-		var v, r map[string]uint32
-		v = map[string]uint32{"a": 0, "b": math.MaxUint32}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("MapStringUint8", func(t *testing.T) {
+		args := []encdecArg[map[string]uint8]{
+			{
+				v: map[string]uint8{"a": 0, "b": math.MaxUint8},
+				c: c,
+			},
 		}
-	}
-
-	{
-		var v, r map[string]uint64
-		v = map[string]uint64{"a": 0, "b": math.MaxUint64}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("MapStringUint16", func(t *testing.T) {
+		args := []encdecArg[map[string]uint16]{
+			{
+				v: map[string]uint16{"a": 0, "b": math.MaxUint16},
+				c: c,
+			},
 		}
-	}
-
-	{
-		var v, r map[int]string
-		v = map[int]string{0: "a", 1: "b"}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("MapStringUint32", func(t *testing.T) {
+		args := []encdecArg[map[string]uint32]{
+			{
+				v: map[string]uint32{"a": 0, "b": math.MaxUint32},
+				c: c,
+			},
 		}
-	}
-
-	{
-		var v, r map[int]bool
-		v = map[int]bool{1: true, 2: false}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("MapStringUint64", func(t *testing.T) {
+		args := []encdecArg[map[string]uint64]{
+			{
+				v: map[string]uint64{"a": 0, "b": math.MaxUint64},
+				c: c,
+			},
 		}
-	}
-
-	{
-		var v, r map[uint]string
-		v = map[uint]string{0: "a", 1: "b"}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("MapIntString", func(t *testing.T) {
+		args := []encdecArg[map[int]string]{
+			{
+				v: map[int]string{0: "a", 1: "b"},
+				c: c,
+			},
 		}
-	}
-
-	{
-		var v, r map[uint]bool
-		v = map[uint]bool{0: true, 255: false}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("MapIntBool", func(t *testing.T) {
+		args := []encdecArg[map[int]bool]{
+			{
+				v: map[int]bool{1: true, 2: false},
+				c: c,
+			},
 		}
-	}
-
-	{
-		var v, r map[float32]string
-		v = map[float32]string{math.MaxFloat32: "a", math.SmallestNonzeroFloat32: "b"}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("MapUintString", func(t *testing.T) {
+		args := []encdecArg[map[uint]string]{
+			{
+				v: map[uint]string{0: "a", 1: "b"},
+				c: c,
+			},
 		}
-	}
-
-	{
-		var v, r map[float32]bool
-		v = map[float32]bool{math.SmallestNonzeroFloat32: true, math.MaxFloat32: false}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("MapUintBool", func(t *testing.T) {
+		args := []encdecArg[map[uint]bool]{
+			{
+				v: map[uint]bool{0: true, 255: false},
+				c: c,
+			},
 		}
-	}
-
-	{
-		var v, r map[float64]string
-		v = map[float64]string{math.MaxFloat64: "a", math.SmallestNonzeroFloat64: "b"}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("MapFloat32String", func(t *testing.T) {
+		args := []encdecArg[map[float32]string]{
+			{
+				v: map[float32]string{math.MaxFloat32: "a", math.SmallestNonzeroFloat32: "b"},
+				c: c,
+			},
 		}
-	}
-
-	{
-		var v, r map[float64]bool
-		v = map[float64]bool{math.SmallestNonzeroFloat64: true, math.MaxFloat64: false}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("MapFloat32Bool", func(t *testing.T) {
+		args := []encdecArg[map[float32]bool]{
+			{
+				v: map[float32]bool{math.SmallestNonzeroFloat32: true, math.MaxFloat32: false},
+				c: c,
+			},
 		}
-	}
-
-	{
-		var v, r map[int8]string
-		v = map[int8]string{math.MinInt8: "a", math.MaxInt8: "b"}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("MapFloat64String", func(t *testing.T) {
+		args := []encdecArg[map[float64]string]{
+			{
+				v: map[float64]string{math.MaxFloat64: "a", math.SmallestNonzeroFloat64: "b"},
+				c: c,
+			},
 		}
-	}
-
-	{
-		var v, r map[int8]bool
-		v = map[int8]bool{math.MinInt8: true, math.MaxInt8: false}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("MapFloat64Bool", func(t *testing.T) {
+		args := []encdecArg[map[float64]bool]{
+			{
+				v: map[float64]bool{math.SmallestNonzeroFloat64: true, math.MaxFloat64: false},
+				c: c,
+			},
 		}
-	}
-
-	{
-		var v, r map[int16]string
-		v = map[int16]string{math.MaxInt16: "a", math.MinInt16: "b"}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("MapInt8String", func(t *testing.T) {
+		args := []encdecArg[map[int8]string]{
+			{
+				v: map[int8]string{math.MinInt8: "a", math.MaxInt8: "b"},
+				c: c,
+			},
 		}
-	}
-
-	{
-		var v, r map[int16]bool
-		v = map[int16]bool{math.MaxInt16: true, math.MinInt16: false}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("MapInt8Bool", func(t *testing.T) {
+		args := []encdecArg[map[int8]bool]{
+			{
+				v: map[int8]bool{math.MinInt8: true, math.MaxInt8: false},
+				c: c,
+			},
 		}
-	}
-
-	{
-		var v, r map[int32]string
-		v = map[int32]string{math.MinInt32: "a", math.MaxInt32: "b"}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("MapInt16String", func(t *testing.T) {
+		args := []encdecArg[map[int16]string]{
+			{
+				v: map[int16]string{math.MaxInt16: "a", math.MinInt16: "b"},
+				c: c,
+			},
 		}
-	}
-
-	{
-		var v, r map[int32]bool
-		v = map[int32]bool{math.MinInt32: true, math.MaxInt32: false}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("MapInt16Bool", func(t *testing.T) {
+		args := []encdecArg[map[int16]bool]{
+			{
+				v: map[int16]bool{math.MaxInt16: true, math.MinInt16: false},
+				c: c,
+			},
 		}
-	}
+		encdec(t, args...)
+	})
 
-	{
-		var v, r map[int64]string
-		v = map[int64]string{math.MaxInt64: "a", math.MinInt64: "b"}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+	t.Run("MapInt32String", func(t *testing.T) {
+		args := []encdecArg[map[int32]string]{
+			{
+				v: map[int32]string{math.MinInt32: "a", math.MaxInt32: "b"},
+				c: c,
+			},
 		}
-	}
-
-	{
-		var v, r map[int64]bool
-		v = map[int64]bool{math.MaxInt64: true, math.MinInt64: false}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("MapInt32Bool", func(t *testing.T) {
+		args := []encdecArg[map[int32]bool]{
+			{
+				v: map[int32]bool{math.MinInt32: true, math.MaxInt32: false},
+				c: c,
+			},
 		}
-	}
-
-	{
-		var v, r map[uint8]string
-		v = map[uint8]string{0: "a", math.MaxUint8: "b"}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("MapInt64String", func(t *testing.T) {
+		args := []encdecArg[map[int64]string]{
+			{
+				v: map[int64]string{math.MaxInt64: "a", math.MinInt64: "b"},
+				c: c,
+			},
 		}
-	}
-
-	{
-		var v, r map[uint8]bool
-		v = map[uint8]bool{0: true, math.MaxUint8: false}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("MapInt64Bool", func(t *testing.T) {
+		args := []encdecArg[map[int64]bool]{
+			{
+				v: map[int64]bool{math.MaxInt64: true, math.MinInt64: false},
+				c: c,
+			},
 		}
-	}
-
-	{
-		var v, r map[uint16]string
-		v = map[uint16]string{0: "a", math.MaxUint16: "b"}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("MapUint8String", func(t *testing.T) {
+		args := []encdecArg[map[uint8]string]{
+			{
+				v: map[uint8]string{0: "a", math.MaxUint8: "b"},
+				c: c,
+			},
 		}
-	}
-
-	{
-		var v, r map[uint16]bool
-		v = map[uint16]bool{0: true, math.MaxUint16: false}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("MapUint8Bool", func(t *testing.T) {
+		args := []encdecArg[map[uint8]bool]{
+			{
+				v: map[uint8]bool{0: true, math.MaxUint8: false},
+				c: c,
+			},
 		}
-	}
-
-	{
-		var v, r map[uint32]string
-		v = map[uint32]string{0: "a", math.MaxUint32: "b"}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("MapUint16String", func(t *testing.T) {
+		args := []encdecArg[map[uint16]string]{
+			{
+				v: map[uint16]string{0: "a", math.MaxUint16: "b"},
+				c: c,
+			},
 		}
-	}
-
-	{
-		var v, r map[uint32]bool
-		v = map[uint32]bool{0: true, math.MaxUint32: false}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("MapUint16Bool", func(t *testing.T) {
+		args := []encdecArg[map[uint16]bool]{
+			{
+				v: map[uint16]bool{0: true, math.MaxUint16: false},
+				c: c,
+			},
 		}
-	}
-
-	{
-		var v, r map[uint64]string
-		v = map[uint64]string{0: "a", math.MaxUint64: "b"}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("MapUint32String", func(t *testing.T) {
+		args := []encdecArg[map[uint32]string]{
+			{
+				v: map[uint32]string{0: "a", math.MaxUint32: "b"},
+				c: c,
+			},
 		}
-	}
-
-	{
-		var v, r map[uint64]bool
-		v = map[uint64]bool{0: true, math.MaxUint64: false}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("MapUint32Bool", func(t *testing.T) {
+		args := []encdecArg[map[uint32]bool]{
+			{
+				v: map[uint32]bool{0: true, math.MaxUint32: false},
+				c: c,
+			},
 		}
-	}
-
+		encdec(t, args...)
+	})
+	t.Run("MapUint64String", func(t *testing.T) {
+		args := []encdecArg[map[uint64]string]{
+			{
+				v: map[uint64]string{0: "a", math.MaxUint64: "b"},
+				c: c,
+			},
+		}
+		encdec(t, args...)
+	})
+	t.Run("MapUint64Bool", func(t *testing.T) {
+		args := []encdecArg[map[uint64]bool]{
+			{
+				v: map[uint64]bool{0: true, math.MaxUint64: false},
+				c: c,
+			},
+		}
+		encdec(t, args...)
+	})
 }
 
 func TestTime(t *testing.T) {
-	{
-		var v, r time.Time
-		v = time.Unix(now.Unix(), 0)
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return code == def.Fixext4
-		}); err != nil {
-			t.Error(err)
+	t.Run("Time", func(t *testing.T) {
+		args := []encdecArg[time.Time]{
+			{
+				n: "Fixext4",
+				v: time.Unix(now.Unix(), 0),
+				c: func(d []byte) bool {
+					return d[0] == def.Fixext4
+				},
+			},
+			{
+				n: "Fixext8",
+				v: time.Unix(now.Unix(), int64(now.Nanosecond())),
+				c: func(d []byte) bool {
+					return d[0] == def.Fixext8
+				},
+			},
 		}
-	}
-	{
-		var v, r time.Time
-		v = time.Unix(now.Unix(), int64(now.Nanosecond()))
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return code == def.Fixext8
-		}); err != nil {
-			t.Error(err)
-		}
-	}
+		encdec(t, args...)
+	})
 
-	{
+	t.Run("Error", func(t *testing.T) {
 		now := time.Now().Unix()
 		nowByte := make([]byte, 4)
 		binary.BigEndian.PutUint32(nowByte, uint32(now))
@@ -1356,212 +1337,237 @@ func TestTime(t *testing.T) {
 		var r time.Time
 		c := def.TimeStamp
 
-		nanoByte := make([]byte, 64)
-		for i := range nanoByte[:30] {
-			nanoByte[i] = 0xff
+		for _, u := range unmarshallers {
+			t.Run(u.name+"64formats", func(t *testing.T) {
+				nanoByte := make([]byte, 64)
+				for i := range nanoByte[:30] {
+					nanoByte[i] = 0xff
+				}
+				b := append([]byte{def.Fixext8, byte(c)}, nanoByte...)
+				err := u.u(b, &r)
+				ErrorContains(t, err, "timestamp 64 formats")
+			})
+			t.Run(u.name+"96formats", func(t *testing.T) {
+				nanoByte := make([]byte, 96)
+				for i := range nanoByte[:32] {
+					nanoByte[i] = 0xff
+				}
+				b := append([]byte{def.Ext8, byte(12), byte(c)}, nanoByte...)
+				err := u.u(b, &r)
+				ErrorContains(t, err, "timestamp 96 formats")
+			})
 		}
 
-		b := append([]byte{def.Fixext8, byte(c)}, nanoByte...)
-		err := msgpack.UnmarshalAsArray(b, &r)
-		if err == nil || !strings.Contains(err.Error(), "In timestamp 64 formats") {
-			t.Error(err)
-		}
+		t.Run("ShouldNotReach", func(t *testing.T) {
+			notReach := []byte{def.Fixext1}
+			_, _, err := extTime.Decoder.AsValue(0, reflect.Bool, &notReach)
+			ErrorContains(t, err, "should not reach this line")
+		})
 
-		nanoByte = make([]byte, 96)
-		for i := range nanoByte[:32] {
-			nanoByte[i] = 0xff
-		}
-		b = append([]byte{def.Ext8, byte(12), byte(c)}, nanoByte...)
-		err = msgpack.UnmarshalAsArray(b, &r)
-		if err == nil || !strings.Contains(err.Error(), "In timestamp 96 formats") {
-			t.Error(err)
-		}
-
-		notReach := []byte{def.Fixext1}
-		_, _, err = extTime.Decoder.AsValue(0, reflect.Bool, &notReach)
-		if err == nil || !strings.Contains(err.Error(), "should not reach this line") {
-			t.Error("something wrong", err)
-		}
-	}
+		t.Run("ShouldNotReachStream", func(t *testing.T) {
+			_, err := extTime.StreamDecoder.AsValue(def.Fixext1, nil, reflect.Bool)
+			ErrorContains(t, err, "should not reach this line")
+		})
+	})
 }
 
 func TestMap(t *testing.T) {
-	{
-		var v, r map[int]int
-		v = map[int]int{1: 2, 3: 4, 5: 6, 7: 8, 9: 10}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
+	mapIntInt := func(l int) map[int]int {
+		m := make(map[int]int, l)
+		for i := 0; i < l; i++ {
+			m[i] = i + 1
 		}
+		return m
 	}
-	{
-		var v, r map[int]int
-		v = make(map[int]int, 1000)
-		for i := 0; i < 1000; i++ {
-			v[i] = i + 1
+	t.Run("MapCode", func(t *testing.T) {
+		args := []encdecArg[map[int]int]{
+			{
+				n: "FixMap",
+				v: map[int]int{1: 2, 3: 4, 5: 6, 7: 8, 9: 10},
+				c: func(d []byte) bool {
+					return def.FixMap <= d[0] && d[0] <= def.FixMap+0x0f
+				},
+			},
+			{
+				n: "Map16",
+				v: mapIntInt(1000),
+				c: func(d []byte) bool {
+					return d[0] == def.Map16
+				},
+			},
+			{
+				n: "Map32",
+				v: mapIntInt(math.MaxUint16 + 1),
+				c: func(d []byte) bool {
+					return d[0] == def.Map32
+				},
+			},
 		}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return code == def.Map16
-		}); err != nil {
-			t.Error(err)
+		encdec(t, args...)
+	})
+	t.Run("DiffType", func(t *testing.T) {
+		v := mapIntInt(100)
+		args := []encdecArg[map[uint]uint]{
+			{
+				n: "IntIntToUintUint",
+				v: v,
+				c: func(d []byte) bool {
+					return d[0] == def.Map16
+				},
+				skipEq: true,
+				vc: func(r map[uint]uint) error {
+					for k, vv := range v {
+						if rv, ok := r[uint(k)]; !ok || rv != uint(vv) {
+							return fmt.Errorf("value differentee")
+						}
+					}
+					if len(v) != len(r) {
+						return fmt.Errorf("value different. v:%d, r:%d", len(v), len(r))
+					}
+					return nil
+				},
+			},
 		}
-	}
-	{
-		var v, r map[int]int
-		v = make(map[int]int, math.MaxUint16+1)
-		for i := 0; i < math.MaxUint16+1; i++ {
-			v[i] = i + 1
-		}
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return code == def.Map32
-		}); err != nil {
-			t.Error(err)
-		}
-	}
-	{
-		var v map[int]int
-		var r map[uint]uint
-		v = make(map[int]int, 100)
-		for i := 0; i < 100; i++ {
-			v[i] = i + 1
-		}
-		d, err := msgpack.Marshal(v)
-		if err != nil {
-			t.Error(err)
-		}
-		if d[0] != def.Map16 {
-			t.Error("code diffenrent")
-		}
-		err = msgpack.Unmarshal(d, &r)
-		if err != nil {
-			t.Error(err)
-		}
-		for k, vv := range v {
-			if rv, ok := r[uint(k)]; !ok || rv != uint(vv) {
-				t.Error("value diffrent")
-			}
-		}
-		if len(v) != len(r) {
-			t.Error("value different")
-		}
-	}
+		encdec(t, args...)
+	})
+
 	// error
-	{
-		var v map[string]int
-		var r map[int]int
-		v = make(map[string]int, 100)
+	t.Run("Error", func(t *testing.T) {
+		v1 := make(map[string]int, 100)
 		for i := 0; i < 100; i++ {
-			v[fmt.Sprintf("%03d", i)] = i
+			v1[fmt.Sprintf("%03d", i)] = i
 		}
-		d, err := msgpack.Marshal(v)
-		if err != nil {
-			t.Error(err)
-		}
-		if d[0] != def.Map16 {
-			t.Error("code diffenrent")
-		}
-		err = msgpack.Unmarshal(d, &r)
-		if err == nil || !strings.Contains(err.Error(), "invalid code a3 decoding") {
-			t.Error("error")
-		}
-	}
-	{
-		var v map[int]string
-		var r map[int]int
-		v = make(map[int]string, 100)
+		v2 := make(map[int]string, 100)
 		for i := 0; i < 100; i++ {
-			v[i] = fmt.Sprint(i % 10)
+			v2[i] = fmt.Sprint(i % 10)
 		}
-		d, err := msgpack.Marshal(v)
-		if err != nil {
-			t.Error(err)
+		args := []encdecArg[map[int]int]{
+			{
+				n: "InvalidKey",
+				v: v1,
+				c: func(d []byte) bool {
+					return d[0] == def.Map16
+				},
+				e: "invalid code a3 decoding",
+			},
+			{
+				n: "InvalidValue",
+				v: v2,
+				c: func(d []byte) bool {
+					return d[0] == def.Map16
+				},
+				e: "invalid code a1 decoding",
+			},
 		}
-		if d[0] != def.Map16 {
-			t.Error("code diffenrent")
-		}
-		err = msgpack.Unmarshal(d, &r)
-		if err == nil || !strings.Contains(err.Error(), "invalid code a1 decoding") {
-			t.Error("error", err)
-		}
-	}
+		encdec(t, args...)
+	})
 }
 
 func TestPointer(t *testing.T) {
-	{
-		var v, r *int
-		vv := 250
-		v = &vv
-		if err := encdec3(t, v, &r, func(code byte) bool {
-			return code == def.Uint8
-		}); err != nil {
-			t.Error(err)
+	t.Run("Pointer", func(t *testing.T) {
+		v := 250
+		vv := &v
+		var vvv *int
+		args := []encdecArg[*int]{
+			{
+				n: "Int",
+				v: vv,
+				c: func(d []byte) bool {
+					return d[0] == def.Uint8
+				},
+			},
+			{
+				n: "Nil",
+				v: vvv,
+				c: func(d []byte) bool {
+					return d[0] == def.Nil
+				},
+			},
 		}
-	}
-	{
-		var v, r *int
-		d, err := msgpack.Marshal(v)
-		if err != nil {
-			t.Error(err)
-		}
-		if d[0] != def.Nil {
-			t.Error("code diffenrent")
-		}
-		err = msgpack.Unmarshal(d, &r)
-		if err != nil {
-			t.Error(err)
-		}
-		if v != r {
-			t.Error("value different")
-		}
-	}
+		encdec(t, args...)
+	})
+
 	// error
-	{
-		var v *int
-		var r int
-		if err := encdec3(t, v, r, func(code byte) bool {
-			return code == def.Nil
-		}); err == nil || !strings.Contains(err.Error(), "holder must set pointer value. but got:") {
-			t.Error(err)
+	t.Run("ReceiverMustBePointer", func(t *testing.T) {
+		for _, u := range unmarshallers {
+			var r int
+			t.Run(u.name, func(t *testing.T) {
+				err := u.u([]byte{def.Nil}, r)
+				ErrorContains(t, err, "holder must set pointer value. but got:")
+			})
 		}
-	}
+	})
 }
 
 func TestUnsupported(t *testing.T) {
 	b := []byte{0xc0}
-	{
-		var v, r uintptr
-		_, err := msgpack.Marshal(v)
-		if !strings.Contains(err.Error(), "type(uintptr) is unsupported") {
-			t.Error("test error", err)
+
+	t.Run("Uintptr", func(t *testing.T) {
+		for _, m := range marshallers {
+			t.Run(m.name, func(t *testing.T) {
+				var v uintptr
+				_, err := m.m(v)
+				ErrorContains(t, err, "type(uintptr) is unsupported")
+			})
 		}
-		err = msgpack.Unmarshal(b, &r)
-		if !strings.Contains(err.Error(), "type(uintptr) is unsupported") {
-			t.Error("test error", err)
+		for _, u := range unmarshallers {
+			t.Run(u.name, func(t *testing.T) {
+				var r uintptr
+				err := u.u(b, &r)
+				ErrorContains(t, err, "type(uintptr) is unsupported")
+			})
 		}
-	}
-	{
-		var v, r chan string
-		_, err := msgpack.Marshal(v)
-		if !strings.Contains(err.Error(), "type(chan) is unsupported") {
-			t.Error("test error", err)
+	})
+	t.Run("Chan", func(t *testing.T) {
+		for _, m := range marshallers {
+			t.Run(m.name, func(t *testing.T) {
+				var v chan string
+				_, err := m.m(v)
+				ErrorContains(t, err, "type(chan) is unsupported")
+			})
 		}
-		err = msgpack.Unmarshal(b, &r)
-		if !strings.Contains(err.Error(), "type(chan) is unsupported") {
-			t.Error("test error", err)
+		for _, u := range unmarshallers {
+			t.Run(u.name, func(t *testing.T) {
+				var r chan string
+				err := u.u(b, &r)
+				ErrorContains(t, err, "type(chan) is unsupported")
+			})
 		}
-	}
-	{
-		var v, r func()
-		_, err := msgpack.Marshal(v)
-		if !strings.Contains(err.Error(), "type(func) is unsupported") {
-			t.Error("test error", err)
+	})
+	t.Run("Func", func(t *testing.T) {
+		for _, m := range marshallers {
+			t.Run(m.name, func(t *testing.T) {
+				var v func()
+				_, err := m.m(v)
+				ErrorContains(t, err, "type(func) is unsupported")
+			})
 		}
-		err = msgpack.Unmarshal(b, &r)
-		if !strings.Contains(err.Error(), "type(func) is unsupported") {
-			t.Error("test error", err)
+		for _, u := range unmarshallers {
+			t.Run(u.name, func(t *testing.T) {
+				var r func()
+				err := u.u(b, &r)
+				ErrorContains(t, err, "type(func) is unsupported")
+			})
 		}
-	}
+	})
+	t.Run("Error", func(t *testing.T) {
+		// error reflect kind is invalid. current version set nil (0xc0)
+		for _, m := range marshallers {
+			for _, u := range unmarshallers {
+				t.Run(m.name+u.name, func(t *testing.T) {
+					var v, r error
+					bb, err := m.m(v)
+					NoError(t, err)
+					if bb[0] != def.Nil {
+						t.Fatalf("code is different %d, %d", b[0], def.Nil)
+					}
+
+					err = u.u(b, &r)
+					NoError(t, err)
+				})
+			}
+		}
+	})
 	{
 		// error reflect kind is invalid. current version set nil (0xc0)
 		var v, r error
@@ -1585,15 +1591,25 @@ func TestUnsupported(t *testing.T) {
 /////////////////////////////////////////////////////////////////
 
 func TestStruct(t *testing.T) {
-	testSturctCode(t)
-	testStructTag(t)
-	testStructArray(t)
-	testEmbedded(t)
-	testStructJump(t)
+	t.Run("Code", func(t *testing.T) {
+		testStructCode(t)
+	})
+	t.Run("Tag", func(t *testing.T) {
+		testStructTag(t)
+	})
+	t.Run("Array", func(t *testing.T) {
+		testStructArray(t)
+	})
+	t.Run("Embedded", func(t *testing.T) {
+		testEmbedded(t)
+	})
+	t.Run("Jump", func(t *testing.T) {
+		testStructJump(t)
+	})
 
-	testStructUseCase(t)
-	msgpack.StructAsArray = true
-	testStructUseCase(t)
+	t.Run("UseCase", func(t *testing.T) {
+		testStructUseCase(t)
+	})
 }
 
 func testEmbedded(t *testing.T) {
@@ -1604,19 +1620,17 @@ func testEmbedded(t *testing.T) {
 		Emb
 	}
 	v := A{Emb: Emb{Int: 2}}
-	b, err := msgpack.Marshal(v)
-	if err != nil {
-		t.Error(err)
-	}
 
-	var vv A
-	err = msgpack.Unmarshal(b, &vv)
-	if err != nil {
-		t.Error(err)
+	arg := encdecArg[A]{
+		v: v,
+		vc: func(t A) error {
+			if v.Int != t.Int {
+				return fmt.Errorf("value is different %v, %v", v, t)
+			}
+			return nil
+		},
 	}
-	if v.Int != vv.Int {
-		t.Errorf("value is different %v, %v", v, vv)
-	}
+	encdec(t, arg)
 }
 
 func testStructTag(t *testing.T) {
@@ -1630,26 +1644,24 @@ func testStructTag(t *testing.T) {
 		Four  string `msgpack:"four"`
 		Hfn   bool
 	}
+	v := vSt{One: 1, Two: "2", Hfn: true}
 
 	msgpack.StructAsArray = false
 
-	v := vSt{One: 1, Two: "2", Hfn: true}
-	r := rSt{}
-
-	d, err := msgpack.MarshalAsMap(v)
-	if err != nil {
-		t.Error(err)
+	arg := encdecArg[rSt]{
+		v: v,
+		c: func(d []byte) bool {
+			return d[0] == def.FixMap+0x02
+		},
+		skipEq: true,
+		vc: func(r rSt) error {
+			if v.One != r.Three || v.Two != r.Four || r.Hfn != false {
+				return fmt.Errorf("error: %v, %v", v, r)
+			}
+			return nil
+		},
 	}
-	if d[0] != def.FixMap+0x02 {
-		t.Error("code different")
-	}
-	err = msgpack.UnmarshalAsMap(d, &r)
-	if err != nil {
-		t.Error(err)
-	}
-	if v.One != r.Three || v.Two != r.Four || r.Hfn != false {
-		t.Error("error:", v, r)
-	}
+	encdec(t, arg)
 }
 
 func testStructArray(t *testing.T) {
@@ -1664,29 +1676,27 @@ func testStructArray(t *testing.T) {
 		Four  string
 		Tem   float32
 	}
+	v := vSt{One: 1, Two: "2", Ten: 1.234}
 
 	msgpack.StructAsArray = true
 
-	v := vSt{One: 1, Two: "2", Ten: 1.234}
-	r := rSt{}
-
-	d, err := msgpack.MarshalAsArray(v)
-	if err != nil {
-		t.Error(err)
+	arg := encdecArg[rSt]{
+		v: v,
+		c: func(d []byte) bool {
+			return d[0] == def.FixArray+0x04
+		},
+		skipEq: true,
+		vc: func(r rSt) error {
+			if v.One != r.Three || v.Two != r.Four || v.Ten != r.Tem {
+				return fmt.Errorf("error: %v, %v", v, r)
+			}
+			return nil
+		},
 	}
-	if d[0] != def.FixArray+0x04 {
-		t.Error("code different")
-	}
-	err = msgpack.UnmarshalAsArray(d, &r)
-	if err != nil {
-		t.Error(err)
-	}
-	if v.One != r.Three || v.Two != r.Four || v.Ten != r.Tem {
-		t.Error("error:", v, r)
-	}
+	encdec(t, arg)
 }
 
-func testSturctCode(t *testing.T) {
+func testStructCode(t *testing.T) {
 	type st1 struct {
 		Int int
 	}
@@ -1712,36 +1722,52 @@ func testSturctCode(t *testing.T) {
 	v16 := st16{I1: 1, I2: 2, I3: 3, I4: 4, I5: 5, I6: 6, I7: 7, I8: 8, I9: 9, I10: 10,
 		I11: 11, I12: 12, I13: 13, I14: 14, I15: 15, I16: 16}
 
-	{
-		var r1 st1
-		var r16 st16
-		if err := encdec3(t, v1, &r1, func(code byte) bool {
-			return def.FixMap <= code && code <= def.FixMap+0x0f
-		}); err != nil {
-			t.Error(err)
-		}
-		if err := encdec3(t, v16, &r16, func(code byte) bool {
-			return code == def.Map16
-		}); err != nil {
-			t.Error(err)
-		}
-	}
+	t.Run("Map", func(t *testing.T) {
+		t.Run("st1", func(t *testing.T) {
+			arg := encdecArg[st1]{
+				v: v1,
+				c: func(d []byte) bool {
+					return def.FixMap <= d[0] && d[0] <= def.FixMap+0x0f
+				},
+			}
+			encdec(t, arg)
+		})
+		t.Run("st16", func(t *testing.T) {
+			arg := encdecArg[st16]{
+				v: v16,
+				c: func(d []byte) bool {
+					return d[0] == def.Map16
+				},
+			}
+			encdec(t, arg)
+		})
+	})
+
 	msgpack.StructAsArray = true
-	{
-		var r1 st1
-		var r16 st16
-		if err := encdec3(t, v1, &r1, func(code byte) bool {
-			return def.FixArray <= code && code <= def.FixArray+0x0f
-		}); err != nil {
-			t.Error(err)
-		}
-		if err := encdec3(t, v16, &r16, func(code byte) bool {
-			return code == def.Array16
-		}); err != nil {
-			t.Error(err)
-		}
-	}
-	msgpack.StructAsArray = false
+	defer func() {
+		msgpack.StructAsArray = false
+	}()
+
+	t.Run("Array", func(t *testing.T) {
+		t.Run("st1", func(t *testing.T) {
+			arg := encdecArg[st1]{
+				v: v1,
+				c: func(d []byte) bool {
+					return def.FixArray <= d[0] && d[0] <= def.FixArray+0x0f
+				},
+			}
+			encdec(t, arg)
+		})
+		t.Run("st16", func(t *testing.T) {
+			arg := encdecArg[st16]{
+				v: v16,
+				c: func(d []byte) bool {
+					return d[0] == def.Array16
+				},
+			}
+			encdec(t, arg)
+		})
+	})
 }
 
 func testStructUseCase(t *testing.T) {
@@ -1800,7 +1826,7 @@ func testStructUseCase(t *testing.T) {
 		Pointer:  &p,
 		Nil:      nil,
 		Time:     now,
-		Duration: time.Duration(123 * time.Second),
+		Duration: 123 * time.Second,
 
 		// child
 		Child: child{
@@ -1810,55 +1836,31 @@ func testStructUseCase(t *testing.T) {
 			BoolArray:     []bool{true, true, false, false, true},
 			StringArray:   []string{"str", "ing", "arr", "ay"},
 			TimeArray:     []time.Time{now, now, now},
-			DurationArray: []time.Duration{time.Duration(1 * time.Nanosecond), time.Duration(2 * time.Nanosecond)},
+			DurationArray: []time.Duration{1 * time.Nanosecond, 2 * time.Nanosecond},
 
 			// childchild
 			Child: child2{
 				Int2Uint:        map[int]uint{-1: 2, -3: 4},
 				Float2Bool:      map[float32]bool{-1.1: true, -2.2: false},
-				Duration2Struct: map[time.Duration]child3{time.Duration(1 * time.Hour): child3{Int: 1}, time.Duration(2 * time.Hour): child3{Int: 2}},
+				Duration2Struct: map[time.Duration]child3{1 * time.Hour: {Int: 1}, 2 * time.Hour: {Int: 2}},
 			},
 		},
 
-		Child3Array: []child3{child3{Int: 100}, child3{Int: 1000000}, child3{Int: 100000000}},
+		Child3Array: []child3{{Int: 100}, {Int: 1000000}, {Int: 100000000}},
 	}
 
-	r1, r2 := st{}, st{}
-	d1, d2, err := encSt(t, v, false)
-	if err != nil {
-		t.Error(err)
-	}
-	err = decSt(t, d1, d2, &r1, &r2, false)
-	if err != nil {
-		t.Error(err)
-	}
-	if err := equalCheck(v, r1); err != nil {
-		t.Error(err)
-	}
-	if err := equalCheck(v, r2); err != nil {
-		t.Error(err)
-	}
+	msgpack.StructAsArray = false
+	encdec(t, encdecArg[st]{n: "Map", v: v})
+
+	msgpack.StructAsArray = true
+	encdec(t, encdecArg[st]{n: "Array", v: v})
+
+	msgpack.StructAsArray = false
 }
 
 func testStructJump(t *testing.T) {
 	type v1 struct{ A interface{} }
 	type r1 struct{ B interface{} }
-
-	f := func(v v1) error {
-		b, err := msgpack.MarshalAsMap(v)
-		if err != nil {
-			return err
-		}
-		var r r1
-		err = msgpack.UnmarshalAsMap(b, &r)
-		if err != nil {
-			return err
-		}
-		if fmt.Sprint(v.A) == fmt.Sprint(r.B) {
-			return fmt.Errorf("value equal %v, %v", v, r)
-		}
-		return nil
-	}
 
 	a1 := make([]int, math.MaxUint16)
 	a2 := make([]int, math.MaxUint16+1)
@@ -1889,12 +1891,24 @@ func testStructJump(t *testing.T) {
 		{A: time.Unix(now.Unix(), int64(now.Nanosecond()))},
 	}
 
-	for i, v := range vs {
-		if err := f(v); err != nil {
-			t.Error(i, err)
+	for _, v := range vs {
+		n := fmt.Sprint(v)
+		if len(n) > 32 {
+			n = n[:32]
 		}
+		arg := encdecArg[r1]{
+			n:      n,
+			v:      v,
+			skipEq: true,
+			vc: func(r r1) error {
+				if fmt.Sprint(v.A) == fmt.Sprint(r.B) {
+					return fmt.Errorf("value equal %v, %v", v, r)
+				}
+				return nil
+			},
+		}
+		encdec(t, arg)
 	}
-
 }
 
 func encSt(t *testing.T, in interface{}, isDebug bool) ([]byte, []byte, error) {
