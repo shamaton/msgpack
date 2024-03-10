@@ -164,7 +164,7 @@ func (d *decoder) asInterfaceWithCode(code byte, k reflect.Kind) (interface{}, e
 	}
 	for i := range extCoders {
 		if extCoders[i].IsType(code, extInnerType, len(extData)) {
-			v, err := extCoders[i].AsValue(code, extData, k)
+			v, err := extCoders[i].ToValue(code, extData, k)
 			if err != nil {
 				return nil, err
 			}

@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/shamaton/msgpack/v2/internal/common"
+	"io"
 	"math"
 	"math/rand"
 	"reflect"
@@ -1365,7 +1367,7 @@ func TestTime(t *testing.T) {
 		})
 
 		t.Run("ShouldNotReachStream", func(t *testing.T) {
-			_, err := extTime.StreamDecoder.AsValue(def.Fixext1, nil, reflect.Bool)
+			_, err := extTime.StreamDecoder.ToValue(def.Fixext1, nil, reflect.Bool)
 			ErrorContains(t, err, "should not reach this line")
 		})
 	})
@@ -1911,56 +1913,13 @@ func testStructJump(t *testing.T) {
 	}
 }
 
-func encSt(t *testing.T, in interface{}, isDebug bool) ([]byte, []byte, error) {
-	var d1, d2 []byte
-	var err error
-	d1, err = msgpack.Marshal(in)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if msgpack.StructAsArray {
-		d2, err = msgpack.MarshalAsMap(in)
-	} else {
-		d2, err = msgpack.MarshalAsArray(in)
-	}
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if isDebug {
-		t.Log(in, " -- to byte --> ", d1)
-		t.Log(in, " -- to byte --> ", d2)
-	}
-	return d1, d2, nil
-}
-
-func decSt(t *testing.T, d1, d2 []byte, out1, out2 interface{}, isDebug bool) error {
-	if err := msgpack.Unmarshal(d1, out1); err != nil {
-		return err
-	}
-
-	if msgpack.StructAsArray {
-		err := msgpack.UnmarshalAsMap(d2, out2)
-		if err != nil {
-			return err
-		}
-	} else {
-		err := msgpack.UnmarshalAsArray(d2, out2)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 /////////////////////////////////////////////////////////////
 
 func TestExt(t *testing.T) {
 	err := msgpack.AddExtCoder(encoder, decoder)
-	if err != nil {
-		t.Error(err)
-	}
+	NoError(t, err)
+	err = msgpack.AddExtStreamCoder(streamEncoder, streamDecoder)
+	NoError(t, err)
 
 	{
 		v := ExtInt{
@@ -1977,26 +1936,14 @@ func TestExt(t *testing.T) {
 			Byte4Uint32: math.MaxUint32 - 1,
 			Bytes:       []byte{1, 2, 3}, // 3
 		}
-		var r1, r2 ExtInt
-		d1, d2, err := encSt(t, v, false)
-		if err != nil {
-			t.Error(err)
-		}
-		err = decSt(t, d1, d2, &r1, &r2, false)
-		if err != nil {
-			t.Error(err)
-		}
-		if err := equalCheck(v, r1); err != nil {
-			t.Error(err)
-		}
-		if err := equalCheck(r1, r2); err != nil {
-			t.Error(err)
-		}
+		encdec(t, encdecArg[ExtInt]{n: "AddCoder", v: v})
 	}
+
 	err = msgpack.RemoveExtCoder(encoder, decoder)
-	if err != nil {
-		t.Error(err)
-	}
+	NoError(t, err)
+	err = msgpack.RemoveExtStreamCoder(streamEncoder, streamDecoder)
+	NoError(t, err)
+
 	{
 		v := ExtInt{
 			Int8:        math.MinInt8,
@@ -2012,37 +1959,16 @@ func TestExt(t *testing.T) {
 			Byte4Uint32: math.MaxUint32 - 1,
 			Bytes:       []byte{4, 5, 6}, // 3
 		}
-		var r1, r2 ExtInt
-		d1, d2, err := encSt(t, v, false)
-		if err != nil {
-			t.Error(err)
-		}
-		err = decSt(t, d1, d2, &r1, &r2, false)
-		if err != nil {
-			t.Error(err)
-		}
-		if err := equalCheck(v, r1); err != nil {
-			t.Error(err)
-		}
-		if err := equalCheck(r1, r2); err != nil {
-			t.Error(err)
-		}
+		encdec(t, encdecArg[ExtInt]{n: "RemoveCoder", v: v})
 	}
 
 	// error
 	enc2, dec2 := new(testExt2Encoder), new(testExt2Decoder)
 	err = msgpack.AddExtCoder(enc2, dec2)
-	if err != nil && strings.Contains(err.Error(), "code different") {
-		// ok
-	} else {
-		t.Error("unreachable", err)
-	}
+	ErrorContains(t, err, "code different")
+
 	err = msgpack.RemoveExtCoder(enc2, dec2)
-	if err != nil && strings.Contains(err.Error(), "code different") {
-		// ok
-	} else {
-		t.Error("unreachable", err)
-	}
+	ErrorContains(t, err, "code different")
 }
 
 type ExtStruct struct {
@@ -2066,6 +1992,8 @@ var decoder = new(testDecoder)
 type testDecoder struct {
 	ext.DecoderCommon
 }
+
+var _ ext.Decoder = (*testDecoder)(nil)
 
 var extIntCode = int8(-2)
 
@@ -2123,11 +2051,69 @@ func (td *testDecoder) AsValue(offset int, k reflect.Kind, d *[]byte) (interface
 	return ExtInt{}, 0, fmt.Errorf("should not reach this line!! code %x decoding %v", code, k)
 }
 
+var streamDecoder = new(testStreamDecoder)
+
+type testStreamDecoder struct {
+	ext.DecoderStreamCommon
+}
+
+var _ ext.StreamDecoder = (*testStreamDecoder)(nil)
+
+func (td *testStreamDecoder) Code() int8 {
+	return extIntCode
+}
+
+func (td *testStreamDecoder) IsType(code byte, innerType int8, dataLength int) bool {
+	if code == def.Ext8 {
+		return dataLength == 15+15+10+3 && innerType == td.Code()
+	}
+	return false
+}
+
+func (td *testStreamDecoder) ToValue(code byte, data []byte, k reflect.Kind) (any, error) {
+	switch code {
+	case def.Ext8:
+		i8 := data[:1]
+		i16 := data[1:3]
+		i32 := data[3:7]
+		i64 := data[7:15]
+		u8 := data[15:16]
+		u16 := data[16:18]
+		u32 := data[18:22]
+		u64 := data[22:30]
+		b16 := data[30:32]
+		b32 := data[32:36]
+		bu32 := data[36:40]
+		bs := data[40:43]
+		return ExtInt{
+			Int8:        int8(i8[0]),
+			Int16:       int16(binary.BigEndian.Uint16(i16)),
+			Int32:       int32(binary.BigEndian.Uint32(i32)),
+			Int64:       int64(binary.BigEndian.Uint64(i64)),
+			Uint8:       u8[0],
+			Uint16:      binary.BigEndian.Uint16(u16),
+			Uint32:      binary.BigEndian.Uint32(u32),
+			Uint64:      binary.BigEndian.Uint64(u64),
+			Byte2Int:    int(binary.BigEndian.Uint16(b16)),
+			Byte4Int:    int(int32(binary.BigEndian.Uint32(b32))),
+			Byte4Uint32: binary.BigEndian.Uint32(bu32),
+			Bytes:       bs,
+		}, nil
+	}
+
+	return ExtInt{}, fmt.Errorf("should not reach this line!! code %x decoding %v", code, k)
+}
+
 var encoder = new(testEncoder)
 
 type testEncoder struct {
 	ext.EncoderCommon
 }
+
+var (
+	_ ext.Encoder = (*testEncoder)(nil)
+	//_ ext.StreamEncoder = (*testEncoder)(nil)
+)
 
 func (s *testEncoder) Code() int8 {
 	return extIntCode
@@ -2164,6 +2150,76 @@ func (s *testEncoder) WriteToBytes(value reflect.Value, offset int, bytes *[]byt
 	offset = s.SetByte4Uint32(t.Byte4Uint32, offset, bytes)
 	offset = s.SetBytes(t.Bytes, offset, bytes)
 	return offset
+}
+
+var streamEncoder = new(testStreamEncoder)
+
+type testStreamEncoder struct {
+	ext.StreamEncoderCommon
+}
+
+var _ ext.StreamEncoder = (*testStreamEncoder)(nil)
+
+func (s *testStreamEncoder) Code() int8 {
+	return extIntCode
+}
+
+func (s *testStreamEncoder) Type() reflect.Type {
+	return reflect.TypeOf(ExtInt{})
+}
+
+func (s *testStreamEncoder) Write(w io.Writer, value reflect.Value, buf *common.Buffer) error {
+	t := value.Interface().(ExtInt)
+	if err := s.WriteByte1Int(w, def.Ext8, buf); err != nil {
+		return err
+	}
+	if err := s.WriteByte1Int(w, 15+15+10+len(t.Bytes), buf); err != nil {
+		return err
+	}
+	if err := s.WriteByte1Int(w, int(s.Code()), buf); err != nil {
+		return err
+	}
+
+	if err := s.WriteByte1Int64(w, int64(t.Int8), buf); err != nil {
+		return err
+	}
+	if err := s.WriteByte2Int64(w, int64(t.Int16), buf); err != nil {
+		return err
+	}
+	if err := s.WriteByte4Int64(w, int64(t.Int32), buf); err != nil {
+		return err
+	}
+	if err := s.WriteByte8Int64(w, t.Int64, buf); err != nil {
+		return err
+	}
+
+	if err := s.WriteByte1Uint64(w, uint64(t.Uint8), buf); err != nil {
+		return err
+	}
+	if err := s.WriteByte2Uint64(w, uint64(t.Uint16), buf); err != nil {
+		return err
+	}
+	if err := s.WriteByte4Uint64(w, uint64(t.Uint32), buf); err != nil {
+		return err
+	}
+	if err := s.WriteByte8Uint64(w, t.Uint64, buf); err != nil {
+		return err
+	}
+
+	if err := s.WriteByte2Int(w, t.Byte2Int, buf); err != nil {
+		return err
+	}
+	if err := s.WriteByte4Int(w, t.Byte4Int, buf); err != nil {
+		return err
+	}
+
+	if err := s.WriteByte4Uint32(w, t.Byte4Uint32, buf); err != nil {
+		return err
+	}
+	if err := s.WriteBytes(w, t.Bytes, buf); err != nil {
+		return err
+	}
+	return nil
 }
 
 /////////////////////////////////////////////////////////

@@ -31,7 +31,7 @@ func (td *timeStreamDecoder) IsType(code byte, innerType int8, dataLength int) b
 	return false
 }
 
-func (td *timeStreamDecoder) AsValue(code byte, data []byte, k reflect.Kind) (interface{}, error) {
+func (td *timeStreamDecoder) ToValue(code byte, data []byte, k reflect.Kind) (interface{}, error) {
 	switch code {
 	case def.Fixext4:
 		return time.Unix(int64(binary.BigEndian.Uint32(data)), 0), nil

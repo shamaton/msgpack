@@ -23,11 +23,11 @@ type structWriteFunc func(rv reflect.Value) error
 
 func (e *encoder) getStructCalc(typ reflect.Type) structCalcFunc {
 
-	for j := range extCoders {
-		if extCoders[j].Type() == typ {
-			return extCoders[j].CalcByteSize
-		}
-	}
+	//for j := range extCoders {
+	//	if extCoders[j].Type() == typ {
+	//		return extCoders[j].CalcByteSize
+	//	}
+	//}
 	if e.asArray {
 		return e.calcStructArray
 	}
@@ -42,11 +42,11 @@ func (e *encoder) calcStruct(rv reflect.Value) (int, error) {
 	//	return size, nil
 	//}
 
-	for i := range extCoders {
-		if extCoders[i].Type() == rv.Type() {
-			return extCoders[i].CalcByteSize(rv)
-		}
-	}
+	//for i := range extCoders {
+	//	if extCoders[i].Type() == rv.Type() {
+	//		return extCoders[i].CalcByteSize(rv)
+	//	}
+	//}
 
 	if e.asArray {
 		return e.calcStructArray(rv)
@@ -152,7 +152,7 @@ func (e *encoder) getStructWriter(typ reflect.Type) structWriteFunc {
 	for i := range extCoders {
 		if extCoders[i].Type() == typ {
 			return func(rv reflect.Value) error {
-				return extCoders[i].WriteToBytes(e.w, rv, e.buf)
+				return extCoders[i].Write(e.w, rv, e.buf)
 			}
 		}
 	}
@@ -167,7 +167,7 @@ func (e *encoder) writeStruct(rv reflect.Value) error {
 
 	for i := range extCoders {
 		if extCoders[i].Type() == rv.Type() {
-			return extCoders[i].WriteToBytes(e.w, rv, e.buf)
+			return extCoders[i].Write(e.w, rv, e.buf)
 		}
 	}
 

@@ -26,64 +26,50 @@ func (timeStreamEncoder) Type() reflect.Type {
 	return typeOf
 }
 
-func (timeStreamEncoder) CalcByteSize(value reflect.Value) (int, error) {
-	t := value.Interface().(time.Time)
-	secs := uint64(t.Unix())
-	if secs>>34 == 0 {
-		data := uint64(t.Nanosecond())<<34 | secs
-		if data&0xffffffff00000000 == 0 {
-			return def.Byte1 + def.Byte4, nil
-		}
-		return def.Byte1 + def.Byte8, nil
-	}
-
-	return def.Byte1 + def.Byte1 + def.Byte4 + def.Byte8, nil
-}
-
-func (e timeStreamEncoder) WriteToBytes(w io.Writer, value reflect.Value, buf *common.Buffer) error {
+func (e timeStreamEncoder) Write(w io.Writer, value reflect.Value, buf *common.Buffer) error {
 	t := value.Interface().(time.Time)
 
 	secs := uint64(t.Unix())
 	if secs>>34 == 0 {
 		data := uint64(t.Nanosecond())<<34 | secs
 		if data&0xffffffff00000000 == 0 {
-			if err := e.SetByte1Int(w, def.Fixext4, buf); err != nil {
+			if err := e.WriteByte1Int(w, def.Fixext4, buf); err != nil {
 				return err
 			}
-			if err := e.SetByte1Int(w, def.TimeStamp, buf); err != nil {
+			if err := e.WriteByte1Int(w, def.TimeStamp, buf); err != nil {
 				return err
 			}
-			if err := e.SetByte4Uint64(w, data, buf); err != nil {
+			if err := e.WriteByte4Uint64(w, data, buf); err != nil {
 				return err
 			}
 			return nil
 		}
 
-		if err := e.SetByte1Int(w, def.Fixext8, buf); err != nil {
+		if err := e.WriteByte1Int(w, def.Fixext8, buf); err != nil {
 			return err
 		}
-		if err := e.SetByte1Int(w, def.TimeStamp, buf); err != nil {
+		if err := e.WriteByte1Int(w, def.TimeStamp, buf); err != nil {
 			return err
 		}
-		if err := e.SetByte8Uint64(w, data, buf); err != nil {
+		if err := e.WriteByte8Uint64(w, data, buf); err != nil {
 			return err
 		}
 		return nil
 	}
 
-	if err := e.SetByte1Int(w, def.Ext8, buf); err != nil {
+	if err := e.WriteByte1Int(w, def.Ext8, buf); err != nil {
 		return err
 	}
-	if err := e.SetByte1Int(w, 12, buf); err != nil {
+	if err := e.WriteByte1Int(w, 12, buf); err != nil {
 		return err
 	}
-	if err := e.SetByte1Int(w, def.TimeStamp, buf); err != nil {
+	if err := e.WriteByte1Int(w, def.TimeStamp, buf); err != nil {
 		return err
 	}
-	if err := e.SetByte4Int(w, t.Nanosecond(), buf); err != nil {
+	if err := e.WriteByte4Int(w, t.Nanosecond(), buf); err != nil {
 		return err
 	}
-	if err := e.SetByte8Uint64(w, secs, buf); err != nil {
+	if err := e.WriteByte8Uint64(w, secs, buf); err != nil {
 		return err
 	}
 	return nil

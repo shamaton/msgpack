@@ -30,7 +30,7 @@ func (d *decoder) setStruct(code byte, rv reflect.Value, k reflect.Kind) error {
 		if data != nil {
 			for i := range extCoders {
 				if extCoders[i].IsType(code, innerType, len(data)) {
-					v, err := extCoders[i].AsValue(code, data, k)
+					v, err := extCoders[i].ToValue(code, data, k)
 					if err != nil {
 						return err
 					}

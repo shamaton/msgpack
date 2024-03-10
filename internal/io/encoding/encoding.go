@@ -36,6 +36,9 @@ func Encode(w io.Writer, v any, asArray bool) error {
 	}
 
 	err := e.create(rv)
+	if err == nil {
+		err = e.buf.Flush(e.w)
+	}
 	common.PutBuffer(e.buf)
 	return err
 }
@@ -381,12 +384,23 @@ func (e *encoder) create(rv reflect.Value) error {
 		}
 
 		// key-value
-		p := rv.Pointer()
-		for i := range e.mk[p] {
-			if err := e.create(e.mk[p][i]); err != nil {
+		//p := rv.Pointer()
+		//for i := range e.mk[p] {
+		//	if err := e.create(e.mk[p][i]); err != nil {
+		//		return err
+		//	}
+		//	if err := e.create(e.mv[p][i]); err != nil {
+		//		return err
+		//	}
+		//}
+
+		// key-value
+		keys := rv.MapKeys()
+		for _, k := range keys {
+			if err := e.create(k); err != nil {
 				return err
 			}
-			if err := e.create(e.mv[p][i]); err != nil {
+			if err := e.create(rv.MapIndex(k)); err != nil {
 				return err
 			}
 		}
@@ -407,7 +421,7 @@ func (e *encoder) create(rv reflect.Value) error {
 	case reflect.Invalid:
 		return e.writeNil()
 	default:
-		// do nothing
+		return fmt.Errorf("type(%v) is unsupported", rv.Kind())
 	}
 	return nil
 }
