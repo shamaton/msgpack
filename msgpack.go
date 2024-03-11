@@ -8,9 +8,8 @@ import (
 	"github.com/shamaton/msgpack/v2/ext"
 	"github.com/shamaton/msgpack/v2/internal/decoding"
 	"github.com/shamaton/msgpack/v2/internal/encoding"
-	d2 "github.com/shamaton/msgpack/v2/internal/io/decoding"
-	e2 "github.com/shamaton/msgpack/v2/internal/io/encoding"
-	d3 "github.com/shamaton/msgpack/v2/internal/io2/decoding"
+	streamdecoding "github.com/shamaton/msgpack/v2/internal/stream/decoding"
+	streamencoding "github.com/shamaton/msgpack/v2/internal/stream/encoding"
 )
 
 // StructAsArray is encoding option.
@@ -22,8 +21,9 @@ func Marshal(v interface{}) ([]byte, error) {
 	return encoding.Encode(v, StructAsArray)
 }
 
+// MarshalWrite writes MessagePack-encoded byte array of v to writer.
 func MarshalWrite(w io.Writer, v interface{}) error {
-	return e2.Encode(w, v, StructAsArray)
+	return streamencoding.Encode(w, v, StructAsArray)
 }
 
 // Unmarshal analyzes the MessagePack-encoded data and stores
@@ -32,12 +32,10 @@ func Unmarshal(data []byte, v interface{}) error {
 	return decoding.Decode(data, v, StructAsArray)
 }
 
+// UnmarshalRead reads the MessagePack-encoded data from reader and stores
+// the result into the pointer of v.
 func UnmarshalRead(r io.Reader, v interface{}) error {
-	return d2.Decode(r, v, StructAsArray)
-}
-
-func UnmarshalRead2(r io.Reader, v interface{}) error {
-	return d3.Decode(r, v, StructAsArray)
+	return streamdecoding.Decode(r, v, StructAsArray)
 }
 
 // AddExtCoder adds encoders for extension types.
@@ -50,13 +48,13 @@ func AddExtCoder(e ext.Encoder, d ext.Decoder) error {
 	return nil
 }
 
-// AddExtStreamCoder adds encoders for extension types.
+// AddExtStreamCoder adds stream encoders for extension types.
 func AddExtStreamCoder(e ext.StreamEncoder, d ext.StreamDecoder) error {
 	if e.Code() != d.Code() {
 		return fmt.Errorf("code different %d:%d", e.Code(), d.Code())
 	}
-	e2.AddExtEncoder(e)
-	d2.AddExtDecoder(d)
+	streamencoding.AddExtEncoder(e)
+	streamdecoding.AddExtDecoder(d)
 	return nil
 }
 
@@ -70,13 +68,13 @@ func RemoveExtCoder(e ext.Encoder, d ext.Decoder) error {
 	return nil
 }
 
-// RemoveExtStreamCoder removes encoders for extension types.
+// RemoveExtStreamCoder removes stream encoders for extension types.
 func RemoveExtStreamCoder(e ext.StreamEncoder, d ext.StreamDecoder) error {
 	if e.Code() != d.Code() {
 		return fmt.Errorf("code different %d:%d", e.Code(), d.Code())
 	}
-	e2.RemoveExtEncoder(e)
-	d2.RemoveExtDecoder(d)
+	streamencoding.RemoveExtEncoder(e)
+	streamdecoding.RemoveExtDecoder(d)
 	return nil
 }
 

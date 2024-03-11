@@ -2,7 +2,6 @@ package decoding
 
 import (
 	"encoding/binary"
-	"io"
 	"reflect"
 
 	"github.com/shamaton/msgpack/v2/def"
@@ -55,41 +54,32 @@ var (
 	typeMapFloat64Bool   = reflect.TypeOf(map[float64]bool{})
 )
 
-func isFixMap(v byte) bool {
+func (d *decoder) isFixMap(v byte) bool {
 	return def.FixMap <= v && v <= def.FixMap+0x0f
 }
 
-func mapLength(r io.Reader, code byte, k reflect.Kind) (int, error) {
+func (d *decoder) mapLength(code byte, k reflect.Kind) (int, error) {
 	switch {
-	case isFixMap(code):
+	case d.isFixMap(code):
 		return int(code - def.FixMap), nil
 	case code == def.Map16:
-		bs, err := readSize2(r)
+		bs, err := d.readSize2()
 		if err != nil {
 			return 0, err
 		}
 		return int(binary.BigEndian.Uint16(bs)), nil
 	case code == def.Map32:
-		bs, err := readSize4(r)
+		bs, err := d.readSize4()
 		if err != nil {
 			return 0, err
 		}
 		return int(binary.BigEndian.Uint32(bs)), nil
 	}
 
-	return 0, errorTemplate(code, k)
+	return 0, d.errorTemplate(code, k)
 }
 
-// todo : maybe enable to delete
-//func    hasRequiredLeastMapSize(offset, length int) error {
-//	// minimum check (byte length)
-//	if len(d.data[offset:]) < length*2 {
-//		return errors.New("data length lacks to create map")
-//	}
-//	return nil
-//}
-
-func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
+func (d *decoder) asFixedMap(rv reflect.Value, l int) (bool, error) {
 	t := rv.Type()
 
 	keyKind := t.Key().Kind()
@@ -99,11 +89,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapStringInt:
 		m := make(map[string]int, l)
 		for i := 0; i < l; i++ {
-			k, err := asString(r, keyKind)
+			k, err := d.asString(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asInt(r, valueKind)
+			v, err := d.asInt(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -115,11 +105,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapStringUint:
 		m := make(map[string]uint, l)
 		for i := 0; i < l; i++ {
-			k, err := asString(r, keyKind)
+			k, err := d.asString(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asUint(r, valueKind)
+			v, err := d.asUint(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -131,11 +121,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapStringFloat32:
 		m := make(map[string]float32, l)
 		for i := 0; i < l; i++ {
-			k, err := asString(r, keyKind)
+			k, err := d.asString(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asFloat32(r, valueKind)
+			v, err := d.asFloat32(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -147,11 +137,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapStringFloat64:
 		m := make(map[string]float64, l)
 		for i := 0; i < l; i++ {
-			k, err := asString(r, keyKind)
+			k, err := d.asString(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asFloat64(r, valueKind)
+			v, err := d.asFloat64(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -163,11 +153,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapStringBool:
 		m := make(map[string]bool, l)
 		for i := 0; i < l; i++ {
-			k, err := asString(r, keyKind)
+			k, err := d.asString(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asBool(r, valueKind)
+			v, err := d.asBool(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -179,11 +169,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapStringString:
 		m := make(map[string]string, l)
 		for i := 0; i < l; i++ {
-			k, err := asString(r, keyKind)
+			k, err := d.asString(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asString(r, valueKind)
+			v, err := d.asString(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -195,11 +185,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapStringInt8:
 		m := make(map[string]int8, l)
 		for i := 0; i < l; i++ {
-			k, err := asString(r, keyKind)
+			k, err := d.asString(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asInt(r, valueKind)
+			v, err := d.asInt(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -211,11 +201,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapStringInt16:
 		m := make(map[string]int16, l)
 		for i := 0; i < l; i++ {
-			k, err := asString(r, keyKind)
+			k, err := d.asString(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asInt(r, valueKind)
+			v, err := d.asInt(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -227,11 +217,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapStringInt32:
 		m := make(map[string]int32, l)
 		for i := 0; i < l; i++ {
-			k, err := asString(r, keyKind)
+			k, err := d.asString(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asInt(r, valueKind)
+			v, err := d.asInt(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -243,11 +233,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapStringInt64:
 		m := make(map[string]int64, l)
 		for i := 0; i < l; i++ {
-			k, err := asString(r, keyKind)
+			k, err := d.asString(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asInt(r, valueKind)
+			v, err := d.asInt(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -259,11 +249,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapStringUint8:
 		m := make(map[string]uint8, l)
 		for i := 0; i < l; i++ {
-			k, err := asString(r, keyKind)
+			k, err := d.asString(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asUint(r, valueKind)
+			v, err := d.asUint(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -274,11 +264,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapStringUint16:
 		m := make(map[string]uint16, l)
 		for i := 0; i < l; i++ {
-			k, err := asString(r, keyKind)
+			k, err := d.asString(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asUint(r, valueKind)
+			v, err := d.asUint(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -290,11 +280,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapStringUint32:
 		m := make(map[string]uint32, l)
 		for i := 0; i < l; i++ {
-			k, err := asString(r, keyKind)
+			k, err := d.asString(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asUint(r, valueKind)
+			v, err := d.asUint(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -306,11 +296,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapStringUint64:
 		m := make(map[string]uint64, l)
 		for i := 0; i < l; i++ {
-			k, err := asString(r, keyKind)
+			k, err := d.asString(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asUint(r, valueKind)
+			v, err := d.asUint(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -322,11 +312,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapIntString:
 		m := make(map[int]string, l)
 		for i := 0; i < l; i++ {
-			k, err := asInt(r, keyKind)
+			k, err := d.asInt(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asString(r, valueKind)
+			v, err := d.asString(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -338,11 +328,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapInt8String:
 		m := make(map[int8]string, l)
 		for i := 0; i < l; i++ {
-			k, err := asInt(r, keyKind)
+			k, err := d.asInt(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asString(r, valueKind)
+			v, err := d.asString(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -354,11 +344,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapInt16String:
 		m := make(map[int16]string, l)
 		for i := 0; i < l; i++ {
-			k, err := asInt(r, keyKind)
+			k, err := d.asInt(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asString(r, valueKind)
+			v, err := d.asString(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -370,11 +360,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapInt32String:
 		m := make(map[int32]string, l)
 		for i := 0; i < l; i++ {
-			k, err := asInt(r, keyKind)
+			k, err := d.asInt(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asString(r, valueKind)
+			v, err := d.asString(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -386,11 +376,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapInt64String:
 		m := make(map[int64]string, l)
 		for i := 0; i < l; i++ {
-			k, err := asInt(r, keyKind)
+			k, err := d.asInt(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asString(r, valueKind)
+			v, err := d.asString(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -402,11 +392,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapIntBool:
 		m := make(map[int]bool, l)
 		for i := 0; i < l; i++ {
-			k, err := asInt(r, keyKind)
+			k, err := d.asInt(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asBool(r, valueKind)
+			v, err := d.asBool(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -418,11 +408,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapInt8Bool:
 		m := make(map[int8]bool, l)
 		for i := 0; i < l; i++ {
-			k, err := asInt(r, keyKind)
+			k, err := d.asInt(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asBool(r, valueKind)
+			v, err := d.asBool(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -434,11 +424,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapInt16Bool:
 		m := make(map[int16]bool, l)
 		for i := 0; i < l; i++ {
-			k, err := asInt(r, keyKind)
+			k, err := d.asInt(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asBool(r, valueKind)
+			v, err := d.asBool(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -450,11 +440,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapInt32Bool:
 		m := make(map[int32]bool, l)
 		for i := 0; i < l; i++ {
-			k, err := asInt(r, keyKind)
+			k, err := d.asInt(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asBool(r, valueKind)
+			v, err := d.asBool(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -466,11 +456,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapInt64Bool:
 		m := make(map[int64]bool, l)
 		for i := 0; i < l; i++ {
-			k, err := asInt(r, keyKind)
+			k, err := d.asInt(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asBool(r, valueKind)
+			v, err := d.asBool(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -482,11 +472,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapUintString:
 		m := make(map[uint]string, l)
 		for i := 0; i < l; i++ {
-			k, err := asUint(r, keyKind)
+			k, err := d.asUint(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asString(r, valueKind)
+			v, err := d.asString(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -498,11 +488,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapUint8String:
 		m := make(map[uint8]string, l)
 		for i := 0; i < l; i++ {
-			k, err := asUint(r, keyKind)
+			k, err := d.asUint(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asString(r, valueKind)
+			v, err := d.asString(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -514,11 +504,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapUint16String:
 		m := make(map[uint16]string, l)
 		for i := 0; i < l; i++ {
-			k, err := asUint(r, keyKind)
+			k, err := d.asUint(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asString(r, valueKind)
+			v, err := d.asString(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -530,11 +520,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapUint32String:
 		m := make(map[uint32]string, l)
 		for i := 0; i < l; i++ {
-			k, err := asUint(r, keyKind)
+			k, err := d.asUint(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asString(r, valueKind)
+			v, err := d.asString(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -546,11 +536,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapUint64String:
 		m := make(map[uint64]string, l)
 		for i := 0; i < l; i++ {
-			k, err := asUint(r, keyKind)
+			k, err := d.asUint(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asString(r, valueKind)
+			v, err := d.asString(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -562,11 +552,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapUintBool:
 		m := make(map[uint]bool, l)
 		for i := 0; i < l; i++ {
-			k, err := asUint(r, keyKind)
+			k, err := d.asUint(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asBool(r, valueKind)
+			v, err := d.asBool(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -578,11 +568,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapUint8Bool:
 		m := make(map[uint8]bool, l)
 		for i := 0; i < l; i++ {
-			k, err := asUint(r, keyKind)
+			k, err := d.asUint(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asBool(r, valueKind)
+			v, err := d.asBool(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -594,11 +584,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapUint16Bool:
 		m := make(map[uint16]bool, l)
 		for i := 0; i < l; i++ {
-			k, err := asUint(r, keyKind)
+			k, err := d.asUint(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asBool(r, valueKind)
+			v, err := d.asBool(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -610,11 +600,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapUint32Bool:
 		m := make(map[uint32]bool, l)
 		for i := 0; i < l; i++ {
-			k, err := asUint(r, keyKind)
+			k, err := d.asUint(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asBool(r, valueKind)
+			v, err := d.asBool(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -626,11 +616,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapUint64Bool:
 		m := make(map[uint64]bool, l)
 		for i := 0; i < l; i++ {
-			k, err := asUint(r, keyKind)
+			k, err := d.asUint(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asBool(r, valueKind)
+			v, err := d.asBool(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -642,11 +632,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapFloat32String:
 		m := make(map[float32]string, l)
 		for i := 0; i < l; i++ {
-			k, err := asFloat32(r, keyKind)
+			k, err := d.asFloat32(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asString(r, valueKind)
+			v, err := d.asString(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -658,11 +648,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapFloat64String:
 		m := make(map[float64]string, l)
 		for i := 0; i < l; i++ {
-			k, err := asFloat64(r, keyKind)
+			k, err := d.asFloat64(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asString(r, valueKind)
+			v, err := d.asString(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -674,11 +664,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapFloat32Bool:
 		m := make(map[float32]bool, l)
 		for i := 0; i < l; i++ {
-			k, err := asFloat32(r, keyKind)
+			k, err := d.asFloat32(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asBool(r, valueKind)
+			v, err := d.asBool(valueKind)
 			if err != nil {
 				return false, err
 			}
@@ -690,11 +680,11 @@ func asFixedMap(r io.Reader, rv reflect.Value, l int) (bool, error) {
 	case typeMapFloat64Bool:
 		m := make(map[float64]bool, l)
 		for i := 0; i < l; i++ {
-			k, err := asFloat64(r, keyKind)
+			k, err := d.asFloat64(keyKind)
 			if err != nil {
 				return false, err
 			}
-			v, err := asBool(r, valueKind)
+			v, err := d.asBool(valueKind)
 			if err != nil {
 				return false, err
 			}

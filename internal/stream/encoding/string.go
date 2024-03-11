@@ -7,21 +7,6 @@ import (
 	"github.com/shamaton/msgpack/v2/def"
 )
 
-func (e *encoder) calcString(v string) int {
-	// NOTE : unsafe
-	strBytes := *(*[]byte)(unsafe.Pointer(&v))
-	l := len(strBytes)
-	if l < 32 {
-		return l
-	} else if l <= math.MaxUint8 {
-		return def.Byte1 + l
-	} else if l <= math.MaxUint16 {
-		return def.Byte2 + l
-	}
-	return def.Byte4 + l
-	// NOTE : length over uint32
-}
-
 func (e *encoder) writeString(str string) error {
 	// NOTE : unsafe
 	strBytes := *(*[]byte)(unsafe.Pointer(&str))

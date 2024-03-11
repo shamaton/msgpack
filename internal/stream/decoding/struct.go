@@ -2,8 +2,6 @@ package decoding
 
 import (
 	"encoding/binary"
-	"github.com/shamaton/msgpack/v2/internal/common"
-	"io"
 	"reflect"
 	"sync"
 
@@ -23,9 +21,9 @@ type structCacheTypeArray struct {
 var mapSCTM = sync.Map{}
 var mapSCTA = sync.Map{}
 
-func setStruct(r io.Reader, code byte, rv reflect.Value, k reflect.Kind, asArray bool) error {
+func (d *decoder) setStruct(code byte, rv reflect.Value, k reflect.Kind) error {
 	if len(extCoders) > 0 {
-		innerType, data, err := readIfExtType(r, code)
+		innerType, data, err := d.readIfExtType(code)
 		if err != nil {
 			return err
 		}
@@ -47,22 +45,18 @@ func setStruct(r io.Reader, code byte, rv reflect.Value, k reflect.Kind, asArray
 		}
 	}
 
-	if asArray {
-		return setStructFromArray(r, code, rv, k)
+	if d.asArray {
+		return d.setStructFromArray(code, rv, k)
 	}
-	return setStructFromMap(r, code, rv, k)
+	return d.setStructFromMap(code, rv, k)
 }
 
-func setStructFromArray(r io.Reader, code byte, rv reflect.Value, k reflect.Kind) error {
+func (d *decoder) setStructFromArray(code byte, rv reflect.Value, k reflect.Kind) error {
 	// get length
-	l, err := sliceLength(r, code, k)
+	l, err := d.sliceLength(code, k)
 	if err != nil {
 		return err
 	}
-
-	//if err = d.hasRequiredLeastSliceSize(o, l); err != nil {
-	//	return err
-	//}
 
 	// find or create reference
 	var scta *structCacheTypeArray
@@ -70,7 +64,7 @@ func setStructFromArray(r io.Reader, code byte, rv reflect.Value, k reflect.Kind
 	if !findCache {
 		scta = &structCacheTypeArray{}
 		for i := 0; i < rv.NumField(); i++ {
-			if ok, _ := common.CheckField(rv.Type().Field(i)); ok {
+			if ok, _ := d.CheckField(rv.Type().Field(i)); ok {
 				scta.m = append(scta.m, i)
 			}
 		}
@@ -81,12 +75,12 @@ func setStructFromArray(r io.Reader, code byte, rv reflect.Value, k reflect.Kind
 	// set value
 	for i := 0; i < l; i++ {
 		if i < len(scta.m) {
-			err = decode(r, rv.Field(scta.m[i]), true)
+			err = d.decode(rv.Field(scta.m[i]))
 			if err != nil {
 				return err
 			}
 		} else {
-			err = jumpOffset(r)
+			err = d.jumpOffset()
 			if err != nil {
 				return err
 			}
@@ -95,23 +89,19 @@ func setStructFromArray(r io.Reader, code byte, rv reflect.Value, k reflect.Kind
 	return nil
 }
 
-func setStructFromMap(r io.Reader, code byte, rv reflect.Value, k reflect.Kind) error {
+func (d *decoder) setStructFromMap(code byte, rv reflect.Value, k reflect.Kind) error {
 	// get length
-	l, err := mapLength(r, code, k)
+	l, err := d.mapLength(code, k)
 	if err != nil {
 		return err
 	}
-
-	//if err = d.hasRequiredLeastMapSize(o, l); err != nil {
-	//	return 0, err
-	//}
 
 	var sctm *structCacheTypeMap
 	cache, cacheFind := mapSCTM.Load(rv.Type())
 	if !cacheFind {
 		sctm = &structCacheTypeMap{}
 		for i := 0; i < rv.NumField(); i++ {
-			if ok, name := common.CheckField(rv.Type().Field(i)); ok {
+			if ok, name := d.CheckField(rv.Type().Field(i)); ok {
 				sctm.keys = append(sctm.keys, []byte(name))
 				sctm.indexes = append(sctm.indexes, i)
 			}
@@ -122,7 +112,7 @@ func setStructFromMap(r io.Reader, code byte, rv reflect.Value, k reflect.Kind) 
 	}
 
 	for i := 0; i < l; i++ {
-		dataKey, err := asStringByte(r, k)
+		dataKey, err := d.asStringByte(k)
 		if err != nil {
 			return err
 		}
@@ -146,12 +136,12 @@ func setStructFromMap(r io.Reader, code byte, rv reflect.Value, k reflect.Kind) 
 		}
 
 		if fieldIndex >= 0 {
-			err = decode(r, rv.Field(fieldIndex), false)
+			err = d.decode(rv.Field(fieldIndex))
 			if err != nil {
 				return err
 			}
 		} else {
-			err = jumpOffset(r)
+			err = d.jumpOffset()
 			if err != nil {
 				return err
 			}
@@ -160,8 +150,8 @@ func setStructFromMap(r io.Reader, code byte, rv reflect.Value, k reflect.Kind) 
 	return nil
 }
 
-func jumpOffset(r io.Reader) error {
-	code, err := readSize1(r)
+func (d *decoder) jumpOffset() error {
+	code, err := d.readSize1()
 	if err != nil {
 		return err
 	}
@@ -170,137 +160,137 @@ func jumpOffset(r io.Reader) error {
 	case code == def.True, code == def.False, code == def.Nil:
 		// do nothing
 
-	case isPositiveFixNum(code) || isNegativeFixNum(code):
+	case d.isPositiveFixNum(code) || d.isNegativeFixNum(code):
 		// do nothing
 	case code == def.Uint8, code == def.Int8:
-		_, err = readSize1(r)
+		_, err = d.readSize1()
 		return err
 	case code == def.Uint16, code == def.Int16:
-		_, err = readSize2(r)
+		_, err = d.readSize2()
 		return err
 	case code == def.Uint32, code == def.Int32, code == def.Float32:
-		_, err = readSize4(r)
+		_, err = d.readSize4()
 		return err
 	case code == def.Uint64, code == def.Int64, code == def.Float64:
-		_, err = readSize8(r)
+		_, err = d.readSize8()
 		return err
 
-	case isFixString(code):
-		_, err = readSizeN(r, int(code-def.FixStr))
+	case d.isFixString(code):
+		_, err = d.readSizeN(int(code - def.FixStr))
 		return err
 	case code == def.Str8, code == def.Bin8:
-		b, err := readSize1(r)
+		b, err := d.readSize1()
 		if err != nil {
 			return err
 		}
-		_, err = readSizeN(r, int(b))
+		_, err = d.readSizeN(int(b))
 		return err
 	case code == def.Str16, code == def.Bin16:
-		bs, err := readSize2(r)
+		bs, err := d.readSize2()
 		if err != nil {
 			return err
 		}
-		_, err = readSizeN(r, int(binary.BigEndian.Uint16(bs)))
+		_, err = d.readSizeN(int(binary.BigEndian.Uint16(bs)))
 		return err
 	case code == def.Str32, code == def.Bin32:
-		bs, err := readSize4(r)
+		bs, err := d.readSize4()
 		if err != nil {
 			return err
 		}
-		_, err = readSizeN(r, int(binary.BigEndian.Uint32(bs)))
+		_, err = d.readSizeN(int(binary.BigEndian.Uint32(bs)))
 		return err
 
-	case isFixSlice(code):
+	case d.isFixSlice(code):
 		l := int(code - def.FixArray)
 		for i := 0; i < l; i++ {
-			if err = jumpOffset(r); err != nil {
+			if err = d.jumpOffset(); err != nil {
 				return err
 			}
 		}
 	case code == def.Array16:
-		bs, err := readSize2(r)
+		bs, err := d.readSize2()
 		if err != nil {
 			return err
 		}
 		l := int(binary.BigEndian.Uint16(bs))
 		for i := 0; i < l; i++ {
-			if err = jumpOffset(r); err != nil {
+			if err = d.jumpOffset(); err != nil {
 				return err
 			}
 		}
 	case code == def.Array32:
-		bs, err := readSize4(r)
+		bs, err := d.readSize4()
 		if err != nil {
 			return err
 		}
 		l := int(binary.BigEndian.Uint32(bs))
 		for i := 0; i < l; i++ {
-			if err = jumpOffset(r); err != nil {
+			if err = d.jumpOffset(); err != nil {
 				return err
 			}
 		}
 
-	case isFixMap(code):
+	case d.isFixMap(code):
 		l := int(code - def.FixMap)
 		for i := 0; i < l*2; i++ {
-			if err = jumpOffset(r); err != nil {
+			if err = d.jumpOffset(); err != nil {
 				return err
 			}
 		}
 	case code == def.Map16:
-		bs, err := readSize2(r)
+		bs, err := d.readSize2()
 		if err != nil {
 			return err
 		}
 		l := int(binary.BigEndian.Uint16(bs))
 		for i := 0; i < l*2; i++ {
-			if err = jumpOffset(r); err != nil {
+			if err = d.jumpOffset(); err != nil {
 				return err
 			}
 		}
 	case code == def.Map32:
-		bs, err := readSize4(r)
+		bs, err := d.readSize4()
 		if err != nil {
 			return err
 		}
 		l := int(binary.BigEndian.Uint32(bs))
 		for i := 0; i < l*2; i++ {
-			if err = jumpOffset(r); err != nil {
+			if err = d.jumpOffset(); err != nil {
 				return err
 			}
 		}
 
 	case code == def.Fixext1:
-		_, err = readSizeN(r, def.Byte1+def.Byte1)
+		_, err = d.readSizeN(def.Byte1 + def.Byte1)
 	case code == def.Fixext2:
-		_, err = readSizeN(r, def.Byte1+def.Byte2)
+		_, err = d.readSizeN(def.Byte1 + def.Byte2)
 	case code == def.Fixext4:
-		_, err = readSizeN(r, def.Byte1+def.Byte4)
+		_, err = d.readSizeN(def.Byte1 + def.Byte4)
 	case code == def.Fixext8:
-		_, err = readSizeN(r, def.Byte1+def.Byte8)
+		_, err = d.readSizeN(def.Byte1 + def.Byte8)
 	case code == def.Fixext16:
-		_, err = readSizeN(r, def.Byte1+def.Byte16)
+		_, err = d.readSizeN(def.Byte1 + def.Byte16)
 
 	case code == def.Ext8:
-		b, err := readSize1(r)
+		b, err := d.readSize1()
 		if err != nil {
 			return err
 		}
-		_, err = readSizeN(r, def.Byte1+int(b))
+		_, err = d.readSizeN(def.Byte1 + int(b))
 		return err
 	case code == def.Ext16:
-		bs, err := readSize2(r)
+		bs, err := d.readSize2()
 		if err != nil {
 			return err
 		}
-		_, err = readSizeN(r, def.Byte1+int(binary.BigEndian.Uint16(bs)))
+		_, err = d.readSizeN(def.Byte1 + int(binary.BigEndian.Uint16(bs)))
 		return err
 	case code == def.Ext32:
-		bs, err := readSize4(r)
+		bs, err := d.readSize4()
 		if err != nil {
 			return err
 		}
-		_, err = readSizeN(r, def.Byte1+int(binary.BigEndian.Uint32(bs)))
+		_, err = d.readSizeN(def.Byte1 + int(binary.BigEndian.Uint32(bs)))
 		return err
 	}
 	return nil

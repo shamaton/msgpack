@@ -6,14 +6,6 @@ import (
 	"github.com/shamaton/msgpack/v2/def"
 )
 
-func (e *encoder) calcFloat32(v float64) int {
-	return def.Byte4
-}
-
-func (e *encoder) calcFloat64(v float64) int {
-	return def.Byte8
-}
-
 func (e *encoder) writeFloat32(v float64) error {
 	if err := e.setByte1Int(def.Float32); err != nil {
 		return err

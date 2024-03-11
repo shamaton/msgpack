@@ -52,15 +52,6 @@ func (d *decoder) sliceLength(code byte, k reflect.Kind) (int, error) {
 	return 0, d.errorTemplate(code, k)
 }
 
-// todo : maybe enable to delete
-//func (d *decoder) hasRequiredLeastSliceSize(offset, length int) error {
-//	// minimum check (byte length)
-//	if len(d.data[offset:]) < length {
-//		return errors.New("data length lacks to create map")
-//	}
-//	return nil
-//}
-
 func (d *decoder) asFixedSlice(rv reflect.Value, l int) (bool, error) {
 	t := rv.Type()
 	k := t.Elem().Kind()

@@ -61,6 +61,3 @@ func GetBuffer() *Buffer {
 func PutBuffer(buf *Buffer) {
 	bufPool.Put(buf)
 }
-
-// todo : Limit
-// todo : Data bytes のサイズ拡張メソッド

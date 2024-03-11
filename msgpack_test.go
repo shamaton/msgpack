@@ -1892,6 +1892,7 @@ func testStructJump(t *testing.T) {
 		{A: map[string]int{"a": 1}}, {A: m1}, {A: m2},
 		{A: time.Unix(now.Unix(), int64(now.Nanosecond()))},
 	}
+	msgpack.StructAsArray = false
 
 	for _, v := range vs {
 		n := fmt.Sprint(v)
@@ -1962,13 +1963,19 @@ func TestExt(t *testing.T) {
 		encdec(t, encdecArg[ExtInt]{n: "RemoveCoder", v: v})
 	}
 
-	// error
-	enc2, dec2 := new(testExt2Encoder), new(testExt2Decoder)
-	err = msgpack.AddExtCoder(enc2, dec2)
-	ErrorContains(t, err, "code different")
+	t.Run("ErrorExtCoder", func(t *testing.T) {
+		err = msgpack.AddExtCoder(&testExt2Encoder{}, &testExt2Decoder{})
+		ErrorContains(t, err, "code different")
 
-	err = msgpack.RemoveExtCoder(enc2, dec2)
-	ErrorContains(t, err, "code different")
+		err = msgpack.RemoveExtCoder(&testExt2Encoder{}, &testExt2Decoder{})
+		ErrorContains(t, err, "code different")
+
+		err = msgpack.AddExtStreamCoder(&testExt2StreamEncoder{}, &testExt2StreamDecoder{})
+		ErrorContains(t, err, "code different")
+
+		err = msgpack.RemoveExtStreamCoder(&testExt2StreamEncoder{}, &testExt2StreamDecoder{})
+		ErrorContains(t, err, "code different")
+	})
 }
 
 type ExtStruct struct {
@@ -2110,10 +2117,7 @@ type testEncoder struct {
 	ext.EncoderCommon
 }
 
-var (
-	_ ext.Encoder = (*testEncoder)(nil)
-	//_ ext.StreamEncoder = (*testEncoder)(nil)
-)
+var _ ext.Encoder = (*testEncoder)(nil)
 
 func (s *testEncoder) Code() int8 {
 	return extIntCode
@@ -2229,40 +2233,79 @@ type Ext2Struct struct {
 }
 type Ext2Int Ext2Struct
 
-type testExt2Decoder struct {
-	ext.DecoderCommon
-}
+const (
+	testExt2DecoderCode = 3
+	testExt2EncoderCode = -3
+)
+
+type testExt2Decoder struct{}
+
+var _ ext.Decoder = (*testExt2Decoder)(nil)
 
 func (td *testExt2Decoder) Code() int8 {
-	return 3
+	return testExt2DecoderCode
 }
 
-func (td *testExt2Decoder) IsType(offset int, d *[]byte) bool {
+func (td *testExt2Decoder) IsType(_ int, _ *[]byte) bool {
 	return false
 }
 
-func (td *testExt2Decoder) AsValue(offset int, k reflect.Kind, d *[]byte) (interface{}, int, error) {
-	return Ext2Int{}, 0, fmt.Errorf("should not reach this line!! code %x decoding %v", 3, k)
+func (td *testExt2Decoder) AsValue(_ int, k reflect.Kind, _ *[]byte) (interface{}, int, error) {
+	return Ext2Int{}, 0, fmt.Errorf("should not reach this line!! code %x decoding %v", td.Code(), k)
+}
+
+type testExt2StreamDecoder struct{}
+
+var _ ext.StreamDecoder = (*testExt2StreamDecoder)(nil)
+
+func (td *testExt2StreamDecoder) Code() int8 {
+	return testExt2DecoderCode
+}
+
+func (td *testExt2StreamDecoder) IsType(_ byte, _ int8, _ int) bool {
+	return false
+}
+
+func (td *testExt2StreamDecoder) ToValue(_ byte, _ []byte, k reflect.Kind) (any, error) {
+	return Ext2Int{}, fmt.Errorf("should not reach this line!! code %x decoding %v", td.Code(), k)
 }
 
 type testExt2Encoder struct {
 	ext.EncoderCommon
 }
 
+var _ ext.Encoder = (*testExt2Encoder)(nil)
+
 func (s *testExt2Encoder) Code() int8 {
-	return -3
+	return testExt2EncoderCode
 }
 
 func (s *testExt2Encoder) Type() reflect.Type {
 	return reflect.TypeOf(ExtInt{})
 }
 
-func (s *testExt2Encoder) CalcByteSize(value reflect.Value) (int, error) {
+func (s *testExt2Encoder) CalcByteSize(_ reflect.Value) (int, error) {
 	return 0, nil
 }
 
-func (s *testExt2Encoder) WriteToBytes(value reflect.Value, offset int, bytes *[]byte) int {
+func (s *testExt2Encoder) WriteToBytes(_ reflect.Value, offset int, _ *[]byte) int {
 	return offset
+}
+
+type testExt2StreamEncoder struct{}
+
+var _ ext.StreamEncoder = (*testExt2StreamEncoder)(nil)
+
+func (s *testExt2StreamEncoder) Code() int8 {
+	return testExt2EncoderCode
+}
+
+func (s *testExt2StreamEncoder) Type() reflect.Type {
+	return reflect.TypeOf(ExtInt{})
+}
+
+func (s *testExt2StreamEncoder) Write(_ io.Writer, _ reflect.Value, _ *common.Buffer) error {
+	return fmt.Errorf("should not reach this line!! code %x", s.Code())
 }
 
 /////////////////////////////////////////////////////////
@@ -2358,73 +2401,6 @@ func encdec[T any](t *testing.T, args ...encdecArg[T]) {
 			}
 		})
 	}
-}
-
-func encdec3(t *testing.T, v, r interface{}, j func(byte) bool, errStr ...string) error {
-	t.Helper()
-
-	marshallers := []struct {
-		name string
-		m    marshaller
-	}{
-		{"Marshal", msgpack.Marshal},
-		{"MarshalWrite", func(v any) ([]byte, error) {
-			buf := bytes.Buffer{}
-			err := msgpack.MarshalWrite(&buf, v)
-			return buf.Bytes(), err
-		}},
-	}
-	unmarshallers := []struct {
-		name string
-		u    unmarshaller
-	}{
-		{"Unmarshal", msgpack.Unmarshal},
-		{"UnmarshalRead", func(data []byte, v any) error {
-			return msgpack.UnmarshalRead(bytes.NewReader(data), r)
-		}},
-	}
-
-	for _, m := range marshallers {
-		for _, u := range unmarshallers {
-			t.Run(m.name+"-"+u.name, func(t *testing.T) {
-				var e error
-				defer func() {
-					if e != nil {
-						if len(errStr) < 1 {
-							t.Fatalf("unexpected error: %v", e)
-						}
-						if !strings.Contains(e.Error(), errStr[0]) {
-							t.Fatalf("error does not contain '%s'. err: %v", errStr[0], e)
-						}
-					} else {
-						if len(errStr) > 0 {
-							t.Fatalf("error should occur, but nil")
-						}
-					}
-				}()
-
-				d, err := m.m(v)
-				if err != nil {
-					e = err
-					return
-				}
-				if j != nil && !j(d[0]) {
-					e = fmt.Errorf("different %s", hex.Dump(d))
-					return
-				}
-				if err = u.u(d, r); err != nil {
-					e = err
-					return
-				}
-				if err = equalCheck(v, r); err != nil {
-					e = err
-					return
-				}
-			})
-		}
-	}
-
-	return nil
 }
 
 // for check value

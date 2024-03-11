@@ -29,23 +29,7 @@ func Decode(r io.Reader, v interface{}, asArray bool) error {
 
 	rv = rv.Elem()
 
-	//bb := make([]byte, def.Byte32)
-	//buff := buf{
-	//	b:   bb,
-	//	b16: bb[:16],
-	//	b8:  bb[:8],
-	//	b4:  bb[:4],
-	//	b2:  bb[:2],
-	//	b1:  bb[:1],
-	//}
 	d := decoder{r: r,
-		//buf:     buff, // ここで先に参照を作る
-		//data:    bb,
-		//b16:     bb[:16],
-		//b8:      bb[:8],
-		//b4:      bb[:4],
-		//b2:      bb[:2],
-		//b1:      bb[:1],
 		buf:     common.GetBuffer(),
 		asArray: asArray,
 	}
@@ -150,10 +134,6 @@ func (d *decoder) decodeWithCode(code byte, rv reflect.Value) error {
 			return err
 		}
 
-		//if err = d.hasRequiredLeastSliceSize(o, l); err != nil {
-		//	return err
-		//}
-
 		// check fixed type
 		found, err := d.asFixedSlice(rv, l)
 		if err != nil {
@@ -244,11 +224,6 @@ func (d *decoder) decodeWithCode(code byte, rv reflect.Value) error {
 			return fmt.Errorf("%v len is %d, but msgpack has %d elements", rv.Type(), rv.Len(), l)
 		}
 
-		// todo : maybe enable to delete
-		//if err = d.hasRequiredLeastSliceSize(o, l); err != nil {
-		//	return err
-		//}
-
 		// create array dynamically
 		for i := 0; i < l; i++ {
 			err = d.decode(rv.Index(i))
@@ -268,11 +243,6 @@ func (d *decoder) decodeWithCode(code byte, rv reflect.Value) error {
 		if err != nil {
 			return err
 		}
-
-		// todo : maybe enable to delete
-		//if err = d.hasRequiredLeastMapSize(o, l); err != nil {
-		//	return err
-		//}
 
 		// check fixed type
 		found, err := d.asFixedMap(rv, l)

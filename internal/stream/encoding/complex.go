@@ -6,14 +6,6 @@ import (
 	"github.com/shamaton/msgpack/v2/def"
 )
 
-func (e *encoder) calcComplex64() int {
-	return def.Byte1 + def.Byte8
-}
-
-func (e *encoder) calcComplex128() int {
-	return def.Byte1 + def.Byte16
-}
-
 func (e *encoder) writeComplex64(v complex64) error {
 	if err := e.setByte1Int(def.Fixext8); err != nil {
 		return err
