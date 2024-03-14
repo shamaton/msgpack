@@ -2,9 +2,6 @@ package encoding
 
 func (e *encoder) setByte1Int64(value int64) error {
 	return e.buf.Write(e.w, byte(value))
-	//e.buf.B1[0] = byte(value)
-	//_, err := e.w.Write(e.buf.B1)
-	//return err
 }
 
 func (e *encoder) setByte2Int64(value int64) error {
@@ -93,6 +90,4 @@ func (e *encoder) setByte4Int(value int) error {
 
 func (e *encoder) setBytes(bs []byte) error {
 	return e.buf.Write(e.w, bs...)
-	//_, err := e.w.Write(bs)
-	//return err
 }
