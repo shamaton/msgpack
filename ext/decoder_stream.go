@@ -50,7 +50,8 @@ func (d *DecoderStreamCommon) ReadSizeN(r io.Reader, buf *common.Buffer, n int) 
 	if len(buf.Data) <= n {
 		b = buf.Data[:n]
 	} else {
-		b = make([]byte, n)
+		buf.Data = append(buf.Data, make([]byte, n-len(buf.Data))...)
+		b = buf.Data
 	}
 	if _, err := r.Read(b); err != nil {
 		return emptyBytes, err

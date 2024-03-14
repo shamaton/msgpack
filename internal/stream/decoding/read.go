@@ -41,7 +41,7 @@ func (d *decoder) readSizeN(n int) ([]byte, error) {
 		b = d.buf.Data[:n]
 	} else {
 		d.buf.Data = append(d.buf.Data, make([]byte, n-len(d.buf.Data))...)
-		b = make([]byte, n)
+		b = d.buf.Data
 	}
 	if _, err := d.r.Read(b); err != nil {
 		return emptyBytes, err
