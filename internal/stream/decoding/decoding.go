@@ -152,12 +152,13 @@ func (d *decoder) decodeWithCode(code byte, rv reflect.Value) error {
 				if err != nil {
 					return err
 				}
-				err = d.setStruct(structCode, v, k)
+				if err = d.setStruct(structCode, v, k); err != nil {
+					return err
+				}
 			} else {
-				err = d.decode(v)
-			}
-			if err != nil {
-				return err
+				if err = d.decode(v); err != nil {
+					return err
+				}
 			}
 		}
 		rv.Set(tmpSlice)
