@@ -14,27 +14,28 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        go: ['1.19', '1.20', '1.21']
+        go: ['1.20', '1.21', '1.22']
     name: ${{ matrix.os }} @ Go ${{ matrix.go }}
     runs-on: ${{ matrix.os }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: ${{ env.WORKSPACE }}
+
       - name: Set up Go ${{ matrix.go }}
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
 
       - name: Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          path: ${{ env.WORKSPACE }}
 
       - name: Build
         run: go build -v ./...
@@ -43,10 +44,10 @@ jobs:
         run: go test -v --coverpkg=github.com/shamaton/msgpack/... --coverprofile=coverage.coverprofile --covermode=atomic ./...
 
       - name: Upload coverage to Codecov
-        if: success() && matrix.go == '1.21' && matrix.os == 'ubuntu-latest'
-        uses: codecov/codecov-action@v1
+        if: success() && matrix.go == '1.22' && matrix.os == 'ubuntu-latest'
+        uses: codecov/codecov-action@v4
         with:
-          token:
+          token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
           working-directory: ${{ env.WORKSPACE }}
 
@@ -55,7 +56,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: ${{ env.WORKSPACE }}
       - name: golangci-lint
