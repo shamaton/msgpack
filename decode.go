@@ -10,13 +10,15 @@ import (
 // UnmarshalAsMap decodes data that is encoded as map format.
 // This is the same thing that StructAsArray sets false.
 func UnmarshalAsMap(data []byte, v interface{}) error {
-	return decoding.Decode(data, v, false)
+	_, err := decoding.Decode(data, v, false, true)
+	return err
 }
 
 // UnmarshalAsArray decodes data that is encoded as array format.
 // This is the same thing that StructAsArray sets true.
 func UnmarshalAsArray(data []byte, v interface{}) error {
-	return decoding.Decode(data, v, true)
+	_, err := decoding.Decode(data, v, true, true)
+	return err
 }
 
 // UnmarshalReadAsMap decodes from stream. stream data expects map format.
