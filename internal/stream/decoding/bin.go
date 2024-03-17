@@ -16,14 +16,6 @@ func (d *decoder) isCodeBin(v byte) bool {
 	return false
 }
 
-func (d *decoder) asBin(k reflect.Kind) ([]byte, error) {
-	code, err := d.readSize1()
-	if err != nil {
-		return emptyBytes, err
-	}
-	return d.asBinWithCode(code, k)
-}
-
 func (d *decoder) asBinWithCode(code byte, k reflect.Kind) ([]byte, error) {
 
 	switch code {
