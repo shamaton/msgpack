@@ -1,6 +1,7 @@
 package encoding
 
 import (
+	"fmt"
 	"math"
 	"reflect"
 	"sync"
@@ -137,4 +138,125 @@ func (e *encoder) getStructCache(rv reflect.Value) *structCache {
 		cachemap.Store(t, c)
 	}
 	return c
+}
+
+type structCalcFunc func(rv reflect.Value) (int, error)
+
+func (e *encoder) getStructCalc(typ reflect.Type) structCalcFunc {
+	for j := range extCoders {
+		if extCoders[j].Type() == typ {
+			//return extCoders[j].CalcByteSize
+		}
+	}
+	if e.asArray {
+		return e.calcStructArray
+	}
+	return e.calcStructMap
+
+}
+
+func (e *encoder) calcStruct(rv reflect.Value) (int, error) {
+	for i := range extCoders {
+		if extCoders[i].Type() == rv.Type() {
+			//return extCoders[i].CalcByteSize(rv)
+		}
+	}
+
+	if e.asArray {
+		return e.calcStructArray(rv)
+	}
+	return e.calcStructMap(rv)
+}
+
+func (e *encoder) calcStructArray(rv reflect.Value) (int, error) {
+	ret := 0
+	t := rv.Type()
+	cache, find := cachemap.Load(t)
+	var c *structCache
+	if !find {
+		c = &structCache{}
+		for i := 0; i < rv.NumField(); i++ {
+			field := t.Field(i)
+			if ok, name := e.CheckField(field); ok {
+				size, err := e.calcSize(rv.Field(i))
+				if err != nil {
+					return 0, err
+				}
+				ret += size
+				c.indexes = append(c.indexes, i)
+				c.names = append(c.names, name)
+			}
+		}
+		cachemap.Store(t, c)
+	} else {
+		c = cache.(*structCache)
+		for i := 0; i < len(c.indexes); i++ {
+			size, err := e.calcSize(rv.Field(c.indexes[i]))
+			if err != nil {
+				return 0, err
+			}
+			ret += size
+		}
+	}
+
+	// format size
+	l := len(c.indexes)
+	if l <= 0x0f {
+		// format code only
+	} else if l <= math.MaxUint16 {
+		ret += def.Byte2
+	} else if uint(l) <= math.MaxUint32 {
+		ret += def.Byte4
+	} else {
+		// not supported error
+		return 0, fmt.Errorf("not support this array length : %d", l)
+	}
+	return ret, nil
+}
+
+func (e *encoder) calcStructMap(rv reflect.Value) (int, error) {
+	ret := 0
+	t := rv.Type()
+	cache, find := cachemap.Load(t)
+	var c *structCache
+	if !find {
+		c = &structCache{}
+		for i := 0; i < rv.NumField(); i++ {
+			if ok, name := e.CheckField(rv.Type().Field(i)); ok {
+				keySize := def.Byte1 + e.calcString(name)
+				valueSize, err := e.calcSize(rv.Field(i))
+				if err != nil {
+					return 0, err
+				}
+				ret += keySize + valueSize
+				c.indexes = append(c.indexes, i)
+				c.names = append(c.names, name)
+			}
+		}
+		cachemap.Store(t, c)
+	} else {
+		c = cache.(*structCache)
+		for i := 0; i < len(c.indexes); i++ {
+			keySize := def.Byte1 + e.calcString(c.names[i])
+			valueSize, err := e.calcSize(rv.Field(c.indexes[i]))
+			if err != nil {
+				return 0, err
+			}
+			ret += keySize + valueSize
+		}
+	}
+
+	// format size
+	l := len(c.indexes)
+	if l <= 0x0f {
+		// format code only
+	} else if l <= math.MaxUint16 {
+		ret += def.Byte2
+	} else if uint(l) <= math.MaxUint32 {
+		ret += def.Byte4
+	} else {
+		// not supported error
+		return 0, fmt.Errorf("not support this array length : %d", l)
+	}
+	return ret, nil
 }

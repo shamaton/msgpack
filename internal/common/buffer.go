@@ -34,8 +34,18 @@ func (b *Buffer) Write(w io.Writer, vs ...byte) error {
 }
 
 func (b *Buffer) Flush(w io.Writer) error {
-	_, err := w.Write(b.Data[:b.offset])
+	_, err := w.Write(b.Bytes())
 	return err
+}
+
+func (b *Buffer) Grow(size int) {
+	if size > len(b.Data) {
+		b.Data = append(b.Data, make([]byte, size-len(b.Data))...)
+	}
+}
+
+func (b *Buffer) Bytes() []byte {
+	return b.Data[:b.offset]
 }
 
 var bufPool = sync.Pool{

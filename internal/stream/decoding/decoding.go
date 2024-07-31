@@ -1,6 +1,7 @@
 package decoding
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"reflect"
@@ -30,6 +31,23 @@ func Decode(r io.Reader, v interface{}, asArray bool) error {
 	rv = rv.Elem()
 
 	d := decoder{r: r,
+		buf:     common.GetBuffer(),
+		asArray: asArray,
+	}
+	err := d.decode(rv)
+	common.PutBuffer(d.buf)
+	return err
+}
+
+func Decode2(data []byte, v interface{}, asArray bool) error {
+	rv := reflect.ValueOf(v)
+	if rv.Kind() != reflect.Ptr {
+		return fmt.Errorf("holder must set pointer value. but got: %t", v)
+	}
+
+	rv = rv.Elem()
+
+	d := decoder{r: bytes.NewReader(data),
 		buf:     common.GetBuffer(),
 		asArray: asArray,
 	}

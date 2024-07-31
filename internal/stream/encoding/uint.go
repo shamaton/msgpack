@@ -42,3 +42,17 @@ func (e *encoder) writeUint(v uint64) error {
 	}
 	return nil
 }
+
+func (*encoder) calcUint(v uint64) int {
+	if v <= math.MaxInt8 {
+		// format code only
+		return 0
+	} else if v <= math.MaxUint8 {
+		return def.Byte1
+	} else if v <= math.MaxUint16 {
+		return def.Byte2
+	} else if v <= math.MaxUint32 {
+		return def.Byte4
+	}
+	return def.Byte8
+}

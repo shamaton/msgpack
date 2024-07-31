@@ -37,3 +37,11 @@ func (e *encoder) writeComplex128(v complex128) error {
 	}
 	return nil
 }
+
+func (e *encoder) calcComplex64() int {
+	return def.Byte1 + def.Byte8
+}
+
+func (e *encoder) calcComplex128() int {
+	return def.Byte1 + def.Byte16
+}

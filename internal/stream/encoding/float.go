@@ -25,3 +25,11 @@ func (e *encoder) writeFloat64(v float64) error {
 	}
 	return nil
 }
+
+func (e *encoder) calcFloat32(_ float64) int {
+	return def.Byte4
+}
+
+func (e *encoder) calcFloat64(_ float64) int {
+	return def.Byte8
+}

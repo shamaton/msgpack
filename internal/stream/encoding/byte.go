@@ -1,6 +1,7 @@
 package encoding
 
 import (
+	"fmt"
 	"math"
 	"reflect"
 
@@ -37,4 +38,16 @@ func (e *encoder) writeByteSliceLength(l int) error {
 		}
 	}
 	return nil
+}
+
+func (e *encoder) calcByteSlice(l int) (int, error) {
+	if l <= math.MaxUint8 {
+		return def.Byte1 + l, nil
+	} else if l <= math.MaxUint16 {
+		return def.Byte2 + l, nil
+	} else if uint(l) <= math.MaxUint32 {
+		return def.Byte4 + l, nil
+	}
+	// not supported error
+	return 0, fmt.Errorf("not support this array length : %d", l)
 }

@@ -149,3 +149,93 @@ func (e *encoder) writeFixedSlice(rv reflect.Value) (bool, error) {
 
 	return false, nil
 }
+
+func (e *encoder) calcFixedSlice(rv reflect.Value) (int, bool) {
+	size := 0
+
+	switch sli := rv.Interface().(type) {
+	case []int:
+		for _, v := range sli {
+			size += def.Byte1 + e.calcInt(int64(v))
+		}
+		return size, true
+
+	case []uint:
+		for _, v := range sli {
+			size += def.Byte1 + e.calcUint(uint64(v))
+		}
+		return size, true
+
+	case []string:
+		for _, v := range sli {
+			size += def.Byte1 + e.calcString(v)
+		}
+		return size, true
+
+	case []float32:
+		for _, v := range sli {
+			size += def.Byte1 + e.calcFloat32(float64(v))
+		}
+		return size, true
+
+	case []float64:
+		for _, v := range sli {
+			size += def.Byte1 + e.calcFloat64(v)
+		}
+		return size, true
+
+	case []bool:
+		size += def.Byte1 * len(sli)
+		return size, true
+
+	case []int8:
+		for _, v := range sli {
+			size += def.Byte1 + e.calcInt(int64(v))
+		}
+		return size, true
+
+	case []int16:
+		for _, v := range sli {
+			size += def.Byte1 + e.calcInt(int64(v))
+		}
+		return size, true
+
+	case []int32:
+		for _, v := range sli {
+			size += def.Byte1 + e.calcInt(int64(v))
+		}
+		return size, true
+
+	case []int64:
+		for _, v := range sli {
+			size += def.Byte1 + e.calcInt(v)
+		}
+		return size, true
+
+	case []uint8:
+		for _, v := range sli {
+			size += def.Byte1 + e.calcUint(uint64(v))
+		}
+		return size, true
+
+	case []uint16:
+		for _, v := range sli {
+			size += def.Byte1 + e.calcUint(uint64(v))
+		}
+		return size, true
+
+	case []uint32:
+		for _, v := range sli {
+			size += def.Byte1 + e.calcUint(uint64(v))
+		}
+		return size, true
+
+	case []uint64:
+		for _, v := range sli {
+			size += def.Byte1 + e.calcUint(v)
+		}
+		return size, true
+	}
+
+	return size, false
+}
