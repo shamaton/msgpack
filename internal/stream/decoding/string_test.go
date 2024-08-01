@@ -3,13 +3,14 @@ package decoding
 import (
 	"bytes"
 	"errors"
-	"github.com/shamaton/msgpack/v2/def"
-	"github.com/shamaton/msgpack/v2/internal/common"
-	"github.com/shamaton/msgpack/v2/internal/common/testutil"
 	"io"
 	"math"
 	"reflect"
 	"testing"
+
+	"github.com/shamaton/msgpack/v2/def"
+	"github.com/shamaton/msgpack/v2/internal/common"
+	"github.com/shamaton/msgpack/v2/internal/common/testutil"
 )
 
 var errReaderErr = errors.New("reader error")
@@ -97,4 +98,25 @@ func Test_stringByteLength(t *testing.T) {
 			})
 		})
 	}
+}
+
+func Test_asString(t *testing.T) {
+	t.Run("read error", func(t *testing.T) {
+		d := decoder{
+			r:   &errReader{},
+			buf: common.GetBuffer(),
+		}
+		v, err := d.asString(reflect.String)
+		testutil.IsError(t, err, errReaderErr)
+		testutil.Equal(t, v, emptyString)
+	})
+	t.Run("ok", func(t *testing.T) {
+		d := decoder{
+			r:   bytes.NewReader([]byte{def.FixStr + 1, 'a'}),
+			buf: common.GetBuffer(),
+		}
+		v, err := d.asString(reflect.String)
+		testutil.NoError(t, err)
+		testutil.Equal(t, v, "a")
+	})
 }
