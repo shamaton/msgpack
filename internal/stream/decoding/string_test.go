@@ -2,7 +2,6 @@ package decoding
 
 import (
 	"bytes"
-	"errors"
 	"io"
 	"math"
 	"reflect"
@@ -10,16 +9,8 @@ import (
 
 	"github.com/shamaton/msgpack/v2/def"
 	"github.com/shamaton/msgpack/v2/internal/common"
-	"github.com/shamaton/msgpack/v2/internal/common/testutil"
+	tu "github.com/shamaton/msgpack/v2/internal/common/testutil"
 )
-
-var errReaderErr = errors.New("reader error")
-
-type errReader struct{}
-
-func (errReader) Read(p []byte) (n int, err error) {
-	return 0, errReaderErr
-}
 
 func Test_stringByteLength(t *testing.T) {
 	testcases := []struct {
@@ -69,12 +60,12 @@ func Test_stringByteLength(t *testing.T) {
 					return
 				}
 				d := decoder{
-					r:   &errReader{},
+					r:   tu.NewErrReader(),
 					buf: common.GetBuffer(),
 				}
 				defer common.PutBuffer(d.buf)
 				_, err := d.stringByteLength(tc.code, reflect.String)
-				testutil.IsError(t, err, errReaderErr)
+				tu.IsError(t, err, tu.ErrReaderErr)
 			})
 			t.Run("ok", func(t *testing.T) {
 				data := make([]byte, tc.length)
@@ -88,13 +79,13 @@ func Test_stringByteLength(t *testing.T) {
 				}
 				defer common.PutBuffer(d.buf)
 				v, err := d.stringByteLength(tc.code, reflect.String)
-				testutil.NoError(t, err)
-				testutil.Equal(t, v, tc.expected)
+				tu.NoError(t, err)
+				tu.Equal(t, v, tc.expected)
 
 				p := make([]byte, 1)
 				n, err := d.r.Read(p)
-				testutil.IsError(t, err, io.EOF)
-				testutil.Equal(t, n, 0)
+				tu.IsError(t, err, io.EOF)
+				tu.Equal(t, n, 0)
 			})
 		})
 	}
@@ -103,12 +94,12 @@ func Test_stringByteLength(t *testing.T) {
 func Test_asString(t *testing.T) {
 	t.Run("read error", func(t *testing.T) {
 		d := decoder{
-			r:   &errReader{},
+			r:   tu.NewErrReader(),
 			buf: common.GetBuffer(),
 		}
 		v, err := d.asString(reflect.String)
-		testutil.IsError(t, err, errReaderErr)
-		testutil.Equal(t, v, emptyString)
+		tu.IsError(t, err, tu.ErrReaderErr)
+		tu.Equal(t, v, emptyString)
 	})
 	t.Run("ok", func(t *testing.T) {
 		d := decoder{
@@ -116,7 +107,28 @@ func Test_asString(t *testing.T) {
 			buf: common.GetBuffer(),
 		}
 		v, err := d.asString(reflect.String)
-		testutil.NoError(t, err)
-		testutil.Equal(t, v, "a")
+		tu.NoError(t, err)
+		tu.Equal(t, v, "a")
+	})
+}
+
+func Test_asStringByte(t *testing.T) {
+	t.Run("read error", func(t *testing.T) {
+		d := decoder{
+			r:   tu.NewErrReader(),
+			buf: common.GetBuffer(),
+		}
+		v, err := d.asStringByte(reflect.String)
+		tu.IsError(t, err, tu.ErrReaderErr)
+		tu.EqualSlice(t, v, emptyBytes)
+	})
+	t.Run("ok", func(t *testing.T) {
+		d := decoder{
+			r:   bytes.NewReader([]byte{def.FixStr + 1, 'a'}),
+			buf: common.GetBuffer(),
+		}
+		v, err := d.asStringByte(reflect.String)
+		tu.NoError(t, err)
+		tu.EqualSlice(t, v, []byte("a"))
 	})
 }
