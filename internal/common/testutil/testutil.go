@@ -2,6 +2,7 @@ package testutil
 
 import (
 	"errors"
+	"maps"
 	"strings"
 	"testing"
 )
@@ -51,5 +52,15 @@ func EqualSlice[T comparable](t *testing.T, actual, expected []T) {
 	}
 	for i := range actual {
 		Equal[T](t, actual[i], expected[i])
+	}
+}
+
+func EqualMap[K comparable, V comparable](t *testing.T, actual, expected map[K]V) {
+	t.Helper()
+	if len(actual) != len(expected) {
+		t.Fatalf("diffrent length. actual: %v, expected: %v", actual, expected)
+	}
+	if !maps.Equal(actual, expected) {
+		t.Fatalf("not equal. actual: %v, expected: %v", actual, expected)
 	}
 }
