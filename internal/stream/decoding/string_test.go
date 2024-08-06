@@ -66,10 +66,11 @@ func Test_asString(t *testing.T) {
 	}
 	testcases := AsXXXTestCases[string]{
 		{
-			Name:     "String.error",
-			Data:     []byte{def.FixStr + 1},
-			Error:    io.EOF,
-			MethodAs: method,
+			Name:      "String.error",
+			Data:      []byte{def.FixStr + 1},
+			Error:     io.EOF,
+			ReadCount: 1,
+			MethodAs:  method,
 		},
 		{
 			Name:      "String.ok",
