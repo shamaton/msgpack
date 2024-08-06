@@ -100,6 +100,14 @@ func Test_asInterfaceWithCode(t *testing.T) {
 			MethodAsWithCode: method,
 		},
 		{
+			Name:             "Float32.ok",
+			Code:             def.Float32,
+			Data:             []byte{63, 128, 0, 0},
+			Expected:         float32(1),
+			ReadCount:        1,
+			MethodAsWithCode: method,
+		},
+		{
 			Name:             "Float64.error",
 			Code:             def.Float64,
 			Error:            io.EOF,
@@ -179,6 +187,14 @@ func Test_asInterfaceWithCode(t *testing.T) {
 		},
 		{
 			Name:             "Ext.error",
+			Code:             def.Fixext1,
+			Data:             []byte{},
+			ReadCount:        0,
+			Error:            io.EOF,
+			MethodAsWithCode: method,
+		},
+		{
+			Name:             "ExtCoder.error",
 			Code:             def.Fixext1,
 			Data:             []byte{3, 0},
 			ReadCount:        2,
