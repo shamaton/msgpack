@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/shamaton/msgpack/v2/internal/common"
 	"io"
 	"math"
 	"math/rand"
@@ -14,6 +13,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/shamaton/msgpack/v2/internal/common"
 
 	"github.com/shamaton/msgpack/v2"
 	"github.com/shamaton/msgpack/v2/def"
