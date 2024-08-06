@@ -416,7 +416,7 @@ func TestComplex(t *testing.T) {
 			{
 				n: "Nil",
 				v: nil,
-				e: "should not reach this line",
+				e: "invalid code c0 decoding",
 			},
 		}
 		encdec(t, args...)
