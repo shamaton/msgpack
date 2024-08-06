@@ -1,15 +1,12 @@
 package decoding
 
 import (
-	"bytes"
 	"io"
 	"math"
 	"reflect"
 	"testing"
 
 	"github.com/shamaton/msgpack/v2/def"
-	"github.com/shamaton/msgpack/v2/internal/common"
-	tu "github.com/shamaton/msgpack/v2/internal/common/testutil"
 )
 
 func Test_stringByteLength(t *testing.T) {
@@ -87,22 +84,27 @@ func Test_asString(t *testing.T) {
 }
 
 func Test_asStringByte(t *testing.T) {
-	t.Run("read error", func(t *testing.T) {
-		d := decoder{
-			r:   tu.NewErrReader(),
-			buf: common.GetBuffer(),
-		}
-		v, err := d.asStringByte(reflect.String)
-		tu.IsError(t, err, tu.ErrReaderErr)
-		tu.EqualSlice(t, v, emptyBytes)
-	})
-	t.Run("ok", func(t *testing.T) {
-		d := decoder{
-			r:   bytes.NewReader([]byte{def.FixStr + 1, 'a'}),
-			buf: common.GetBuffer(),
-		}
-		v, err := d.asStringByte(reflect.String)
-		tu.NoError(t, err)
-		tu.EqualSlice(t, v, []byte("a"))
-	})
+	method := func(d *decoder) func(reflect.Kind) ([]byte, error) {
+		return d.asStringByte
+	}
+	testcases := AsXXXTestCases[[]byte]{
+		{
+			Name:      "error",
+			Data:      []byte{def.FixStr + 1},
+			Error:     io.EOF,
+			ReadCount: 1,
+			MethodAs:  method,
+		},
+		{
+			Name:      "ok",
+			Data:      []byte{def.FixStr + 1, 'a'},
+			Expected:  []byte{'a'},
+			ReadCount: 2,
+			MethodAs:  method,
+		},
+	}
+
+	for _, tc := range testcases {
+		tc.Run(t)
+	}
 }

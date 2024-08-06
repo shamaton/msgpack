@@ -10,7 +10,7 @@ import (
 	tu "github.com/shamaton/msgpack/v2/internal/common/testutil"
 )
 
-type AsXXXTestCase[T comparable] struct {
+type AsXXXTestCase[T any] struct {
 	Name             string
 	Code             byte
 	Data             []byte
@@ -23,7 +23,7 @@ type AsXXXTestCase[T comparable] struct {
 	MethodAsCustom   func(d *decoder) (T, error)
 }
 
-type AsXXXTestCases[T comparable] []AsXXXTestCase[T]
+type AsXXXTestCases[T any] []AsXXXTestCase[T]
 
 func (tc *AsXXXTestCase[T]) Run(t *testing.T) {
 	const kind = reflect.String

@@ -2,6 +2,7 @@ package testutil
 
 import (
 	"errors"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -37,9 +38,9 @@ func ErrorContains(t *testing.T, err error, errStr string) {
 	}
 }
 
-func Equal[T comparable](t *testing.T, actual, expected T) {
+func Equal[T any](t *testing.T, actual, expected T) {
 	t.Helper()
-	if actual != expected {
+	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("not equal. actual: %v, expected: %v", actual, expected)
 	}
 }
