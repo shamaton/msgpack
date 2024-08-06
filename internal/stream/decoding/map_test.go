@@ -23,7 +23,6 @@ func Test_mapLength(t *testing.T) {
 			Code:             def.FixMap + 3,
 			Expected:         3,
 			MethodAsWithCode: method,
-			IsSkipNgCase:     true,
 		},
 		{
 			Name:             "Map16",
@@ -44,7 +43,6 @@ func Test_mapLength(t *testing.T) {
 		{
 			Name:             "Unexpected",
 			Code:             def.Nil,
-			IsSkipNgCase:     true,
 			IsTemplateError:  true,
 			MethodAsWithCode: method,
 		},
@@ -81,7 +79,6 @@ func Test_asFixedMap_StringInt(t *testing.T) {
 				Data:            []byte{def.Int32},
 				Expected:        false,
 				MethodAsCustom:  method,
-				IsSkipNgCase:    true,
 				IsTemplateError: true,
 			},
 			{
@@ -90,7 +87,6 @@ func Test_asFixedMap_StringInt(t *testing.T) {
 				Data:            []byte{def.FixStr + 1, 'a', def.Str8},
 				Expected:        false,
 				MethodAsCustom:  method,
-				IsSkipNgCase:    true,
 				IsTemplateError: true,
 			},
 			{
@@ -99,7 +95,6 @@ func Test_asFixedMap_StringInt(t *testing.T) {
 				Expected:       true,
 				ReadCount:      3,
 				MethodAsCustom: method,
-				IsSkipNgCase:   true,
 			},
 		}
 		for _, tc := range testcases {
@@ -139,7 +134,6 @@ func Test_asFixedMap_StringUint(t *testing.T) {
 				Data:            []byte{def.Int32},
 				Expected:        false,
 				MethodAsCustom:  method,
-				IsSkipNgCase:    true,
 				IsTemplateError: true,
 			},
 			{
@@ -148,7 +142,6 @@ func Test_asFixedMap_StringUint(t *testing.T) {
 				Data:            []byte{def.FixStr + 1, 'a', def.Str8},
 				Expected:        false,
 				MethodAsCustom:  method,
-				IsSkipNgCase:    true,
 				IsTemplateError: true,
 			},
 			{
@@ -157,7 +150,6 @@ func Test_asFixedMap_StringUint(t *testing.T) {
 				Expected:       true,
 				ReadCount:      4,
 				MethodAsCustom: method,
-				IsSkipNgCase:   true,
 			},
 		}
 		for _, tc := range testcases {
@@ -197,7 +189,6 @@ func Test_asFixedMap_StringFloat(t *testing.T) {
 				Data:            []byte{def.Int32},
 				Expected:        false,
 				MethodAsCustom:  method,
-				IsSkipNgCase:    true,
 				IsTemplateError: true,
 			},
 			{
@@ -206,7 +197,6 @@ func Test_asFixedMap_StringFloat(t *testing.T) {
 				Data:            []byte{def.FixStr + 1, 'a', def.Str8},
 				Expected:        false,
 				MethodAsCustom:  method,
-				IsSkipNgCase:    true,
 				IsTemplateError: true,
 			},
 			{
@@ -215,7 +205,6 @@ func Test_asFixedMap_StringFloat(t *testing.T) {
 				Expected:       true,
 				ReadCount:      4,
 				MethodAsCustom: method,
-				IsSkipNgCase:   true,
 			},
 		}
 		for _, tc := range testcases {
@@ -246,7 +235,6 @@ func Test_asFixedMap_StringBool(t *testing.T) {
 				Data:            []byte{def.Int32},
 				Expected:        false,
 				MethodAsCustom:  method,
-				IsSkipNgCase:    true,
 				IsTemplateError: true,
 			},
 			{
@@ -255,7 +243,6 @@ func Test_asFixedMap_StringBool(t *testing.T) {
 				Data:            []byte{def.FixStr + 1, 'a', def.Str8},
 				Expected:        false,
 				MethodAsCustom:  method,
-				IsSkipNgCase:    true,
 				IsTemplateError: true,
 			},
 			{
@@ -264,7 +251,6 @@ func Test_asFixedMap_StringBool(t *testing.T) {
 				Expected:       true,
 				ReadCount:      3,
 				MethodAsCustom: method,
-				IsSkipNgCase:   true,
 			},
 		}
 		for _, tc := range testcases {
@@ -292,7 +278,6 @@ func Test_asFixedMap_StringString(t *testing.T) {
 				Data:            []byte{def.Int32},
 				Expected:        false,
 				MethodAsCustom:  method,
-				IsSkipNgCase:    true,
 				IsTemplateError: true,
 			},
 			{
@@ -301,7 +286,6 @@ func Test_asFixedMap_StringString(t *testing.T) {
 				Data:            []byte{def.FixStr + 1, 'a', def.Int32},
 				Expected:        false,
 				MethodAsCustom:  method,
-				IsSkipNgCase:    true,
 				IsTemplateError: true,
 			},
 			{
@@ -310,7 +294,6 @@ func Test_asFixedMap_StringString(t *testing.T) {
 				Expected:       true,
 				ReadCount:      4,
 				MethodAsCustom: method,
-				IsSkipNgCase:   true,
 			},
 		}
 		for _, tc := range testcases {
@@ -338,7 +321,6 @@ func Test_asFixedMap_IntString(t *testing.T) {
 				Data:            []byte{def.Str8},
 				Expected:        false,
 				MethodAsCustom:  method,
-				IsSkipNgCase:    true,
 				IsTemplateError: true,
 			},
 			{
@@ -347,7 +329,6 @@ func Test_asFixedMap_IntString(t *testing.T) {
 				Data:            []byte{def.Int8, dv, def.Int32},
 				Expected:        false,
 				MethodAsCustom:  method,
-				IsSkipNgCase:    true,
 				IsTemplateError: true,
 			},
 			{
@@ -356,7 +337,6 @@ func Test_asFixedMap_IntString(t *testing.T) {
 				Expected:       true,
 				ReadCount:      4,
 				MethodAsCustom: method,
-				IsSkipNgCase:   true,
 			},
 		}
 		for _, tc := range testcases {
@@ -396,7 +376,6 @@ func Test_asFixedMap_IntBool(t *testing.T) {
 				Data:            []byte{def.Str8},
 				Expected:        false,
 				MethodAsCustom:  method,
-				IsSkipNgCase:    true,
 				IsTemplateError: true,
 			},
 			{
@@ -405,7 +384,6 @@ func Test_asFixedMap_IntBool(t *testing.T) {
 				Data:            []byte{def.Int8, dv, def.Int32},
 				Expected:        false,
 				MethodAsCustom:  method,
-				IsSkipNgCase:    true,
 				IsTemplateError: true,
 			},
 			{
@@ -414,7 +392,6 @@ func Test_asFixedMap_IntBool(t *testing.T) {
 				Expected:       true,
 				ReadCount:      3,
 				MethodAsCustom: method,
-				IsSkipNgCase:   true,
 			},
 		}
 		for _, tc := range testcases {
@@ -454,7 +431,6 @@ func Test_asFixedMap_UintString(t *testing.T) {
 				Data:            []byte{def.Str8},
 				Expected:        false,
 				MethodAsCustom:  method,
-				IsSkipNgCase:    true,
 				IsTemplateError: true,
 			},
 			{
@@ -463,7 +439,6 @@ func Test_asFixedMap_UintString(t *testing.T) {
 				Data:            []byte{def.Uint8, dv, def.Int32},
 				Expected:        false,
 				MethodAsCustom:  method,
-				IsSkipNgCase:    true,
 				IsTemplateError: true,
 			},
 			{
@@ -472,7 +447,6 @@ func Test_asFixedMap_UintString(t *testing.T) {
 				Expected:       true,
 				ReadCount:      4,
 				MethodAsCustom: method,
-				IsSkipNgCase:   true,
 			},
 		}
 		for _, tc := range testcases {
@@ -512,7 +486,6 @@ func Test_asFixedMap_UintBool(t *testing.T) {
 				Data:            []byte{def.Str8},
 				Expected:        false,
 				MethodAsCustom:  method,
-				IsSkipNgCase:    true,
 				IsTemplateError: true,
 			},
 			{
@@ -521,7 +494,6 @@ func Test_asFixedMap_UintBool(t *testing.T) {
 				Data:            []byte{def.Uint8, dv, def.Int32},
 				Expected:        false,
 				MethodAsCustom:  method,
-				IsSkipNgCase:    true,
 				IsTemplateError: true,
 			},
 			{
@@ -530,7 +502,6 @@ func Test_asFixedMap_UintBool(t *testing.T) {
 				Expected:       true,
 				ReadCount:      3,
 				MethodAsCustom: method,
-				IsSkipNgCase:   true,
 			},
 		}
 		for _, tc := range testcases {
@@ -570,7 +541,6 @@ func Test_asFixedMap_FloatString(t *testing.T) {
 				Data:            []byte{def.Str8},
 				Expected:        false,
 				MethodAsCustom:  method,
-				IsSkipNgCase:    true,
 				IsTemplateError: true,
 			},
 			{
@@ -579,7 +549,6 @@ func Test_asFixedMap_FloatString(t *testing.T) {
 				Data:            []byte{def.Uint8, dv, def.Int32},
 				Expected:        false,
 				MethodAsCustom:  method,
-				IsSkipNgCase:    true,
 				IsTemplateError: true,
 			},
 			{
@@ -588,7 +557,6 @@ func Test_asFixedMap_FloatString(t *testing.T) {
 				Expected:       true,
 				ReadCount:      4,
 				MethodAsCustom: method,
-				IsSkipNgCase:   true,
 			},
 		}
 		for _, tc := range testcases {
@@ -614,21 +582,21 @@ func Test_asFixedMap_FloatBool(t *testing.T) {
 		name := fmt.Sprintf("%T", v)
 		testcases := AsXXXTestCases[bool]{
 			{
-				Name:            name + ".error.asFloat",
-				Code:            def.Str8,
-				Data:            []byte{def.Str8},
-				Expected:        false,
-				MethodAsCustom:  method,
-				IsSkipNgCase:    true,
+				Name:           name + ".error.asFloat",
+				Code:           def.Str8,
+				Data:           []byte{def.Str8},
+				Expected:       false,
+				MethodAsCustom: method,
+
 				IsTemplateError: true,
 			},
 			{
-				Name:            name + ".error.asBool",
-				Code:            def.Int32,
-				Data:            []byte{def.Uint8, dv, def.Int32},
-				Expected:        false,
-				MethodAsCustom:  method,
-				IsSkipNgCase:    true,
+				Name:           name + ".error.asBool",
+				Code:           def.Int32,
+				Data:           []byte{def.Uint8, dv, def.Int32},
+				Expected:       false,
+				MethodAsCustom: method,
+
 				IsTemplateError: true,
 			},
 			{
@@ -637,7 +605,6 @@ func Test_asFixedMap_FloatBool(t *testing.T) {
 				Expected:       true,
 				ReadCount:      3,
 				MethodAsCustom: method,
-				IsSkipNgCase:   true,
 			},
 		}
 		for _, tc := range testcases {

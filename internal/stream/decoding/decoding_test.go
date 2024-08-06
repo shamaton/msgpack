@@ -15,10 +15,8 @@ type AsXXXTestCase[T comparable] struct {
 	Code             byte
 	Data             []byte
 	ReadCount        int
-	Length           int
 	Expected         T
-	IsSkipNgCase     bool
-	IsSkipOkCase     bool
+	Error            error
 	IsTemplateError  bool
 	MethodAs         func(d *decoder) func(reflect.Kind) (T, error)
 	MethodAsWithCode func(d *decoder) func(byte, reflect.Kind) (T, error)
@@ -49,51 +47,30 @@ func (tc *AsXXXTestCase[T]) Run(t *testing.T) {
 	}
 
 	t.Run(tc.Name, func(t *testing.T) {
-		t.Run("read error", func(t *testing.T) {
-			if tc.IsSkipNgCase {
-				t.Log("this testcase is skipped by skip flag")
-				return
-			}
-			d := decoder{
-				r:   tu.NewErrReader(),
-				buf: common.GetBuffer(),
-			}
-			defer common.PutBuffer(d.buf)
-
-			_, err := methodAs(&d)
-			tu.IsError(t, err, tu.ErrReaderErr)
-		})
-
-		name := "ok"
-		if tc.IsTemplateError {
-			name += " but template error"
+		r := tu.NewTestReader(tc.Data)
+		d := decoder{
+			r:   r,
+			buf: common.GetBuffer(),
 		}
-		t.Run(name, func(t *testing.T) {
-			if tc.IsSkipOkCase {
-				t.Log("this testcase is skipped by skip flag")
-				return
-			}
+		defer common.PutBuffer(d.buf)
 
-			r := tu.NewTestReader(tc.Data)
-			d := decoder{
-				r:   r,
-				buf: common.GetBuffer(),
-			}
-			defer common.PutBuffer(d.buf)
+		v, err := methodAs(&d)
+		tu.Equal(t, r.Count(), tc.ReadCount)
 
-			v, err := methodAs(&d)
-			if tc.IsTemplateError {
-				tu.ErrorContains(t, err, fmt.Sprintf("msgpack : invalid code %x", tc.Code))
-				return
-			}
-			tu.NoError(t, err)
-			tu.Equal(t, v, tc.Expected)
-			tu.Equal(t, r.Count(), tc.ReadCount)
+		if tc.Error != nil {
+			tu.IsError(t, err, tc.Error)
+			return
+		}
+		if tc.IsTemplateError {
+			tu.ErrorContains(t, err, fmt.Sprintf("msgpack : invalid code %x", tc.Code))
+			return
+		}
+		tu.NoError(t, err)
+		tu.Equal(t, v, tc.Expected)
 
-			p := make([]byte, 1)
-			n, err := d.r.Read(p)
-			tu.IsError(t, err, io.EOF)
-			tu.Equal(t, n, 0)
-		})
+		p := make([]byte, 1)
+		n, err := d.r.Read(p)
+		tu.IsError(t, err, io.EOF)
+		tu.Equal(t, n, 0)
 	})
 }

@@ -13,103 +13,76 @@ import (
 )
 
 func Test_stringByteLength(t *testing.T) {
-	testcases := []struct {
-		name     string
-		code     byte
-		length   int
-		expected int
-		errSkip  bool
-	}{
+	method := func(d *decoder) func(byte, reflect.Kind) (int, error) {
+		return d.stringByteLength
+	}
+	testcases := AsXXXTestCases[int]{
 		{
-			name:     "FixStr",
-			code:     def.FixStr + 1,
-			expected: 1,
-			errSkip:  true,
+			Name:             "FixStr",
+			Code:             def.FixStr + 1,
+			Expected:         1,
+			MethodAsWithCode: method,
 		},
 		{
-			name:     "Str8",
-			code:     def.Str8,
-			length:   1,
-			expected: math.MaxUint8,
+			Name:             "Str8",
+			Code:             def.Str8,
+			Data:             []byte{0xff},
+			Expected:         math.MaxUint8,
+			ReadCount:        1,
+			MethodAsWithCode: method,
 		},
 		{
-			name:     "Str16",
-			code:     def.Str16,
-			length:   2,
-			expected: math.MaxUint16,
+			Name:             "Str16",
+			Code:             def.Str16,
+			Data:             []byte{0xff, 0xff},
+			Expected:         math.MaxUint16,
+			ReadCount:        1,
+			MethodAsWithCode: method,
 		},
 		{
-			name:     "Str32",
-			code:     def.Str32,
-			length:   4,
-			expected: math.MaxUint32,
+			Name:             "Str32",
+			Code:             def.Str32,
+			Data:             []byte{0xff, 0xff, 0xff, 0xff},
+			Expected:         math.MaxUint32,
+			ReadCount:        1,
+			MethodAsWithCode: method,
 		},
 		{
-			name:     "Nil",
-			code:     def.Nil,
-			expected: 0,
-			errSkip:  true,
+			Name:             "Nil",
+			Code:             def.Nil,
+			Expected:         0,
+			MethodAsWithCode: method,
 		},
 	}
 
 	for _, tc := range testcases {
-		t.Run(tc.name+"", func(t *testing.T) {
-			t.Run("ng", func(t *testing.T) {
-				if tc.errSkip {
-					t.Log("this testcase is skipped by skip flag")
-					return
-				}
-				d := decoder{
-					r:   tu.NewErrReader(),
-					buf: common.GetBuffer(),
-				}
-				defer common.PutBuffer(d.buf)
-				_, err := d.stringByteLength(tc.code, reflect.String)
-				tu.IsError(t, err, tu.ErrReaderErr)
-			})
-			t.Run("ok", func(t *testing.T) {
-				data := make([]byte, tc.length)
-				for i := range data {
-					data[i] = 0xff
-				}
-
-				d := decoder{
-					r:   bytes.NewReader(data),
-					buf: common.GetBuffer(),
-				}
-				defer common.PutBuffer(d.buf)
-				v, err := d.stringByteLength(tc.code, reflect.String)
-				tu.NoError(t, err)
-				tu.Equal(t, v, tc.expected)
-
-				p := make([]byte, 1)
-				n, err := d.r.Read(p)
-				tu.IsError(t, err, io.EOF)
-				tu.Equal(t, n, 0)
-			})
-		})
+		tc.Run(t)
 	}
 }
 
 func Test_asString(t *testing.T) {
-	t.Run("read error", func(t *testing.T) {
-		d := decoder{
-			r:   tu.NewErrReader(),
-			buf: common.GetBuffer(),
-		}
-		v, err := d.asString(reflect.String)
-		tu.IsError(t, err, tu.ErrReaderErr)
-		tu.Equal(t, v, emptyString)
-	})
-	t.Run("ok", func(t *testing.T) {
-		d := decoder{
-			r:   bytes.NewReader([]byte{def.FixStr + 1, 'a'}),
-			buf: common.GetBuffer(),
-		}
-		v, err := d.asString(reflect.String)
-		tu.NoError(t, err)
-		tu.Equal(t, v, "a")
-	})
+	method := func(d *decoder) func(reflect.Kind) (string, error) {
+		return d.asString
+	}
+	testcases := AsXXXTestCases[string]{
+		{
+			Name:     "String.error",
+			Data:     []byte{def.FixStr + 1},
+			Error:    io.EOF,
+			MethodAs: method,
+		},
+		{
+			Name:      "String.ok",
+			Data:      []byte{def.FixStr + 1, 'a'},
+			Expected:  "a",
+			ReadCount: 2,
+			MethodAs:  method,
+		},
+	}
+
+	for _, tc := range testcases {
+		tc.Run(t)
+	}
 }
 
 func Test_asStringByte(t *testing.T) {
