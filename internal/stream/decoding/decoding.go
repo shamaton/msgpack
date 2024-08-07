@@ -1,6 +1,7 @@
 package decoding
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -319,6 +320,8 @@ func (d *decoder) decodeWithCode(code byte, rv reflect.Value) error {
 	return nil
 }
 
+var ErrCanNotDecode = errors.New("msgpack : invalid code")
+
 func (d *decoder) errorTemplate(code byte, k reflect.Kind) error {
-	return fmt.Errorf("msgpack : invalid code %x decoding %v", code, k)
+	return fmt.Errorf("msgpack : invalid code %x decoding %v, %w", code, k, ErrCanNotDecode)
 }
