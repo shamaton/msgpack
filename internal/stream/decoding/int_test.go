@@ -15,7 +15,7 @@ func Test_asInt(t *testing.T) {
 	testcases := AsXXXTestCases[int64]{
 		{
 			Name:      "error",
-			Data:      []byte{def.Int8},
+			Data:      []byte{},
 			Error:     io.EOF,
 			ReadCount: 1,
 			MethodAs:  method,

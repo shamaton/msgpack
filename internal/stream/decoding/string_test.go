@@ -21,7 +21,15 @@ func Test_stringByteLength(t *testing.T) {
 			MethodAsWithCode: method,
 		},
 		{
-			Name:             "Str8",
+			Name:             "Str8.error",
+			Code:             def.Str8,
+			Data:             []byte{},
+			Error:            io.EOF,
+			ReadCount:        0,
+			MethodAsWithCode: method,
+		},
+		{
+			Name:             "Str8.ok",
 			Code:             def.Str8,
 			Data:             []byte{0xff},
 			Expected:         math.MaxUint8,
@@ -29,7 +37,15 @@ func Test_stringByteLength(t *testing.T) {
 			MethodAsWithCode: method,
 		},
 		{
-			Name:             "Str16",
+			Name:             "Str16.error",
+			Code:             def.Str16,
+			Data:             []byte{},
+			Error:            io.EOF,
+			ReadCount:        0,
+			MethodAsWithCode: method,
+		},
+		{
+			Name:             "Str16.ok",
 			Code:             def.Str16,
 			Data:             []byte{0xff, 0xff},
 			Expected:         math.MaxUint16,
@@ -37,7 +53,15 @@ func Test_stringByteLength(t *testing.T) {
 			MethodAsWithCode: method,
 		},
 		{
-			Name:             "Str32",
+			Name:             "Str32.error",
+			Code:             def.Str32,
+			Data:             []byte{},
+			Error:            io.EOF,
+			ReadCount:        0,
+			MethodAsWithCode: method,
+		},
+		{
+			Name:             "Str32.ok",
 			Code:             def.Str32,
 			Data:             []byte{0xff, 0xff, 0xff, 0xff},
 			Expected:         math.MaxUint32,
@@ -48,6 +72,12 @@ func Test_stringByteLength(t *testing.T) {
 			Name:             "Nil",
 			Code:             def.Nil,
 			Expected:         0,
+			MethodAsWithCode: method,
+		},
+		{
+			Name:             "Unexpected",
+			Code:             def.Array16,
+			Error:            ErrCanNotDecode,
 			MethodAsWithCode: method,
 		},
 	}
@@ -63,14 +93,21 @@ func Test_asString(t *testing.T) {
 	}
 	testcases := AsXXXTestCases[string]{
 		{
-			Name:      "String.error",
+			Name:      "error.code",
+			Data:      []byte{},
+			Error:     io.EOF,
+			ReadCount: 0,
+			MethodAs:  method,
+		},
+		{
+			Name:      "error.string",
 			Data:      []byte{def.FixStr + 1},
 			Error:     io.EOF,
 			ReadCount: 1,
 			MethodAs:  method,
 		},
 		{
-			Name:      "String.ok",
+			Name:      "ok",
 			Data:      []byte{def.FixStr + 1, 'a'},
 			Expected:  "a",
 			ReadCount: 2,

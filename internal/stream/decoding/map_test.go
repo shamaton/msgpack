@@ -3,6 +3,7 @@ package decoding
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"math"
 	"reflect"
 	"testing"
@@ -25,7 +26,15 @@ func Test_mapLength(t *testing.T) {
 			MethodAsWithCode: method,
 		},
 		{
-			Name:             "Map16",
+			Name:             "Map16.error",
+			Code:             def.Map16,
+			Data:             []byte{},
+			ReadCount:        0,
+			Error:            io.EOF,
+			MethodAsWithCode: method,
+		},
+		{
+			Name:             "Map16.ok",
 			Code:             def.Map16,
 			Data:             []byte{0xff, 0xff},
 			Expected:         math.MaxUint16,
@@ -33,7 +42,15 @@ func Test_mapLength(t *testing.T) {
 			MethodAsWithCode: method,
 		},
 		{
-			Name:             "Map32",
+			Name:             "Map32.error",
+			Code:             def.Map32,
+			Data:             []byte{},
+			ReadCount:        0,
+			Error:            io.EOF,
+			MethodAsWithCode: method,
+		},
+		{
+			Name:             "Map32.ok",
 			Code:             def.Map32,
 			Data:             []byte{0xff, 0xff, 0xff, 0xff},
 			Expected:         math.MaxUint32,
