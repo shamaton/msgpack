@@ -95,8 +95,9 @@ func Test_setStructFromMap(t *testing.T) {
 			{
 				Name:             "error.jump",
 				Code:             def.Map16,
-				Data:             []byte{0, 1, def.FixStr + 1, 'a', 0xc1},
-				ReadCount:        4,
+				Data:             []byte{0, 2, def.FixStr + 1, 'v', 0, def.FixStr + 1, 'b'},
+				ReadCount:        6,
+				Error:            io.EOF,
 				MethodAsWithCode: method,
 			},
 			{
@@ -157,8 +158,9 @@ func Test_setStructFromArray(t *testing.T) {
 			{
 				Name:             "error.jump",
 				Code:             def.Array16,
-				Data:             []byte{0, 2, 0, 0xc1},
-				ReadCount:        3,
+				Data:             []byte{0, 2, 0},
+				ReadCount:        2,
+				Error:            io.EOF,
 				MethodAsWithCode: method,
 			},
 			{
