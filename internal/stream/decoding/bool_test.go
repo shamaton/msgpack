@@ -1,6 +1,7 @@
 package decoding
 
 import (
+	"io"
 	"reflect"
 	"testing"
 
@@ -13,7 +14,13 @@ func Test_asBool(t *testing.T) {
 	}
 	testcases := AsXXXTestCases[bool]{
 		{
-			Name:      "Bool",
+			Name:      "error",
+			ReadCount: 0,
+			Error:     io.EOF,
+			MethodAs:  method,
+		},
+		{
+			Name:      "ok",
 			Data:      []byte{def.True},
 			Expected:  true,
 			ReadCount: 1,
