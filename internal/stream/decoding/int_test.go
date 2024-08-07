@@ -17,7 +17,7 @@ func Test_asInt(t *testing.T) {
 			Name:      "error",
 			Data:      []byte{},
 			Error:     io.EOF,
-			ReadCount: 1,
+			ReadCount: 0,
 			MethodAs:  method,
 		},
 		{
