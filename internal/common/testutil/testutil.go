@@ -66,3 +66,14 @@ func EqualMap[K comparable, V comparable](t *testing.T, actual, expected map[K]V
 		}
 	}
 }
+
+type Equaler[T any] interface {
+	Equal(other T) bool
+}
+
+func EqualEqualer[T Equaler[T]](t *testing.T, actual, expected T) {
+	t.Helper()
+	if !actual.Equal(expected) {
+		t.Fatalf("not equal. actual: %v, expected: %v", actual, expected)
+	}
+}
