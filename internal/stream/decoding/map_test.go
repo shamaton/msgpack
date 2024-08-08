@@ -1,17 +1,14 @@
 package decoding
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"math"
 	"reflect"
 	"testing"
 
-	tu "github.com/shamaton/msgpack/v2/internal/common/testutil"
-	"github.com/shamaton/msgpack/v2/internal/stream/encoding"
-
 	"github.com/shamaton/msgpack/v2/def"
+	tu "github.com/shamaton/msgpack/v2/internal/common/testutil"
 )
 
 func Test_mapLength(t *testing.T) {
@@ -68,17 +65,6 @@ func Test_mapLength(t *testing.T) {
 	for _, tc := range testcases {
 		tc.Run(t)
 	}
-}
-
-func TestHoge(t *testing.T) {
-	buf := new(bytes.Buffer)
-	err := encoding.Encode(buf, map[string]int{"a": 1}, false)
-	tu.NoError(t, err)
-
-	v := map[string]int{}
-	err = Decode(buf, &v, false)
-	tu.NoError(t, err)
-	t.Log(v)
 }
 
 func Test_asFixedMap_StringInt(t *testing.T) {
