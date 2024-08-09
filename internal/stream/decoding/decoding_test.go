@@ -394,6 +394,14 @@ func Test_decodeWithCode(t *testing.T) {
 				MethodAsWithCode: method,
 			},
 			{
+				Name:             "error.struct",
+				Code:             def.Array16,
+				Data:             []byte{0, 1, def.FixMap + 1, def.FixStr + 1, 'v'},
+				ReadCount:        4,
+				Error:            io.EOF,
+				MethodAsWithCode: method,
+			},
+			{
 				Name:             "ok",
 				Code:             def.Array16,
 				Data:             []byte{0, 1, def.FixMap + 1, def.FixStr + 1, 'v', def.PositiveFixIntMin + 3},
@@ -429,6 +437,14 @@ func Test_decodeWithCode(t *testing.T) {
 				MethodAsWithCode: method,
 			},
 			{
+				Name:             "error.map",
+				Code:             def.Array16,
+				Data:             []byte{0, 1, def.FixMap + 1, def.FixStr + 1, 'v'},
+				ReadCount:        4,
+				Error:            io.EOF,
+				MethodAsWithCode: method,
+			},
+			{
 				Name:             "ok",
 				Code:             def.Array16,
 				Data:             []byte{0, 1, def.FixMap + 1, def.FixStr + 1, 'v', def.PositiveFixIntMin + 3},
@@ -441,5 +457,406 @@ func Test_decodeWithCode(t *testing.T) {
 		target = v
 		testcases.Run(t)
 		tu.Equal(t, *v, []map[string]int{{"v": 3}})
+	})
+	t.Run("Complex64", func(t *testing.T) {
+		testcases := AsXXXTestCases[bool]{
+			{
+				Name:             "error",
+				Code:             def.Fixext8,
+				Data:             []byte{},
+				ReadCount:        0,
+				Error:            io.EOF,
+				MethodAsWithCode: method,
+			},
+			{
+				Name:             "ok",
+				Code:             def.Fixext8,
+				Data:             []byte{byte(def.ComplexTypeCode()), 63, 128, 0, 0, 63, 128, 0, 0},
+				Expected:         true,
+				ReadCount:        3,
+				MethodAsWithCode: method,
+			},
+		}
+		v := new(complex64)
+		target = v
+		testcases.Run(t)
+		tu.Equal(t, *v, complex(1, 1))
+	})
+	t.Run("Complex128", func(t *testing.T) {
+		testcases := AsXXXTestCases[bool]{
+			{
+				Name:             "error",
+				Code:             def.Fixext8,
+				Data:             []byte{},
+				ReadCount:        0,
+				Error:            io.EOF,
+				MethodAsWithCode: method,
+			},
+			{
+				Name:             "ok",
+				Code:             def.Fixext8,
+				Data:             []byte{byte(def.ComplexTypeCode()), 63, 128, 0, 0, 63, 128, 0, 0},
+				Expected:         true,
+				ReadCount:        3,
+				MethodAsWithCode: method,
+			},
+		}
+		v := new(complex128)
+		target = v
+		testcases.Run(t)
+		tu.Equal(t, *v, complex(1, 1))
+	})
+
+	t.Run("Array.nil", func(t *testing.T) {
+		testcases := AsXXXTestCases[bool]{
+			{
+				Name:             "ok",
+				Code:             def.Nil,
+				Data:             []byte{},
+				Expected:         true,
+				ReadCount:        0,
+				MethodAsWithCode: method,
+			},
+		}
+		v := new([1]int)
+		target = v
+		testcases.Run(t)
+		tu.Equal(t, *v, [1]int{})
+	})
+	t.Run("Array.bin", func(t *testing.T) {
+		testcases := AsXXXTestCases[bool]{
+			{
+				Name:             "error.bin",
+				Code:             def.Bin8,
+				Data:             []byte{},
+				ReadCount:        0,
+				Error:            io.EOF,
+				MethodAsWithCode: method,
+			},
+			{
+				Name:             "error.len",
+				Code:             def.Bin8,
+				Data:             []byte{2, 1, 2},
+				ReadCount:        2,
+				Error:            ErrNotMatchArrayElement,
+				MethodAsWithCode: method,
+			},
+			{
+				Name:             "ok",
+				Code:             def.Bin8,
+				Data:             []byte{1, 2},
+				Expected:         true,
+				ReadCount:        2,
+				MethodAsWithCode: method,
+			},
+		}
+		v := new([1]byte)
+		target = v
+		testcases.Run(t)
+		tu.Equal(t, *v, [1]byte{2})
+	})
+	t.Run("Array.string", func(t *testing.T) {
+		testcases := AsXXXTestCases[bool]{
+			{
+				Name:             "error.strlen",
+				Code:             def.Str8,
+				Data:             []byte{},
+				ReadCount:        0,
+				Error:            io.EOF,
+				MethodAsWithCode: method,
+			},
+			{
+				Name:             "error.compare",
+				Code:             def.Str8,
+				Data:             []byte{2},
+				ReadCount:        1,
+				Error:            ErrNotMatchArrayElement,
+				MethodAsWithCode: method,
+			},
+			{
+				Name:             "error.bytelen",
+				Code:             def.Str8,
+				Data:             []byte{1},
+				ReadCount:        1,
+				Error:            io.EOF,
+				MethodAsWithCode: method,
+			},
+			{
+				Name:             "ok",
+				Code:             def.Str8,
+				Data:             []byte{1, 'c'},
+				Expected:         true,
+				ReadCount:        2,
+				MethodAsWithCode: method,
+			},
+		}
+		v := new([1]byte)
+		target = v
+		testcases.Run(t)
+		tu.Equal(t, *v, [1]byte{'c'})
+	})
+	t.Run("Array.struct", func(t *testing.T) {
+		testcases := AsXXXTestCases[bool]{
+			{
+				Name:             "error.strlen",
+				Code:             def.Array16,
+				Data:             []byte{},
+				ReadCount:        0,
+				Error:            io.EOF,
+				MethodAsWithCode: method,
+			},
+			{
+				Name:             "error.strlen",
+				Code:             def.Array16,
+				Data:             []byte{0, 2},
+				ReadCount:        1,
+				Error:            ErrNotMatchArrayElement,
+				MethodAsWithCode: method,
+			},
+			{
+				Name:             "error.slice",
+				Code:             def.Array16,
+				Data:             []byte{0, 1},
+				ReadCount:        1,
+				Error:            io.EOF,
+				MethodAsWithCode: method,
+			},
+			{
+				Name:             "error.struct",
+				Code:             def.Array16,
+				Data:             []byte{0, 1, def.FixMap + 1, def.FixStr + 1, 'v'},
+				ReadCount:        4,
+				Error:            io.EOF,
+				MethodAsWithCode: method,
+			},
+			{
+				Name:             "ok",
+				Code:             def.Array16,
+				Data:             []byte{0, 1, def.FixMap + 1, def.FixStr + 1, 'v', def.PositiveFixIntMin + 3},
+				Expected:         true,
+				ReadCount:        5,
+				MethodAsWithCode: method,
+			},
+		}
+		type st struct {
+			V int `msgpack:"v"`
+		}
+		v := new([1]st)
+		target = v
+		testcases.Run(t)
+		tu.Equal(t, *v, [1]st{{V: 3}})
+	})
+	t.Run("Map.nil", func(t *testing.T) {
+		testcases := AsXXXTestCases[bool]{
+			{
+				Name:             "ok",
+				Code:             def.Nil,
+				Data:             []byte{},
+				Expected:         true,
+				ReadCount:        0,
+				MethodAsWithCode: method,
+			},
+		}
+		v := new([]map[string]int)
+		target = v
+		testcases.Run(t)
+		tu.Equal(t, *v, nil)
+	})
+	t.Run("Map.fixed", func(t *testing.T) {
+		testcases := AsXXXTestCases[bool]{
+			{
+				Name:             "error.strlen",
+				Code:             def.Map16,
+				Data:             []byte{},
+				ReadCount:        0,
+				Error:            io.EOF,
+				MethodAsWithCode: method,
+			},
+			{
+				Name:             "error.map",
+				Code:             def.Map16,
+				Data:             []byte{0, 1},
+				ReadCount:        1,
+				Error:            io.EOF,
+				MethodAsWithCode: method,
+			},
+			{
+				Name:             "ok",
+				Code:             def.Map16,
+				Data:             []byte{0, 1, def.FixStr + 1, 'a', def.PositiveFixIntMin + 3},
+				Expected:         true,
+				ReadCount:        4,
+				MethodAsWithCode: method,
+			},
+		}
+		v := new(map[string]int)
+		target = v
+		testcases.Run(t)
+		tu.Equal(t, *v, map[string]int{"a": 3})
+	})
+	t.Run("Map.struct", func(t *testing.T) {
+		testcases := AsXXXTestCases[bool]{
+			{
+				Name:             "error.strlen",
+				Code:             def.Map16,
+				Data:             []byte{},
+				ReadCount:        0,
+				Error:            io.EOF,
+				MethodAsWithCode: method,
+			},
+			{
+				Name:             "error.key",
+				Code:             def.Map16,
+				Data:             []byte{0, 1},
+				ReadCount:        1,
+				Error:            io.EOF,
+				MethodAsWithCode: method,
+			},
+			{
+				Name:             "error.value",
+				Code:             def.Map16,
+				Data:             []byte{0, 1, def.FixStr + 1, 'a', def.FixMap + 1, def.FixStr + 1, 'v'},
+				Expected:         true,
+				ReadCount:        6,
+				Error:            io.EOF,
+				MethodAsWithCode: method,
+			},
+			{
+				Name:             "ok",
+				Code:             def.Map16,
+				Data:             []byte{0, 1, def.FixStr + 1, 'a', def.FixMap + 1, def.FixStr + 1, 'v', def.PositiveFixIntMin + 3},
+				Expected:         true,
+				ReadCount:        7,
+				MethodAsWithCode: method,
+			},
+		}
+		type st struct {
+			V int `msgpack:"v"`
+		}
+		v := new(map[string]st)
+		target = v
+		testcases.Run(t)
+		tu.Equal(t, *v, map[string]st{"a": {V: 3}})
+	})
+	t.Run("Struct", func(t *testing.T) {
+		testcases := AsXXXTestCases[bool]{
+			{
+				Name:             "error",
+				Code:             def.Map16,
+				Data:             []byte{},
+				ReadCount:        0,
+				Error:            io.EOF,
+				MethodAsWithCode: method,
+			},
+			{
+				Name:             "ok",
+				Code:             def.Map16,
+				Data:             []byte{0, 1, def.FixStr + 1, 'v', def.PositiveFixIntMin + 3},
+				Expected:         true,
+				ReadCount:        4,
+				MethodAsWithCode: method,
+			},
+		}
+		type st struct {
+			V int `msgpack:"v"`
+		}
+		v := new(st)
+		target = v
+		testcases.Run(t)
+		tu.Equal(t, *v, st{V: 3})
+	})
+	t.Run("Ptr.nil", func(t *testing.T) {
+		testcases := AsXXXTestCases[bool]{
+			{
+				Name:             "ok",
+				Code:             def.Nil,
+				Data:             []byte{},
+				Expected:         true,
+				ReadCount:        0,
+				MethodAsWithCode: method,
+			},
+		}
+		v := new(int)
+		target = &v
+		testcases.Run(t)
+		tu.Equal(t, *v, 0)
+	})
+	t.Run("Ptr", func(t *testing.T) {
+		testcases := AsXXXTestCases[bool]{
+			{
+				Name:             "error",
+				Code:             def.Int8,
+				Data:             []byte{},
+				ReadCount:        0,
+				Error:            io.EOF,
+				MethodAsWithCode: method,
+			},
+			{
+				Name:             "ok",
+				Code:             def.Int8,
+				Data:             []byte{3},
+				Expected:         true,
+				ReadCount:        1,
+				MethodAsWithCode: method,
+			},
+		}
+		v := new(int)
+		target = &v
+		testcases.Run(t)
+		tu.Equal(t, *v, 3)
+	})
+	t.Run("Interface.ptr", func(t *testing.T) {
+		testcases := AsXXXTestCases[bool]{
+			{
+				Name:             "error",
+				Code:             def.Int8,
+				Data:             []byte{},
+				ReadCount:        0,
+				Error:            io.EOF,
+				MethodAsWithCode: method,
+			},
+			{
+				Name:             "ok",
+				Code:             def.Int8,
+				Data:             []byte{3},
+				Expected:         true,
+				ReadCount:        1,
+				MethodAsWithCode: method,
+			},
+		}
+		var v interface{}
+		v = new(int)
+		target = &v
+		testcases.Run(t)
+		vv := v.(*int)
+		tu.Equal(t, *vv, 3)
+	})
+	t.Run("Interface", func(t *testing.T) {
+		testcases := AsXXXTestCases[bool]{
+			{
+				Name:             "error",
+				Code:             def.Map16,
+				Data:             []byte{},
+				ReadCount:        0,
+				Error:            io.EOF,
+				MethodAsWithCode: method,
+			},
+			{
+				Name:             "ok",
+				Code:             def.Map16,
+				Data:             []byte{0, 1, def.FixStr + 1, 'v', def.PositiveFixIntMin + 3},
+				Expected:         true,
+				ReadCount:        4,
+				MethodAsWithCode: method,
+			},
+		}
+		type st struct {
+			V any `msgpack:"v"`
+		}
+		v := new(st)
+		target = v
+		testcases.Run(t)
+		var vv any = uint8(3)
+		tu.Equal(t, v.V, vv)
 	})
 }
