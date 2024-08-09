@@ -190,7 +190,7 @@ func (d *decoder) decodeWithCode(code byte, rv reflect.Value) error {
 				return err
 			}
 			if len(bs) > rv.Len() {
-				return fmt.Errorf("%v len is %d, but msgpack has %d elements", rv.Type(), rv.Len(), len(bs))
+				return fmt.Errorf("%v len is %d, but msgpack has %d elements, %w", rv.Type(), rv.Len(), len(bs), ErrNotMatchArrayElement)
 			}
 			for i, b := range bs {
 				rv.Index(i).SetUint(uint64(b))
@@ -204,7 +204,7 @@ func (d *decoder) decodeWithCode(code byte, rv reflect.Value) error {
 				return err
 			}
 			if l > rv.Len() {
-				return fmt.Errorf("%v len is %d, but msgpack has %d elements", rv.Type(), rv.Len(), l)
+				return fmt.Errorf("%v len is %d, but msgpack has %d elements, %w", rv.Type(), rv.Len(), l, ErrNotMatchArrayElement)
 			}
 			bs, err := d.asStringByteByLength(l, k)
 			if err != nil {
@@ -223,7 +223,7 @@ func (d *decoder) decodeWithCode(code byte, rv reflect.Value) error {
 		}
 
 		if l > rv.Len() {
-			return fmt.Errorf("%v len is %d, but msgpack has %d elements", rv.Type(), rv.Len(), l)
+			return fmt.Errorf("%v len is %d, but msgpack has %d elements, %w", rv.Type(), rv.Len(), l, ErrNotMatchArrayElement)
 		}
 
 		// create array dynamically
@@ -319,6 +319,8 @@ func (d *decoder) decodeWithCode(code byte, rv reflect.Value) error {
 	}
 	return nil
 }
+
+var ErrNotMatchArrayElement = errors.New("not match array element")
 
 var ErrCanNotDecode = errors.New("msgpack : invalid code")
 
