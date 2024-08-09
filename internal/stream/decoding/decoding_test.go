@@ -657,7 +657,7 @@ func Test_decodeWithCode(t *testing.T) {
 				MethodAsWithCode: method,
 			},
 		}
-		v := new([]map[string]int)
+		v := new(map[string]int)
 		target = v
 		testcases.Run(t)
 		tu.Equal(t, *v, nil)
@@ -836,17 +836,17 @@ func Test_decodeWithCode(t *testing.T) {
 			{
 				Name:             "error",
 				Code:             def.Map16,
-				Data:             []byte{},
-				ReadCount:        0,
+				Data:             []byte{0, 1, def.FixStr + 1, 'v', def.Int8},
+				ReadCount:        4,
 				Error:            io.EOF,
 				MethodAsWithCode: method,
 			},
 			{
 				Name:             "ok",
 				Code:             def.Map16,
-				Data:             []byte{0, 1, def.FixStr + 1, 'v', def.PositiveFixIntMin + 3},
+				Data:             []byte{0, 1, def.FixStr + 1, 'v', def.Int8, 3},
 				Expected:         true,
-				ReadCount:        4,
+				ReadCount:        5,
 				MethodAsWithCode: method,
 			},
 		}
@@ -856,7 +856,7 @@ func Test_decodeWithCode(t *testing.T) {
 		v := new(st)
 		target = v
 		testcases.Run(t)
-		var vv any = uint8(3)
+		var vv any = int8(3)
 		tu.Equal(t, v.V, vv)
 	})
 }
