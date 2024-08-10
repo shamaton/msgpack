@@ -56,7 +56,7 @@ func Test_sliceLength(t *testing.T) {
 		{
 			Name:             "Unexpected",
 			Code:             def.Nil,
-			Error:            ErrCanNotDecode,
+			Error:            def.ErrCanNotDecode,
 			MethodAsWithCode: method,
 		},
 	}

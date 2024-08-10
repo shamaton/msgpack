@@ -158,7 +158,7 @@ func Test_asInterfaceWithCode(t *testing.T) {
 			Code:             def.Map16,
 			Data:             []byte{0, 1, def.Array16},
 			ReadCount:        2,
-			Error:            ErrCanNotSetSliceAsMapKey,
+			Error:            def.ErrCanNotSetSliceAsMapKey,
 			MethodAsWithCode: method,
 		},
 		{
@@ -166,7 +166,7 @@ func Test_asInterfaceWithCode(t *testing.T) {
 			Code:             def.Map16,
 			Data:             []byte{0, 1, def.Map16},
 			ReadCount:        2,
-			Error:            ErrCanNotSetMapAsMapKey,
+			Error:            def.ErrCanNotSetMapAsMapKey,
 			MethodAsWithCode: method,
 		},
 		{

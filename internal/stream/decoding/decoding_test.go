@@ -254,7 +254,7 @@ func Test_decodeWithCode(t *testing.T) {
 				Code:             def.Int8,
 				Data:             []byte{},
 				ReadCount:        0,
-				Error:            ErrCanNotDecode,
+				Error:            def.ErrCanNotDecode,
 				MethodAsWithCode: method,
 			},
 			{
@@ -538,7 +538,7 @@ func Test_decodeWithCode(t *testing.T) {
 				Code:             def.Bin8,
 				Data:             []byte{2, 1, 2},
 				ReadCount:        2,
-				Error:            ErrNotMatchArrayElement,
+				Error:            def.ErrNotMatchArrayElement,
 				MethodAsWithCode: method,
 			},
 			{
@@ -570,7 +570,7 @@ func Test_decodeWithCode(t *testing.T) {
 				Code:             def.Str8,
 				Data:             []byte{2},
 				ReadCount:        1,
-				Error:            ErrNotMatchArrayElement,
+				Error:            def.ErrNotMatchArrayElement,
 				MethodAsWithCode: method,
 			},
 			{
@@ -610,7 +610,7 @@ func Test_decodeWithCode(t *testing.T) {
 				Code:             def.Array16,
 				Data:             []byte{0, 2},
 				ReadCount:        1,
-				Error:            ErrNotMatchArrayElement,
+				Error:            def.ErrNotMatchArrayElement,
 				MethodAsWithCode: method,
 			},
 			{
