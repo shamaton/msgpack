@@ -1,7 +1,6 @@
 package decoding
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 
@@ -167,15 +166,12 @@ func (d *decoder) asInterfaceWithCode(code byte, k reflect.Kind) (interface{}, e
 	return nil, d.errorTemplate(code, k)
 }
 
-var ErrCanNotSetSliceAsMapKey = errors.New("can not set slice as map key")
-var ErrCanNotSetMapAsMapKey = errors.New("can not set map as map key")
-
 func (d *decoder) canSetAsMapKey(code byte) error {
 	switch {
 	case d.isFixSlice(code), code == def.Array16, code == def.Array32:
-		return fmt.Errorf("%w. code: %x", ErrCanNotSetSliceAsMapKey, code)
+		return fmt.Errorf("%w. code: %x", def.ErrCanNotSetSliceAsMapKey, code)
 	case d.isFixMap(code), code == def.Map16, code == def.Map32:
-		return fmt.Errorf("%w. code: %x", ErrCanNotSetMapAsMapKey, code)
+		return fmt.Errorf("%w. code: %x", def.ErrCanNotSetMapAsMapKey, code)
 	}
 	return nil
 }
