@@ -1,11 +1,11 @@
 package decoding
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"reflect"
 
+	"github.com/shamaton/msgpack/v2/def"
 	"github.com/shamaton/msgpack/v2/internal/common"
 )
 
@@ -19,7 +19,6 @@ type decoder struct {
 // Decode analyzes the MessagePack-encoded data and stores
 // the result into the pointer of v.
 func Decode(r io.Reader, v interface{}, asArray bool) error {
-
 	if r == nil {
 		return fmt.Errorf("reader is nil")
 	}
@@ -190,7 +189,7 @@ func (d *decoder) decodeWithCode(code byte, rv reflect.Value) error {
 				return err
 			}
 			if len(bs) > rv.Len() {
-				return fmt.Errorf("%v len is %d, but msgpack has %d elements, %w", rv.Type(), rv.Len(), len(bs), ErrNotMatchArrayElement)
+				return fmt.Errorf("%v len is %d, but msgpack has %d elements, %w", rv.Type(), rv.Len(), len(bs), def.ErrNotMatchArrayElement)
 			}
 			for i, b := range bs {
 				rv.Index(i).SetUint(uint64(b))
@@ -204,7 +203,7 @@ func (d *decoder) decodeWithCode(code byte, rv reflect.Value) error {
 				return err
 			}
 			if l > rv.Len() {
-				return fmt.Errorf("%v len is %d, but msgpack has %d elements, %w", rv.Type(), rv.Len(), l, ErrNotMatchArrayElement)
+				return fmt.Errorf("%v len is %d, but msgpack has %d elements, %w", rv.Type(), rv.Len(), l, def.ErrNotMatchArrayElement)
 			}
 			bs, err := d.asStringByteByLength(l, k)
 			if err != nil {
@@ -223,7 +222,7 @@ func (d *decoder) decodeWithCode(code byte, rv reflect.Value) error {
 		}
 
 		if l > rv.Len() {
-			return fmt.Errorf("%v len is %d, but msgpack has %d elements, %w", rv.Type(), rv.Len(), l, ErrNotMatchArrayElement)
+			return fmt.Errorf("%v len is %d, but msgpack has %d elements, %w", rv.Type(), rv.Len(), l, def.ErrNotMatchArrayElement)
 		}
 
 		// create array dynamically
@@ -320,10 +319,6 @@ func (d *decoder) decodeWithCode(code byte, rv reflect.Value) error {
 	return nil
 }
 
-var ErrNotMatchArrayElement = errors.New("not match array element")
-
-var ErrCanNotDecode = errors.New("msgpack : invalid code")
-
 func (d *decoder) errorTemplate(code byte, k reflect.Kind) error {
-	return fmt.Errorf("msgpack : invalid code %x decoding %v, %w", code, k, ErrCanNotDecode)
+	return fmt.Errorf("msgpack : invalid code %x decoding %v, %w", code, k, def.ErrCanNotDecode)
 }
