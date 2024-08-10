@@ -10,7 +10,7 @@ import (
 func NoError(t *testing.T, err error) {
 	t.Helper()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("error is not nil: %v", err)
 	}
 }
 

@@ -7,4 +7,6 @@ var (
 	ErrCanNotDecode           = errors.New("msgpack : invalid code")
 	ErrCanNotSetSliceAsMapKey = errors.New("can not set slice as map key")
 	ErrCanNotSetMapAsMapKey   = errors.New("can not set map as map key")
+
+	ErrTooShortBytes = errors.New("too short bytes")
 )
