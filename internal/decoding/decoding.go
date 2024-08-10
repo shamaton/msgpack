@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/shamaton/msgpack/v2/def"
 	"github.com/shamaton/msgpack/v2/internal/common"
 )
 
@@ -338,5 +339,5 @@ func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
 }
 
 func (d *decoder) errorTemplate(code byte, k reflect.Kind) error {
-	return fmt.Errorf("msgpack : invalid code %x decoding %v", code, k)
+	return fmt.Errorf("msgpack : invalid code %x decoding %v, %w", code, k, def.ErrCanNotDecode)
 }
