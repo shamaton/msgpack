@@ -188,7 +188,7 @@ func Test_asIntWithCode(t *testing.T) {
 		{
 			Name:             "Unexpected",
 			Code:             def.Array16,
-			Error:            ErrCanNotDecode,
+			Error:            def.ErrCanNotDecode,
 			MethodAsWithCode: method,
 		},
 	}

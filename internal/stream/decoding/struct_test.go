@@ -89,7 +89,7 @@ func Test_setStructFromMap(t *testing.T) {
 				Code:             def.Map16,
 				Data:             []byte{0, 1, def.FixStr + 1, 'v', def.Array16},
 				ReadCount:        4,
-				Error:            ErrCanNotDecode,
+				Error:            def.ErrCanNotDecode,
 				MethodAsWithCode: method,
 			},
 			{
@@ -152,7 +152,7 @@ func Test_setStructFromArray(t *testing.T) {
 				Code:             def.Array16,
 				Data:             []byte{0, 1, def.Array16},
 				ReadCount:        2,
-				Error:            ErrCanNotDecode,
+				Error:            def.ErrCanNotDecode,
 				MethodAsWithCode: method,
 			},
 			{
