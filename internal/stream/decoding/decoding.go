@@ -20,11 +20,11 @@ type decoder struct {
 // the result into the pointer of v.
 func Decode(r io.Reader, v interface{}, asArray bool) error {
 	if r == nil {
-		return fmt.Errorf("reader is nil")
+		return def.ErrNoData
 	}
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr {
-		return fmt.Errorf("holder must set pointer value. but got: %t", v)
+		return fmt.Errorf("%w. v.(type): %T", def.ErrReceiverNotPointer, v)
 	}
 
 	rv = rv.Elem()
