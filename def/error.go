@@ -8,5 +8,7 @@ var (
 	ErrCanNotSetSliceAsMapKey = errors.New("can not set slice as map key")
 	ErrCanNotSetMapAsMapKey   = errors.New("can not set map as map key")
 
-	ErrTooShortBytes = errors.New("too short bytes")
+	ErrTooShortBytes         = errors.New("too short bytes")
+	ErrLackDataLengthToSlice = errors.New("data length lacks to create slice")
+	ErrLackDataLengthToMap   = errors.New("data length lacks to create map")
 )

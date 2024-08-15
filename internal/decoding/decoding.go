@@ -192,7 +192,7 @@ func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
 				return 0, err
 			}
 			if len(bs) > rv.Len() {
-				return 0, fmt.Errorf("%v len is %d, but msgpack has %d elements", rv.Type(), rv.Len(), len(bs))
+				return 0, fmt.Errorf("%v len is %d, but msgpack has %d elements, %w", rv.Type(), rv.Len(), len(bs), def.ErrNotMatchArrayElement)
 			}
 			for i, b := range bs {
 				rv.Index(i).SetUint(uint64(b))
@@ -206,7 +206,7 @@ func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
 				return 0, err
 			}
 			if l > rv.Len() {
-				return 0, fmt.Errorf("%v len is %d, but msgpack has %d elements", rv.Type(), rv.Len(), l)
+				return 0, fmt.Errorf("%v len is %d, but msgpack has %d elements, %w", rv.Type(), rv.Len(), l, def.ErrNotMatchArrayElement)
 			}
 			bs, offset, err := d.asStringByteByLength(offset, l, k)
 			if err != nil {
@@ -225,7 +225,7 @@ func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
 		}
 
 		if l > rv.Len() {
-			return 0, fmt.Errorf("%v len is %d, but msgpack has %d elements", rv.Type(), rv.Len(), l)
+			return 0, fmt.Errorf("%v len is %d, but msgpack has %d elements, %w", rv.Type(), rv.Len(), l, def.ErrNotMatchArrayElement)
 		}
 
 		if err = d.hasRequiredLeastSliceSize(o, l); err != nil {

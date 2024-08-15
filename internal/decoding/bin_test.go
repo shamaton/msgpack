@@ -72,7 +72,7 @@ func Test_asBin(t *testing.T) {
 		},
 		{
 			Name:     "Bin32.error.data",
-			Data:     []byte{def.Bin32, 0, 1},
+			Data:     []byte{def.Bin32, 0, 0, 0, 1},
 			Error:    def.ErrTooShortBytes,
 			MethodAs: method,
 		},
