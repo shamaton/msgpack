@@ -87,8 +87,13 @@ func TestDecoding(t *testing.T) {
 	t.Run("nil reader", func(t *testing.T) {
 		v := new(int)
 		err := Decode(nil, v, false)
-		tu.Error(t, err)
-		tu.Equal(t, err.Error(), "reader is nil")
+		tu.IsError(t, err, def.ErrNoData)
+	})
+	t.Run("not pointer", func(t *testing.T) {
+		v := 0
+		r := tu.NewTestReader([]byte{def.PositiveFixIntMax})
+		err := Decode(r, v, false)
+		tu.IsError(t, err, def.ErrReceiverNotPointer)
 	})
 }
 

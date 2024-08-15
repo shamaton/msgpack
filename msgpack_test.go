@@ -1496,7 +1496,7 @@ func TestPointer(t *testing.T) {
 			var r int
 			t.Run(u.name, func(t *testing.T) {
 				err := u.u([]byte{def.Nil}, r)
-				ErrorContains(t, err, "holder must set pointer value. but got:")
+				ErrorContains(t, err, "receiver not pointer")
 			})
 		}
 	})

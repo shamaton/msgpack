@@ -24,7 +24,7 @@ func Decode(data []byte, v interface{}, asArray bool) error {
 	}
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr {
-		return fmt.Errorf("%w. v.(type): %t", def.ErrReceiverNotPointer, v)
+		return fmt.Errorf("%w. v.(type): %T", def.ErrReceiverNotPointer, v)
 	}
 
 	rv = rv.Elem()
