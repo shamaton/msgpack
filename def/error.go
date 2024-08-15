@@ -3,6 +3,9 @@ package def
 import "errors"
 
 var (
+	ErrNoData                 = errors.New("no data")
+	ErrHasLeftOver            = errors.New("data has left over")
+	ErrReceiverNotPointer     = errors.New("receiver not pointer")
 	ErrNotMatchArrayElement   = errors.New("not match array element")
 	ErrCanNotDecode           = errors.New("msgpack : invalid code")
 	ErrCanNotSetSliceAsMapKey = errors.New("can not set slice as map key")

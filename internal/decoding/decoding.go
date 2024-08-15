@@ -20,11 +20,11 @@ func Decode(data []byte, v interface{}, asArray bool) error {
 	d := decoder{data: data, asArray: asArray}
 
 	if d.data == nil || len(d.data) < 1 {
-		return fmt.Errorf("data is empty")
+		return def.ErrNoData
 	}
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr {
-		return fmt.Errorf("holder must set pointer value. but got: %t", v)
+		return fmt.Errorf("%w. v.(type): %t", def.ErrReceiverNotPointer, v)
 	}
 
 	rv = rv.Elem()
@@ -34,7 +34,7 @@ func Decode(data []byte, v interface{}, asArray bool) error {
 		return err
 	}
 	if len(data) != last {
-		return fmt.Errorf("failed deserialization size=%d, last=%d", len(data), last)
+		return fmt.Errorf("%w size=%d, last=%d", def.ErrHasLeftOver, len(data), last)
 	}
 	return err
 }

@@ -64,8 +64,17 @@ func TestDecoding(t *testing.T) {
 	t.Run("empty data", func(t *testing.T) {
 		v := new(int)
 		err := Decode(nil, v, false)
-		tu.Error(t, err)
-		tu.Equal(t, err.Error(), "data is empty")
+		tu.IsError(t, err, def.ErrNoData)
+	})
+	t.Run("not pointer", func(t *testing.T) {
+		v := 0
+		err := Decode([]byte{def.PositiveFixIntMax}, v, false)
+		tu.IsError(t, err, def.ErrReceiverNotPointer)
+	})
+	t.Run("left data", func(t *testing.T) {
+		v := new(int)
+		err := Decode([]byte{def.PositiveFixIntMin, 0}, v, false)
+		tu.IsError(t, err, def.ErrHasLeftOver)
 	})
 }
 

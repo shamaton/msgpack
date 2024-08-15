@@ -56,7 +56,7 @@ func Test_asComplex64(t *testing.T) {
 		},
 		{
 			Name:     "Fixext16.error.i",
-			Data:     []byte{def.Fixext16, byte(def.ComplexTypeCode()), 0, 0, 0, 1},
+			Data:     []byte{def.Fixext16, byte(def.ComplexTypeCode()), 0, 0, 0, 0, 0, 0, 0, 1},
 			Error:    def.ErrTooShortBytes,
 			MethodAs: method,
 		},
@@ -126,7 +126,7 @@ func Test_asComplex128(t *testing.T) {
 		},
 		{
 			Name:     "Fixext16.error.i",
-			Data:     []byte{def.Fixext16, byte(def.ComplexTypeCode()), 0, 0, 0, 1},
+			Data:     []byte{def.Fixext16, byte(def.ComplexTypeCode()), 0, 0, 0, 0, 0, 0, 0, 1},
 			Error:    def.ErrTooShortBytes,
 			MethodAs: method,
 		},
