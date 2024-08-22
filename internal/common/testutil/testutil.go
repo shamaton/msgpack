@@ -48,11 +48,21 @@ func Equal[T any](t *testing.T, actual, expected T) {
 func EqualSlice[T comparable](t *testing.T, actual, expected []T) {
 	t.Helper()
 	if len(actual) != len(expected) {
-		t.Fatalf("diffrent length. actual: %v, expected: %v", actual, expected)
+		switch any(actual).(type) {
+		case []byte:
+			t.Fatalf("diffrent length. actual: [% 02x], expected: [% 02x]", actual, expected)
+		default:
+			t.Fatalf("diffrent length. actual: %v, expected: %v", actual, expected)
+		}
 	}
 	for i := range actual {
 		if !reflect.DeepEqual(actual[i], expected[i]) {
-			t.Fatalf("not equal. actual: %v, expected: %v", actual, expected)
+			switch any(actual).(type) {
+			case []byte:
+				t.Fatalf("not equal. actual: [% 02x], expected: [% 02x]", actual, expected)
+			default:
+				t.Fatalf("not equal. actual: %v, expected: %v", actual, expected)
+			}
 		}
 	}
 }
