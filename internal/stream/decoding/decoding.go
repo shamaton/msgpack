@@ -314,7 +314,7 @@ func (d *decoder) decodeWithCode(code byte, rv reflect.Value) error {
 		}
 
 	default:
-		return fmt.Errorf("type(%v) is unsupported", rv.Kind())
+		return fmt.Errorf("%v is %w type", rv.Kind(), def.ErrUnsupported)
 	}
 	return nil
 }
