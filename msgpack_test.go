@@ -1510,14 +1510,14 @@ func TestUnsupported(t *testing.T) {
 			t.Run(m.name, func(t *testing.T) {
 				var v uintptr
 				_, err := m.m(v)
-				ErrorContains(t, err, "type(uintptr) is unsupported")
+				ErrorContains(t, err, "uintptr is unsupported type")
 			})
 		}
 		for _, u := range unmarshallers {
 			t.Run(u.name, func(t *testing.T) {
 				var r uintptr
 				err := u.u(b, &r)
-				ErrorContains(t, err, "type(uintptr) is unsupported")
+				ErrorContains(t, err, "uintptr is unsupported type")
 			})
 		}
 	})
@@ -1526,14 +1526,14 @@ func TestUnsupported(t *testing.T) {
 			t.Run(m.name, func(t *testing.T) {
 				var v chan string
 				_, err := m.m(v)
-				ErrorContains(t, err, "type(chan) is unsupported")
+				ErrorContains(t, err, "chan is unsupported type")
 			})
 		}
 		for _, u := range unmarshallers {
 			t.Run(u.name, func(t *testing.T) {
 				var r chan string
 				err := u.u(b, &r)
-				ErrorContains(t, err, "type(chan) is unsupported")
+				ErrorContains(t, err, "chan is unsupported type")
 			})
 		}
 	})
@@ -1542,14 +1542,14 @@ func TestUnsupported(t *testing.T) {
 			t.Run(m.name, func(t *testing.T) {
 				var v func()
 				_, err := m.m(v)
-				ErrorContains(t, err, "type(func) is unsupported")
+				ErrorContains(t, err, "func is unsupported type")
 			})
 		}
 		for _, u := range unmarshallers {
 			t.Run(u.name, func(t *testing.T) {
 				var r func()
 				err := u.u(b, &r)
-				ErrorContains(t, err, "type(func) is unsupported")
+				ErrorContains(t, err, "func is unsupported type")
 			})
 		}
 	})

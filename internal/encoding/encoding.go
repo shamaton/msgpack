@@ -262,7 +262,7 @@ func (e *encoder) calcSize(rv reflect.Value) (int, error) {
 		// do nothing (return nil)
 
 	default:
-		return 0, fmt.Errorf("type(%v) is unsupported", rv.Kind())
+		return 0, fmt.Errorf("%v is %w type", rv.Kind(), def.ErrUnsupported)
 	}
 
 	return ret, nil

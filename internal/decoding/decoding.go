@@ -333,7 +333,7 @@ func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
 		}
 
 	default:
-		return 0, fmt.Errorf("type(%v) is unsupported", rv.Kind())
+		return 0, fmt.Errorf("%v is %w type", rv.Kind(), def.ErrUnsupported)
 	}
 	return offset, nil
 }
