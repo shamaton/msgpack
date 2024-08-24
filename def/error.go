@@ -15,4 +15,5 @@ var (
 	ErrLackDataLengthToSlice = errors.New("data length lacks to create slice")
 	ErrLackDataLengthToMap   = errors.New("data length lacks to create map")
 	ErrUnsupported           = errors.New("unsupported")
+	ErrNotMatchLastIndex     = errors.New("not match last index")
 )

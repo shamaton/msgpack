@@ -45,7 +45,7 @@ func Encode(v interface{}, asArray bool) (b []byte, err error) {
 	e.d = make([]byte, size)
 	last := e.create(rv, 0)
 	if size != last {
-		return nil, fmt.Errorf("failed serialization size=%d, lastIdx=%d", size, last)
+		return nil, fmt.Errorf("%w size=%d, lastIdx=%d", def.ErrNotMatchLastIndex, size, last)
 	}
 	return e.d, err
 }
@@ -116,7 +116,7 @@ func (e *encoder) calcSize(rv reflect.Value) (int, error) {
 			ret += def.Byte4
 		} else {
 			// not supported error
-			return 0, fmt.Errorf("not support this array length : %d", l)
+			return 0, fmt.Errorf("%w array length : %d", def.ErrUnsupported, l)
 		}
 
 		if size, find := e.calcFixedSlice(rv); find {
