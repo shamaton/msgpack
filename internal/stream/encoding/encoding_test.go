@@ -42,6 +42,7 @@ type AsXXXTestCase[T any] struct {
 	BufferSize      int
 	PreWriteSize    int
 	Error           error
+	AsArray         bool
 	Method          func(*encoder) func(T) error
 	MethodForFixed  func(*encoder) func(reflect.Value) (bool, error)
 	MethodForStruct func(*encoder) func(reflect.Value) error
@@ -79,9 +80,10 @@ func (tc *AsXXXTestCase[T]) Run(t *testing.T) {
 	t.Run(tc.Name, func(t *testing.T) {
 		w := NewTestWriter()
 		e := encoder{
-			w:      w,
-			buf:    common.GetBuffer(),
-			Common: common.Common{},
+			w:       w,
+			buf:     common.GetBuffer(),
+			Common:  common.Common{},
+			asArray: tc.AsArray,
 		}
 
 		if tc.BufferSize < tc.PreWriteSize {
