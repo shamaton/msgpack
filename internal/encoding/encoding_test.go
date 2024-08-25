@@ -61,7 +61,7 @@ func Test_encode(t *testing.T) {
 		},
 		{
 			value: make([]byte, math.MaxUint32+1),
-			error: def.ErrUnsupported,
+			error: def.ErrUnsupportedType,
 		},
 		{
 			value: make([]int, 1),
@@ -78,7 +78,7 @@ func Test_encode(t *testing.T) {
 		//},
 		//{
 		//	value: make([]int, math.MaxUint32+1),
-		//	error: def.ErrUnsupported,
+		//	error: def.ErrUnsupportedType,
 		//},
 		{
 			value: []st{{1}},
@@ -86,7 +86,7 @@ func Test_encode(t *testing.T) {
 		},
 		{
 			value: []chan int{make(chan int)},
-			error: def.ErrUnsupported,
+			error: def.ErrUnsupportedType,
 		},
 	}
 	t.Run("slice", func(t *testing.T) {
@@ -98,7 +98,7 @@ func Test_encode(t *testing.T) {
 		// stack frame too large (compile error)
 		//{
 		//	value: [math.MaxUint32 + 1]byte{},
-		//	error: def.ErrUnsupported,
+		//	error: def.ErrUnsupportedType,
 		//},
 		{
 			value: [1]int{},
@@ -115,7 +115,7 @@ func Test_encode(t *testing.T) {
 		//},
 		//{
 		//	value: [math.MaxUint32 + 1]int{},
-		//	error: def.ErrUnsupported,
+		//	error: def.ErrUnsupportedType,
 		//},
 		{
 			value: [1]st{{1}},
@@ -123,7 +123,7 @@ func Test_encode(t *testing.T) {
 		},
 		{
 			value: [1]chan int{make(chan int)},
-			error: def.ErrUnsupported,
+			error: def.ErrUnsupportedType,
 		},
 	}
 	t.Run("array", func(t *testing.T) {
@@ -158,15 +158,15 @@ func Test_encode(t *testing.T) {
 		//},
 		//{
 		//	value: createMap(math.MaxUint32 + 1),
-		//	error: def.ErrUnsupported,
+		//	error: def.ErrUnsupportedType,
 		//},
 		{
 			value: map[chan int]int{make(chan int): 1},
-			error: def.ErrUnsupported,
+			error: def.ErrUnsupportedType,
 		},
 		{
 			value: map[string]chan int{"a": make(chan int)},
-			error: def.ErrUnsupported,
+			error: def.ErrUnsupportedType,
 		},
 	}
 	t.Run("map", func(t *testing.T) {
@@ -180,7 +180,7 @@ func Test_encode(t *testing.T) {
 	testcases = []testcase{
 		{
 			value: unsupport{make(chan int)},
-			error: def.ErrUnsupported,
+			error: def.ErrUnsupportedType,
 		},
 	}
 	t.Run("struct", func(t *testing.T) {
@@ -195,7 +195,7 @@ func Test_encode(t *testing.T) {
 		},
 		{
 			value: &ch,
-			error: def.ErrUnsupported,
+			error: def.ErrUnsupportedType,
 		},
 		{
 			value: new(int),
@@ -212,7 +212,7 @@ func Test_encode(t *testing.T) {
 	testcases = []testcase{
 		{
 			value: inter{V: make(chan int)},
-			error: def.ErrUnsupported,
+			error: def.ErrUnsupportedType,
 		},
 		{
 			value: inter{V: 1},

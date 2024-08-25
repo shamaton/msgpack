@@ -25,6 +25,6 @@ var (
 	ErrTooShortBytes         = fmt.Errorf("%wtoo short bytes", ErrMsgpack)
 	ErrLackDataLengthToSlice = fmt.Errorf("%wdata length lacks to create slice", ErrMsgpack)
 	ErrLackDataLengthToMap   = fmt.Errorf("%wdata length lacks to create map", ErrMsgpack)
-	ErrUnsupported           = fmt.Errorf("%wunsupported type", ErrMsgpack)
+	ErrUnsupportedType       = fmt.Errorf("%wunsupported type", ErrMsgpack)
 	ErrNotMatchLastIndex     = fmt.Errorf("%wnot match last index", ErrMsgpack)
 )

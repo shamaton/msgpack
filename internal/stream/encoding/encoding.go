@@ -189,7 +189,7 @@ func (e *encoder) create(rv reflect.Value) error {
 	case reflect.Invalid:
 		return e.writeNil()
 	default:
-		return fmt.Errorf("%v is %w type", rv.Kind(), def.ErrUnsupported)
+		return fmt.Errorf("%v is %w type", rv.Kind(), def.ErrUnsupportedType)
 	}
 	return nil
 }
