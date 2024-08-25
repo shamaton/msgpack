@@ -1,19 +1,30 @@
 package def
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 var (
-	ErrNoData                 = errors.New("no data")
-	ErrHasLeftOver            = errors.New("data has left over")
-	ErrReceiverNotPointer     = errors.New("receiver not pointer")
-	ErrNotMatchArrayElement   = errors.New("not match array element")
-	ErrCanNotDecode           = errors.New("msgpack : invalid code")
-	ErrCanNotSetSliceAsMapKey = errors.New("can not set slice as map key")
-	ErrCanNotSetMapAsMapKey   = errors.New("can not set map as map key")
+	// base errors
 
-	ErrTooShortBytes         = errors.New("too short bytes")
-	ErrLackDataLengthToSlice = errors.New("data length lacks to create slice")
-	ErrLackDataLengthToMap   = errors.New("data length lacks to create map")
-	ErrUnsupported           = errors.New("unsupported")
-	ErrNotMatchLastIndex     = errors.New("not match last index")
+	ErrMsgpack = errors.New("")
+
+	// decoding errors
+
+	ErrNoData                 = fmt.Errorf("%wno data", ErrMsgpack)
+	ErrHasLeftOver            = fmt.Errorf("%wdata has left over", ErrMsgpack)
+	ErrReceiverNotPointer     = fmt.Errorf("%wreceiver not pointer", ErrMsgpack)
+	ErrNotMatchArrayElement   = fmt.Errorf("%wnot match array element", ErrMsgpack)
+	ErrCanNotDecode           = fmt.Errorf("%winvalid code", ErrMsgpack)
+	ErrCanNotSetSliceAsMapKey = fmt.Errorf("%wcan not set slice as map key", ErrMsgpack)
+	ErrCanNotSetMapAsMapKey   = fmt.Errorf("%wcan not set map as map key", ErrMsgpack)
+
+	// encoding errors
+
+	ErrTooShortBytes         = fmt.Errorf("%wtoo short bytes", ErrMsgpack)
+	ErrLackDataLengthToSlice = fmt.Errorf("%wdata length lacks to create slice", ErrMsgpack)
+	ErrLackDataLengthToMap   = fmt.Errorf("%wdata length lacks to create map", ErrMsgpack)
+	ErrUnsupported           = fmt.Errorf("%wunsupported type", ErrMsgpack)
+	ErrNotMatchLastIndex     = fmt.Errorf("%wnot match last index", ErrMsgpack)
 )
