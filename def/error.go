@@ -26,5 +26,6 @@ var (
 	ErrLackDataLengthToSlice = fmt.Errorf("%wdata length lacks to create slice", ErrMsgpack)
 	ErrLackDataLengthToMap   = fmt.Errorf("%wdata length lacks to create map", ErrMsgpack)
 	ErrUnsupportedType       = fmt.Errorf("%wunsupported type", ErrMsgpack)
+	ErrUnsupportedLength     = fmt.Errorf("%wunsupported length", ErrMsgpack)
 	ErrNotMatchLastIndex     = fmt.Errorf("%wnot match last index", ErrMsgpack)
 )

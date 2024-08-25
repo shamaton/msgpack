@@ -164,7 +164,7 @@ func (e *encoder) calcSize(rv reflect.Value) (int, error) {
 			ret += def.Byte4
 		} else {
 			// not supported error
-			return 0, fmt.Errorf("not support this array length : %d", l)
+			return 0, fmt.Errorf("array length %d is %w", l, def.ErrUnsupportedLength)
 		}
 
 		// func
@@ -201,7 +201,7 @@ func (e *encoder) calcSize(rv reflect.Value) (int, error) {
 			ret += def.Byte4
 		} else {
 			// not supported error
-			return 0, fmt.Errorf("not support this map length : %d", l)
+			return 0, fmt.Errorf("map length %d is %w", l, def.ErrUnsupportedLength)
 		}
 
 		if size, find := e.calcFixedMap(rv); find {
