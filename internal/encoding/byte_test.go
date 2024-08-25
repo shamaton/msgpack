@@ -34,7 +34,7 @@ func Test_calcByteSlice(t *testing.T) {
 		{
 			name:  "u32over",
 			value: math.MaxUint32 + 1,
-			error: def.ErrUnsupported,
+			error: def.ErrUnsupportedType,
 		},
 	}
 	for _, tc := range testcases {

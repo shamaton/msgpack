@@ -116,7 +116,7 @@ func (e *encoder) calcSize(rv reflect.Value) (int, error) {
 			ret += def.Byte4
 		} else {
 			// not supported error
-			return 0, fmt.Errorf("%w array length : %d", def.ErrUnsupported, l)
+			return 0, fmt.Errorf("%w array length : %d", def.ErrUnsupportedType, l)
 		}
 
 		if size, find := e.calcFixedSlice(rv); find {
@@ -262,7 +262,7 @@ func (e *encoder) calcSize(rv reflect.Value) (int, error) {
 		// do nothing (return nil)
 
 	default:
-		return 0, fmt.Errorf("%v is %w type", rv.Kind(), def.ErrUnsupported)
+		return 0, fmt.Errorf("%v is %w type", rv.Kind(), def.ErrUnsupportedType)
 	}
 
 	return ret, nil

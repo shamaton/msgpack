@@ -890,7 +890,7 @@ func Test_create(t *testing.T) {
 				Name:            "ok",
 				Value:           value,
 				BufferSize:      1,
-				Error:           def.ErrUnsupported,
+				Error:           def.ErrUnsupportedType,
 				MethodForStruct: method,
 			},
 		}

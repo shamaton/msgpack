@@ -19,7 +19,7 @@ func Test_calcStructArray(t *testing.T) {
 		e := encoder{}
 		rv := reflect.ValueOf(value)
 		_, err := e.calcStructArray(rv)
-		tu.IsError(t, err, def.ErrUnsupported)
+		tu.IsError(t, err, def.ErrUnsupportedType)
 	})
 	t.Run("cache", func(t *testing.T) {
 		value := b{B: make([]byte, 1)}
@@ -31,7 +31,7 @@ func Test_calcStructArray(t *testing.T) {
 		value = b{B: make([]byte, math.MaxUint32+1)}
 		rv = reflect.ValueOf(value)
 		_, err = e.calcStructArray(rv)
-		tu.IsError(t, err, def.ErrUnsupported)
+		tu.IsError(t, err, def.ErrUnsupportedType)
 	})
 
 	testcases := []struct {
@@ -84,7 +84,7 @@ func Test_calcStructMap(t *testing.T) {
 		e := encoder{}
 		rv := reflect.ValueOf(value)
 		_, err := e.calcStructMap(rv)
-		tu.IsError(t, err, def.ErrUnsupported)
+		tu.IsError(t, err, def.ErrUnsupportedType)
 	})
 	t.Run("cache", func(t *testing.T) {
 		value := b{B: make([]byte, 1)}
@@ -96,7 +96,7 @@ func Test_calcStructMap(t *testing.T) {
 		value = b{B: make([]byte, math.MaxUint32+1)}
 		rv = reflect.ValueOf(value)
 		_, err = e.calcStructMap(rv)
-		tu.IsError(t, err, def.ErrUnsupported)
+		tu.IsError(t, err, def.ErrUnsupportedType)
 	})
 
 	testcases := []struct {
