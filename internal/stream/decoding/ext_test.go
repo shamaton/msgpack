@@ -5,9 +5,7 @@ import (
 	"testing"
 
 	"github.com/shamaton/msgpack/v2/def"
-
 	"github.com/shamaton/msgpack/v2/internal/common"
-
 	tu "github.com/shamaton/msgpack/v2/internal/common/testutil"
 	"github.com/shamaton/msgpack/v2/time"
 )

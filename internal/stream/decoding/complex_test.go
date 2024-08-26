@@ -77,7 +77,7 @@ func Test_asComplex64(t *testing.T) {
 		{
 			Name:             "Unexpected",
 			Code:             def.Nil,
-			IsTemplateError:  true,
+			Error:            def.ErrCanNotDecode,
 			MethodAsWithCode: method,
 		},
 	}
@@ -155,7 +155,7 @@ func Test_asComplex128(t *testing.T) {
 		{
 			Name:             "Unexpected",
 			Code:             def.Nil,
-			IsTemplateError:  true,
+			Error:            def.ErrCanNotDecode,
 			MethodAsWithCode: method,
 		},
 	}

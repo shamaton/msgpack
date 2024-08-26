@@ -14,11 +14,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shamaton/msgpack/v2/internal/common"
-
 	"github.com/shamaton/msgpack/v2"
 	"github.com/shamaton/msgpack/v2/def"
 	"github.com/shamaton/msgpack/v2/ext"
+	"github.com/shamaton/msgpack/v2/internal/common"
 	extTime "github.com/shamaton/msgpack/v2/time"
 )
 

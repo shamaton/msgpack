@@ -1,10 +1,11 @@
 package decoding
 
 import (
-	"github.com/shamaton/msgpack/v2/def"
 	"io"
 	"reflect"
 	"testing"
+
+	"github.com/shamaton/msgpack/v2/def"
 )
 
 func Test_asFloat32(t *testing.T) {
@@ -88,7 +89,7 @@ func Test_asFloat32WithCode(t *testing.T) {
 		{
 			Name:             "Unexpected",
 			Code:             def.Str8,
-			IsTemplateError:  true,
+			Error:            def.ErrCanNotDecode,
 			MethodAsWithCode: method,
 		},
 	}
@@ -193,7 +194,7 @@ func Test_asFloat64WithCode(t *testing.T) {
 		{
 			Name:             "Unexpected",
 			Code:             def.Str8,
-			IsTemplateError:  true,
+			Error:            def.ErrCanNotDecode,
 			MethodAsWithCode: method,
 		},
 	}

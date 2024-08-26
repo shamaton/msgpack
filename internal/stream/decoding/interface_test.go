@@ -206,7 +206,7 @@ func Test_asInterfaceWithCode(t *testing.T) {
 			Code:             def.Fixext1,
 			Data:             []byte{4, 0},
 			ReadCount:        2,
-			IsTemplateError:  true,
+			Error:            def.ErrCanNotDecode,
 			MethodAsWithCode: method,
 		},
 	}
