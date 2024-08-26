@@ -823,8 +823,7 @@ func Test_decodeWithCode(t *testing.T) {
 				MethodAsWithCode: method,
 			},
 		}
-		var v interface{}
-		v = new(int)
+		v := (any)(new(int))
 		target = &v
 		testcases.Run(t)
 		vv := v.(*int)

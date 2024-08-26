@@ -28,11 +28,11 @@ func Test_writeStruct(t *testing.T) {
 			{
 				Name:  "ok",
 				Value: value,
-				Expected: append([]byte{
+				Expected: []byte{
 					def.Ext8,
 					12, 0xff,
 					0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xf1, 0x88, 0x6e, 0x09, 0x00,
-				}),
+				},
 				BufferSize:      1,
 				MethodForStruct: method,
 			},
