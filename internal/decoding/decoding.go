@@ -339,5 +339,5 @@ func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
 }
 
 func (d *decoder) errorTemplate(code byte, k reflect.Kind) error {
-	return fmt.Errorf("msgpack : invalid code %x decoding %v, %w", code, k, def.ErrCanNotDecode)
+	return fmt.Errorf("%w %x decoding as %v", def.ErrCanNotDecode, code, k)
 }

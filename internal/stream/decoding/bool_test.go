@@ -53,7 +53,7 @@ func Test_asBoolWithCode(t *testing.T) {
 		{
 			Name:             "Unexpected",
 			Code:             def.Nil,
-			IsTemplateError:  true,
+			Error:            def.ErrCanNotDecode,
 			MethodAsWithCode: method,
 		},
 	}

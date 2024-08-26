@@ -1,7 +1,6 @@
 package decoding
 
 import (
-	"fmt"
 	"io"
 	"reflect"
 	"testing"
@@ -19,7 +18,6 @@ type AsXXXTestCase[T any] struct {
 	ReadCount        int
 	Expected         T
 	Error            error
-	IsTemplateError  bool
 	MethodAs         func(d *decoder) func(reflect.Kind) (T, error)
 	MethodAsWithCode func(d *decoder) func(byte, reflect.Kind) (T, error)
 	MethodAsCustom   func(d *decoder) (T, error)
@@ -67,10 +65,6 @@ func (tc *AsXXXTestCase[T]) Run(t *testing.T) {
 
 		if tc.Error != nil {
 			tu.IsError(t, err, tc.Error)
-			return
-		}
-		if tc.IsTemplateError {
-			tu.ErrorContains(t, err, fmt.Sprintf("msgpack : invalid code %x", tc.Code))
 			return
 		}
 		tu.NoError(t, err)
