@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/shamaton/msgpack/v2/internal/common"
 	"io"
 	"math"
 	"math/rand"
@@ -18,6 +17,7 @@ import (
 	"github.com/shamaton/msgpack/v2"
 	"github.com/shamaton/msgpack/v2/def"
 	"github.com/shamaton/msgpack/v2/ext"
+	"github.com/shamaton/msgpack/v2/internal/common"
 	extTime "github.com/shamaton/msgpack/v2/time"
 )
 
@@ -379,7 +379,7 @@ func TestComplex(t *testing.T) {
 			{
 				n: "Nil",
 				v: nil,
-				e: "should not reach this line",
+				e: "invalid code c0 decoding",
 			},
 		}
 		encdec(t, args...)
@@ -415,7 +415,7 @@ func TestComplex(t *testing.T) {
 			{
 				n: "Nil",
 				v: nil,
-				e: "should not reach this line",
+				e: "invalid code c0 decoding",
 			},
 		}
 		encdec(t, args...)
@@ -1495,7 +1495,7 @@ func TestPointer(t *testing.T) {
 			var r int
 			t.Run(u.name, func(t *testing.T) {
 				err := u.u([]byte{def.Nil}, r)
-				ErrorContains(t, err, "holder must set pointer value. but got:")
+				ErrorContains(t, err, "receiver not pointer")
 			})
 		}
 	})
@@ -1509,14 +1509,14 @@ func TestUnsupported(t *testing.T) {
 			t.Run(m.name, func(t *testing.T) {
 				var v uintptr
 				_, err := m.m(v)
-				ErrorContains(t, err, "type(uintptr) is unsupported")
+				ErrorContains(t, err, "uintptr is unsupported type")
 			})
 		}
 		for _, u := range unmarshallers {
 			t.Run(u.name, func(t *testing.T) {
 				var r uintptr
 				err := u.u(b, &r)
-				ErrorContains(t, err, "type(uintptr) is unsupported")
+				ErrorContains(t, err, "uintptr is unsupported type")
 			})
 		}
 	})
@@ -1525,14 +1525,14 @@ func TestUnsupported(t *testing.T) {
 			t.Run(m.name, func(t *testing.T) {
 				var v chan string
 				_, err := m.m(v)
-				ErrorContains(t, err, "type(chan) is unsupported")
+				ErrorContains(t, err, "chan is unsupported type")
 			})
 		}
 		for _, u := range unmarshallers {
 			t.Run(u.name, func(t *testing.T) {
 				var r chan string
 				err := u.u(b, &r)
-				ErrorContains(t, err, "type(chan) is unsupported")
+				ErrorContains(t, err, "chan is unsupported type")
 			})
 		}
 	})
@@ -1541,14 +1541,14 @@ func TestUnsupported(t *testing.T) {
 			t.Run(m.name, func(t *testing.T) {
 				var v func()
 				_, err := m.m(v)
-				ErrorContains(t, err, "type(func) is unsupported")
+				ErrorContains(t, err, "func is unsupported type")
 			})
 		}
 		for _, u := range unmarshallers {
 			t.Run(u.name, func(t *testing.T) {
 				var r func()
 				err := u.u(b, &r)
-				ErrorContains(t, err, "type(func) is unsupported")
+				ErrorContains(t, err, "func is unsupported type")
 			})
 		}
 	})
