@@ -41,7 +41,13 @@ jobs:
         run: go build -v ./...
 
       - name: Test
-        run: go test -v --coverpkg=github.com/shamaton/msgpack/... --coverprofile=coverage.coverprofile --covermode=atomic ./...
+        run: go test -v --coverpkg=github.com/shamaton/msgpack/... --coverprofile=coverage.coverprofile.tmp --covermode=atomic ./...
+
+      - name: Remove testutil from coverage
+        shell: bash
+        run: |
+          cat coverage.coverprofile.tmp | grep -v testutil > coverage.coverprofile
+          rm coverage.coverprofile.tmp
 
       - name: Upload coverage to Codecov
         if: success() && matrix.go == '1.22' && matrix.os == 'ubuntu-latest'
