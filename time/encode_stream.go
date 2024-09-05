@@ -10,9 +10,7 @@ import (
 
 var StreamEncoder = new(timeStreamEncoder)
 
-type timeStreamEncoder struct {
-	ext.StreamEncoderCommon
-}
+type timeStreamEncoder struct{}
 
 var _ ext.StreamEncoder = (*timeStreamEncoder)(nil)
 
