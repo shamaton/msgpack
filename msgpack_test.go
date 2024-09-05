@@ -2154,9 +2154,7 @@ func (s *testEncoder) WriteToBytes(value reflect.Value, offset int, bytes *[]byt
 
 var streamEncoder = new(testStreamEncoder)
 
-type testStreamEncoder struct {
-	ext.StreamEncoderCommon
-}
+type testStreamEncoder struct{}
 
 var _ ext.StreamEncoder = (*testStreamEncoder)(nil)
 
