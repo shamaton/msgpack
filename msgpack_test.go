@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io"
 	"math"
 	"math/rand"
 	"reflect"
@@ -17,7 +16,6 @@ import (
 	"github.com/shamaton/msgpack/v2"
 	"github.com/shamaton/msgpack/v2/def"
 	"github.com/shamaton/msgpack/v2/ext"
-	"github.com/shamaton/msgpack/v2/internal/common"
 	extTime "github.com/shamaton/msgpack/v2/time"
 )
 
@@ -2060,9 +2058,7 @@ func (td *testDecoder) AsValue(offset int, k reflect.Kind, d *[]byte) (interface
 
 var streamDecoder = new(testStreamDecoder)
 
-type testStreamDecoder struct {
-	ext.DecoderStreamCommon
-}
+type testStreamDecoder struct{}
 
 var _ ext.StreamDecoder = (*testStreamDecoder)(nil)
 
@@ -2158,9 +2154,7 @@ func (s *testEncoder) WriteToBytes(value reflect.Value, offset int, bytes *[]byt
 
 var streamEncoder = new(testStreamEncoder)
 
-type testStreamEncoder struct {
-	ext.StreamEncoderCommon
-}
+type testStreamEncoder struct{}
 
 var _ ext.StreamEncoder = (*testStreamEncoder)(nil)
 
@@ -2172,55 +2166,55 @@ func (s *testStreamEncoder) Type() reflect.Type {
 	return reflect.TypeOf(ExtInt{})
 }
 
-func (s *testStreamEncoder) Write(w io.Writer, value reflect.Value, buf *common.Buffer) error {
+func (s *testStreamEncoder) Write(w ext.StreamWriter, value reflect.Value) error {
 	t := value.Interface().(ExtInt)
-	if err := s.WriteByte1Int(w, def.Ext8, buf); err != nil {
+	if err := w.WriteByte1Int(def.Ext8); err != nil {
 		return err
 	}
-	if err := s.WriteByte1Int(w, 15+15+10+len(t.Bytes), buf); err != nil {
+	if err := w.WriteByte1Int(15 + 15 + 10 + len(t.Bytes)); err != nil {
 		return err
 	}
-	if err := s.WriteByte1Int(w, int(s.Code()), buf); err != nil {
-		return err
-	}
-
-	if err := s.WriteByte1Int64(w, int64(t.Int8), buf); err != nil {
-		return err
-	}
-	if err := s.WriteByte2Int64(w, int64(t.Int16), buf); err != nil {
-		return err
-	}
-	if err := s.WriteByte4Int64(w, int64(t.Int32), buf); err != nil {
-		return err
-	}
-	if err := s.WriteByte8Int64(w, t.Int64, buf); err != nil {
+	if err := w.WriteByte1Int(int(s.Code())); err != nil {
 		return err
 	}
 
-	if err := s.WriteByte1Uint64(w, uint64(t.Uint8), buf); err != nil {
+	if err := w.WriteByte1Int64(int64(t.Int8)); err != nil {
 		return err
 	}
-	if err := s.WriteByte2Uint64(w, uint64(t.Uint16), buf); err != nil {
+	if err := w.WriteByte2Int64(int64(t.Int16)); err != nil {
 		return err
 	}
-	if err := s.WriteByte4Uint64(w, uint64(t.Uint32), buf); err != nil {
+	if err := w.WriteByte4Int64(int64(t.Int32)); err != nil {
 		return err
 	}
-	if err := s.WriteByte8Uint64(w, t.Uint64, buf); err != nil {
-		return err
-	}
-
-	if err := s.WriteByte2Int(w, t.Byte2Int, buf); err != nil {
-		return err
-	}
-	if err := s.WriteByte4Int(w, t.Byte4Int, buf); err != nil {
+	if err := w.WriteByte8Int64(t.Int64); err != nil {
 		return err
 	}
 
-	if err := s.WriteByte4Uint32(w, t.Byte4Uint32, buf); err != nil {
+	if err := w.WriteByte1Uint64(uint64(t.Uint8)); err != nil {
 		return err
 	}
-	if err := s.WriteBytes(w, t.Bytes, buf); err != nil {
+	if err := w.WriteByte2Uint64(uint64(t.Uint16)); err != nil {
+		return err
+	}
+	if err := w.WriteByte4Uint64(uint64(t.Uint32)); err != nil {
+		return err
+	}
+	if err := w.WriteByte8Uint64(t.Uint64); err != nil {
+		return err
+	}
+
+	if err := w.WriteByte2Int(t.Byte2Int); err != nil {
+		return err
+	}
+	if err := w.WriteByte4Int(t.Byte4Int); err != nil {
+		return err
+	}
+
+	if err := w.WriteByte4Uint32(t.Byte4Uint32); err != nil {
+		return err
+	}
+	if err := w.WriteBytes(t.Bytes); err != nil {
 		return err
 	}
 	return nil
@@ -2304,7 +2298,7 @@ func (s *testExt2StreamEncoder) Type() reflect.Type {
 	return reflect.TypeOf(ExtInt{})
 }
 
-func (s *testExt2StreamEncoder) Write(_ io.Writer, _ reflect.Value, _ *common.Buffer) error {
+func (s *testExt2StreamEncoder) Write(_ ext.StreamWriter, _ reflect.Value) error {
 	return fmt.Errorf("should not reach this line!! code %x", s.Code())
 }
 
