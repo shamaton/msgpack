@@ -39,8 +39,24 @@ func Decode(data []byte, v interface{}, asArray bool) error {
 	return err
 }
 
+type Unmarshaler interface {
+	UnmarshalMsgpack(any) error
+}
+
 func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
 	k := rv.Kind()
+	if uv, ok := rv.Interface().(Unmarshaler); ok {
+		v, o, err := d.asInterface(offset, k)
+		if err != nil {
+			return 0, err
+		}
+		err = uv.UnmarshalMsgpack(v)
+		if err != nil {
+			return 0, err
+		}
+		offset = o
+		return offset, nil
+	}
 	switch k {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		v, o, err := d.asInt(offset, k)

@@ -1,7 +1,9 @@
 package decoding
 
 import (
+	"net"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/shamaton/msgpack/v2/def"
@@ -744,4 +746,81 @@ func Test_decodeWithCode(t *testing.T) {
 		var vv any = int8(3)
 		tu.Equal(t, v.V, vv)
 	})
+
+	t.Run("StructWithCustomDecodeMethod", func(t *testing.T) {
+		testcases := AsXXXTestCases[bool]{
+			{
+				Name:     "error",
+				Data:     []byte{def.Int8},
+				Error:    def.ErrTooShortBytes,
+				MethodAs: method,
+			},
+			{
+				Name:     "ok",
+				Data:     []byte{def.Int8, 3},
+				Expected: true,
+				MethodAs: method,
+			},
+		}
+		v := new(StructWithCustomDecodeMethod)
+		target = &v
+		testcases.Run(t)
+		tu.Equal(t, v.A, 9)
+		tu.Equal(t, v.B, "Happy birthday!")
+	})
+
+	t.Run("CustomDecodeNetAddrWhitelist", func(t *testing.T) {
+		testcases := AsXXXTestCases[bool]{
+			{
+				Name:     "error",
+				Data:     []byte{def.Int8, 0},
+				Error:    def.ErrCanNotDecode,
+				MethodAs: method,
+			},
+			{
+				Name:     "ok",
+				Data:     []byte{def.Str8, 24, '1', '9', '2', '.', '1', '6', '8', '.', '1', '.', '0', '/', '2', '4', ',', '0', '.', '0', '.', '0', '.', '0', '/', '0'},
+				Expected: true,
+				MethodAs: method,
+			},
+		}
+		v := new(NetAddrWhitelist)
+		target = &v
+		testcases.Run(t)
+		tu.Equal(t, len(*v), 2)
+		tu.Equal(t, (*v)[0].String(), "192.168.1.0/24")
+		tu.Equal(t, (*v)[1].String(), "0.0.0.0/0")
+	})
+
+}
+
+type StructWithCustomDecodeMethod struct {
+	A int
+	B string
+}
+
+func (s *StructWithCustomDecodeMethod) UnmarshalMsgpack(value any) error {
+	if v, ok := value.(int8); ok {
+		s.A = int(v) * 3
+		s.B = "Happy birthday!"
+		return nil
+	}
+	return def.ErrCanNotDecode
+}
+
+type NetAddrWhitelist []net.IPNet
+
+func (a *NetAddrWhitelist) UnmarshalMsgpack(value any) error {
+	if v, ok := value.(string); ok {
+		nets := strings.Split(v, ",")
+		for _, netw := range nets {
+			_, ipnet, err := net.ParseCIDR(netw)
+			if err != nil {
+				return err
+			}
+			*a = append(*a, *ipnet)
+		}
+		return nil
+	}
+	return def.ErrCanNotDecode
 }
