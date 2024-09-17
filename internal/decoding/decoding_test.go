@@ -763,7 +763,7 @@ func Test_decodeWithCode(t *testing.T) {
 			},
 		}
 		v := new(StructWithCustomDecodeMethod)
-		target = &v
+		target = v
 		testcases.Run(t)
 		tu.Equal(t, v.A, 9)
 		tu.Equal(t, v.B, "Happy birthday!")
@@ -785,7 +785,7 @@ func Test_decodeWithCode(t *testing.T) {
 			},
 		}
 		v := new(NetAddrWhitelist)
-		target = &v
+		target = v
 		testcases.Run(t)
 		tu.Equal(t, len(*v), 2)
 		tu.Equal(t, (*v)[0].String(), "192.168.1.0/24")
@@ -799,28 +799,28 @@ type StructWithCustomDecodeMethod struct {
 	B string
 }
 
-func (s *StructWithCustomDecodeMethod) UnmarshalMsgpack(value any) error {
+func (s StructWithCustomDecodeMethod) UnmarshalMsgpack(value any) (any, error) {
 	if v, ok := value.(int8); ok {
 		s.A = int(v) * 3
 		s.B = "Happy birthday!"
-		return nil
+		return s, nil
 	}
-	return def.ErrCanNotDecode
+	return nil, def.ErrCanNotDecode
 }
 
 type NetAddrWhitelist []net.IPNet
 
-func (a *NetAddrWhitelist) UnmarshalMsgpack(value any) error {
+func (a NetAddrWhitelist) UnmarshalMsgpack(value any) (any, error) {
 	if v, ok := value.(string); ok {
 		nets := strings.Split(v, ",")
 		for _, netw := range nets {
 			_, ipnet, err := net.ParseCIDR(netw)
 			if err != nil {
-				return err
+				return nil, err
 			}
-			*a = append(*a, *ipnet)
+			a = append(a, *ipnet)
 		}
-		return nil
+		return a, nil
 	}
-	return def.ErrCanNotDecode
+	return nil, def.ErrCanNotDecode
 }

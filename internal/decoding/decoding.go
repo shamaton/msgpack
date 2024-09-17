@@ -40,7 +40,7 @@ func Decode(data []byte, v interface{}, asArray bool) error {
 }
 
 type Unmarshaler interface {
-	UnmarshalMsgpack(any) error
+	UnmarshalMsgpack(any) (any, error)
 }
 
 func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
@@ -50,10 +50,11 @@ func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
 		if err != nil {
 			return 0, err
 		}
-		err = uv.UnmarshalMsgpack(v)
+		v, err = uv.UnmarshalMsgpack(v)
 		if err != nil {
 			return 0, err
 		}
+		rv.Set(reflect.ValueOf(v))
 		offset = o
 		return offset, nil
 	}
