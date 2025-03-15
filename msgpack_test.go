@@ -2304,6 +2304,132 @@ func (s *testExt2StreamEncoder) Write(_ ext.StreamWriter, _ reflect.Value) error
 
 /////////////////////////////////////////////////////////
 
+type Issue44Struct1 struct {
+	Bin8  []byte
+	Bin16 []byte
+	Bin32 []byte
+}
+
+type Issue44Struct2 struct {
+	S1 *Issue44Struct1
+	S2 *Issue44Struct2 // should not blow up on recursion
+
+	Bin8  []byte
+	Bin16 []byte
+	Bin32 []byte
+}
+
+type Issue44Struct3 struct {
+	Bin8  string
+	Bin16 string
+	Bin32 string
+}
+
+type Issue44Struct4 struct {
+	S1 *Issue44Struct3
+	S2 *Issue44Struct4 // should not blow up on recursion
+
+	Bin8  string
+	Bin16 string
+	Bin32 string
+}
+
+// https://github.com/shamaton/msgpack/issues/44
+func TestIssue44(t *testing.T) {
+	v := &Issue44Struct2{
+		S1: &Issue44Struct1{
+			Bin8:  []byte("a"),
+			Bin16: []byte(strings.Repeat("b", 256)),
+			Bin32: []byte(strings.Repeat("c", 256*256)),
+		},
+		S2: &Issue44Struct2{
+			Bin8:  []byte("d"),
+			Bin16: []byte(strings.Repeat("e", 256)),
+			Bin32: []byte(strings.Repeat("f", 256*256)),
+		},
+		Bin8:  []byte("g"),
+		Bin16: []byte(strings.Repeat("h", 256)),
+		Bin32: []byte(strings.Repeat("i", 256*256)),
+	}
+
+	t.Run("byte slice", func(t *testing.T) {
+		b, err := msgpack.Marshal(v)
+		if err != nil {
+			panic(err)
+		}
+		buf := bytes.NewBuffer(nil)
+		if err = msgpack.MarshalWrite(buf, v); err != nil {
+			panic(err)
+		}
+		if !reflect.DeepEqual(buf.Bytes(), b) {
+			t.Fatalf("Marshal is not equal simple: [% 02x], streaming: [% 02x]", buf.Bytes(), b)
+		}
+
+		v2 := &Issue44Struct2{}
+		if err = msgpack.Unmarshal(b, v2); err != nil {
+			panic(err)
+		}
+		if !reflect.DeepEqual(v, v2) {
+			t.Fatalf("Unmarshal is not equal orig: '%#v', got '%#v'", v, v2)
+		}
+
+		v3 := &Issue44Struct2{}
+		if err = msgpack.UnmarshalRead(buf, v3); err != nil {
+			panic(err)
+		}
+		if !reflect.DeepEqual(v, v3) {
+			t.Fatalf("Unmarshal Streaming is not equal orig: '%#v', got '%#v'", v, v3)
+		}
+	})
+	t.Run("string", func(t *testing.T) {
+		vv := &Issue44Struct4{
+			S1: &Issue44Struct3{
+				Bin8:  "a",
+				Bin16: strings.Repeat("b", 256),
+				Bin32: strings.Repeat("c", 256*256),
+			},
+			S2: &Issue44Struct4{
+				Bin8:  "d",
+				Bin16: strings.Repeat("e", 256),
+				Bin32: strings.Repeat("f", 256*256),
+			},
+			Bin8:  "g",
+			Bin16: strings.Repeat("h", 256),
+			Bin32: strings.Repeat("i", 256*256),
+		}
+
+		b, err := msgpack.Marshal(vv)
+		if err != nil {
+			panic(err)
+		}
+		buf := bytes.NewBuffer(nil)
+		if err = msgpack.MarshalWrite(buf, vv); err != nil {
+			panic(err)
+		}
+		if !reflect.DeepEqual(buf.Bytes(), b) {
+			t.Fatalf("Marshal is not equal simple: [% 02x], streaming: [% 02x]", buf.Bytes(), b)
+		}
+
+		v2 := &Issue44Struct2{}
+		if err = msgpack.Unmarshal(b, v2); err != nil {
+			panic(err)
+		}
+		if !reflect.DeepEqual(v, v2) {
+			t.Fatalf("Unmarshal is not equal orig: '%#v', got '%#v'", v, v2)
+		}
+
+		v3 := &Issue44Struct2{}
+		if err = msgpack.UnmarshalRead(buf, v3); err != nil {
+			panic(err)
+		}
+		if !reflect.DeepEqual(v, v3) {
+			t.Fatalf("Unmarshal Streaming is not equal orig: '%#v', got '%#v'", v, v3)
+		}
+	})
+}
+
+/////////////////////////////////////////////////////////
+
 type (
 	checker      func(data []byte) bool
 	marshaller   func(v any) ([]byte, error)
