@@ -9,6 +9,7 @@ import (
 	"math"
 	"math/rand"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -1597,6 +1598,9 @@ func TestStruct(t *testing.T) {
 	t.Run("Tag", func(t *testing.T) {
 		testStructTag(t)
 	})
+	t.Run("Omitempty", func(t *testing.T) {
+		TestStructTagOmitempty(t)
+	})
 	t.Run("Array", func(t *testing.T) {
 		testStructArray(t)
 	})
@@ -1606,7 +1610,6 @@ func TestStruct(t *testing.T) {
 	t.Run("Jump", func(t *testing.T) {
 		testStructJump(t)
 	})
-
 	t.Run("UseCase", func(t *testing.T) {
 		testStructUseCase(t)
 	})
@@ -1662,6 +1665,101 @@ func testStructTag(t *testing.T) {
 		},
 	}
 	encdec(t, arg)
+}
+
+func TestStructTagOmitempty(t *testing.T) {
+	type vSt struct {
+		One   int    `msgpack:",omitempty"`
+		Two   string `msgpack:"four,omitempty"`
+		Hfn   bool   `msgpack:"-,omitempty"`
+		Slice []int  `msgpack:",omitempty"`
+	}
+	type rSt struct {
+		One   int
+		Four  string `msgpack:"four"`
+		Hfn   bool   `msgpack:"-"`
+		Slice []int
+	}
+
+	cases := []struct {
+		name  string
+		v     vSt
+		c     func(d []byte) bool
+		array bool
+	}{
+		{
+			name: "all empty",
+			v:    vSt{},
+			c: func(d []byte) bool {
+				return d[0] == def.FixMap+0x00 && len(d) == 1
+			},
+		},
+		{
+			name: "int",
+			v:    vSt{One: 1},
+			c: func(d []byte) bool {
+				return d[0] == def.FixMap+0x01
+			},
+		},
+		{
+			name: "string",
+			v:    vSt{Two: "2"},
+			c: func(d []byte) bool {
+				return d[0] == def.FixMap+0x01 && d[1] == 0xa4 && d[2] == 'f' && d[3] == 'o' && d[4] == 'u' && d[5] == 'r'
+			},
+		},
+		{
+			name: "bool",
+			v:    vSt{Hfn: true},
+			c: func(d []byte) bool {
+				return d[0] == def.FixMap+0x00 && len(d) == 1
+			},
+		},
+		{
+			name: "slice",
+			v:    vSt{Slice: []int{}},
+			c: func(d []byte) bool {
+				return d[0] == def.FixMap+0x01 &&
+					d[1] == 0xa5 && d[2] == 'S' && d[3] == 'l' && d[4] == 'i' && d[5] == 'c' && d[6] == 'e' &&
+					d[7] == def.FixArray+0x00
+			},
+		},
+		{
+			name: "slice values",
+			v:    vSt{Slice: []int{1, 2, 3}},
+			c: func(d []byte) bool {
+				return d[0] == def.FixMap+0x01 &&
+					d[1] == 0xa5 && d[2] == 'S' && d[3] == 'l' && d[4] == 'i' && d[5] == 'c' && d[6] == 'e' &&
+					d[7] == def.FixArray+0x03 && d[8] == 0x01 && d[9] == 0x02 && d[10] == 0x03
+			},
+		},
+		{
+			name: "array all empty",
+			v:    vSt{},
+			c: func(d []byte) bool {
+				return d[0] == def.FixArray+0x03
+			},
+			array: true,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			msgpack.StructAsArray = c.array
+			v := c.v
+			arg := encdecArg[rSt]{
+				v:      v,
+				c:      c.c,
+				skipEq: true,
+				vc: func(r rSt) error {
+					if v.One != r.One || v.Two != r.Four || r.Hfn != false || !slices.Equal(v.Slice, r.Slice) {
+						return fmt.Errorf("error: %v, %v", v, r)
+					}
+					return nil
+				},
+			}
+			encdec(t, arg)
+		})
+	}
 }
 
 func testStructArray(t *testing.T) {

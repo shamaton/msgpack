@@ -214,3 +214,15 @@ func Test_writeStructMap(t *testing.T) {
 		})
 	}
 }
+
+func Test_calcSizeWithOmitEmpty(t *testing.T) {
+	e := encoder{}
+	var v any
+	v = func() {}
+	_, err := e.calcSizeWithOmitEmpty(reflect.ValueOf(v), "a", false)
+	tu.Error(t, err)
+
+	v = 1
+	_, err = e.calcSizeWithOmitEmpty(reflect.ValueOf(v), "a", false)
+	tu.NoError(t, err)
+}
