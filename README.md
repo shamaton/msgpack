@@ -14,6 +14,7 @@ You can get the fastest performance with [msgpackgen](https://github.com/shamato
 * Supported types : primitive / array / slice / struct / map / interface{} and time.Time
 * Renaming fields via `msgpack:"field_name"`
 * Omitting fields via `msgpack:"-"`
+* Omitting empty fields via msgpack:"field_name,omitempty"
 * Supports extend encoder / decoder
 * Can also Encoding / Decoding struct as array
 
