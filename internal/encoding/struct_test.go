@@ -214,3 +214,91 @@ func Test_writeStructMap(t *testing.T) {
 		})
 	}
 }
+
+func Test_calcSizeWithOmitEmpty(t *testing.T) {
+	e := encoder{}
+	var v any
+	v = func() {}
+	_, err := e.calcSizeWithOmitEmpty(reflect.ValueOf(v), "a", false)
+	tu.Error(t, err)
+
+	v = 1
+	_, err = e.calcSizeWithOmitEmpty(reflect.ValueOf(v), "a", false)
+	tu.NoError(t, err)
+}
+
+func Test_structCache(t *testing.T) {
+	type forMap struct {
+		Int  int
+		Uint uint `msgpack:",omitempty"`
+		Str  string
+	}
+	type forMapNoOmit struct {
+		Int  int
+		Uint uint
+		Str  string
+	}
+	type forArray struct {
+		Int  int `msgpack:",omitempty"`
+		Uint uint
+		Str  string `msgpack:",omitempty"`
+	}
+	type forArrayNoOmit struct {
+		Int  int
+		Uint uint
+		Str  string
+	}
+
+	e := encoder{}
+	testcases := []struct {
+		v         any
+		omitCount int
+		f         func(rv reflect.Value) (int, error)
+	}{
+		{
+			v:         forMap{},
+			omitCount: 1,
+			f:         e.calcStructMap,
+		},
+
+		{
+			v:         forMapNoOmit{},
+			omitCount: 0,
+			f:         e.calcStructMap,
+		},
+		{
+			v:         forArray{},
+			omitCount: 2,
+			f:         e.calcStructArray,
+		},
+
+		{
+			v:         forArrayNoOmit{},
+			omitCount: 0,
+			f:         e.calcStructArray,
+		},
+	}
+
+	for _, c := range testcases {
+		rv := reflect.ValueOf(c.v)
+		t.Run(rv.String(), func(t *testing.T) {
+			_, found := cachemap.Load(rv.Type())
+			tu.Equal(t, found, false)
+
+			_, err := c.f(rv)
+			tu.NoError(t, err)
+
+			cache, _ := cachemap.Load(rv.Type())
+			ca, ok := cache.(*structCache)
+			tu.Equal(t, ok, true)
+			tu.Equal(t, len(ca.omits), rv.NumField())
+			count := 0
+			for _, b := range ca.omits {
+				if b {
+					count++
+				}
+			}
+			tu.Equal(t, count, c.omitCount)
+		})
+	}
+}

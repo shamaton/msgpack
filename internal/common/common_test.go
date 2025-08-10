@@ -15,8 +15,29 @@ func TestCommon_CheckField(t *testing.T) {
 			Name: "A",
 			Tag:  `msgpack:"-"`,
 		}
-		b, v := common.CheckField(field)
-		tu.Equal(t, b, false)
+		public, omit, v := common.CheckField(field)
+		tu.Equal(t, public, false)
+		tu.Equal(t, omit, false)
+		tu.Equal(t, v, "")
+	})
+	t.Run("tag:,omitempty", func(t *testing.T) {
+		field := reflect.StructField{
+			Name: "A",
+			Tag:  `msgpack:",omitempty"`,
+		}
+		public, omit, v := common.CheckField(field)
+		tu.Equal(t, public, true)
+		tu.Equal(t, omit, true)
+		tu.Equal(t, v, "A")
+	})
+	t.Run("tag:-,omitempty", func(t *testing.T) {
+		field := reflect.StructField{
+			Name: "A",
+			Tag:  `msgpack:"-,omitempty"`,
+		}
+		public, omit, v := common.CheckField(field)
+		tu.Equal(t, public, false)
+		tu.Equal(t, omit, false)
 		tu.Equal(t, v, "")
 	})
 	t.Run("tag:B", func(t *testing.T) {
@@ -24,8 +45,19 @@ func TestCommon_CheckField(t *testing.T) {
 			Name: "A",
 			Tag:  `msgpack:"B"`,
 		}
-		b, v := common.CheckField(field)
-		tu.Equal(t, b, true)
+		public, omit, v := common.CheckField(field)
+		tu.Equal(t, public, true)
+		tu.Equal(t, omit, false)
+		tu.Equal(t, v, "B")
+	})
+	t.Run("tag:B,omitempty", func(t *testing.T) {
+		field := reflect.StructField{
+			Name: "A",
+			Tag:  `msgpack:"B,omitempty"`,
+		}
+		public, omit, v := common.CheckField(field)
+		tu.Equal(t, public, true)
+		tu.Equal(t, omit, true)
 		tu.Equal(t, v, "B")
 	})
 	t.Run("name:A", func(t *testing.T) {
@@ -33,16 +65,18 @@ func TestCommon_CheckField(t *testing.T) {
 			Name: "A",
 			Tag:  `msgpack:""`,
 		}
-		b, v := common.CheckField(field)
-		tu.Equal(t, b, true)
+		public, omit, v := common.CheckField(field)
+		tu.Equal(t, public, true)
+		tu.Equal(t, omit, false)
 		tu.Equal(t, v, "A")
 	})
 	t.Run("private", func(t *testing.T) {
 		field := reflect.StructField{
 			Name: "a",
 		}
-		b, v := common.CheckField(field)
-		tu.Equal(t, b, false)
+		public, omit, v := common.CheckField(field)
+		tu.Equal(t, public, false)
+		tu.Equal(t, omit, false)
 		tu.Equal(t, v, "")
 	})
 }
