@@ -19,17 +19,17 @@ func Test_calcByteSlice(t *testing.T) {
 		{
 			name:   "u8",
 			value:  math.MaxUint8,
-			result: def.Byte1 + math.MaxUint8,
+			result: def.Byte1 + def.Byte1 + math.MaxUint8,
 		},
 		{
 			name:   "u16",
 			value:  math.MaxUint16,
-			result: def.Byte2 + math.MaxUint16,
+			result: def.Byte1 + def.Byte2 + math.MaxUint16,
 		},
 		{
 			name:   "u32",
 			value:  math.MaxUint32,
-			result: def.Byte4 + math.MaxUint32,
+			result: def.Byte1 + def.Byte4 + math.MaxUint32,
 		},
 		{
 			name:  "u32over",

@@ -14,59 +14,59 @@ func Test_FixedSlice(t *testing.T) {
 	}{
 		{
 			value: []int{-1},
-			size:  1,
-		},
-		{
-			value: []uint{1},
-			size:  1,
-		},
-		{
-			value: []string{"a"},
 			size:  2,
 		},
 		{
+			value: []uint{1},
+			size:  2,
+		},
+		{
+			value: []string{"a"},
+			size:  3,
+		},
+		{
 			value: []float32{1.23},
-			size:  5,
+			size:  6,
 		},
 		{
 			value: []float64{1.23},
-			size:  9,
+			size:  10,
 		},
 		{
 			value: []bool{true},
-			size:  1,
+			size:  2,
 		},
 		{
 			value: []int8{1},
-			size:  1,
+			size:  2,
 		},
 		{
 			value: []int16{1},
-			size:  1,
+			size:  2,
 		},
 		{
 			value: []int32{1},
-			size:  1,
+			size:  2,
 		},
 		{
 			value: []int64{1},
-			size:  1,
+			size:  2,
 		},
 		{
 			value: []uint8{1},
-			size:  1,
+			size:  2,
 		},
 		{
 			value: []uint16{1},
-			size:  1,
+			size:  2,
 		},
 		{
 			value: []uint32{1},
-			size:  1,
+			size:  2,
 		},
 		{
 			value: []uint64{1},
-			size:  1,
+			size:  2,
 		},
 	}
 	for _, tc := range testcases {

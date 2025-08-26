@@ -43,17 +43,17 @@ func Test_calcStructArray(t *testing.T) {
 		{
 			name:   "0x0f",
 			value:  0x0f,
-			result: 0,
+			result: def.Byte1,
 		},
 		{
 			name:   "u16",
 			value:  math.MaxUint16,
-			result: def.Byte2,
+			result: def.Byte1 + def.Byte2,
 		},
 		{
 			name:   "u32",
 			value:  math.MaxUint16 + 1,
-			result: def.Byte4,
+			result: def.Byte1 + def.Byte4,
 		},
 		// can not run by out of memory
 		//{
@@ -108,17 +108,17 @@ func Test_calcStructMap(t *testing.T) {
 		{
 			name:   "0x0f",
 			value:  0x0f,
-			result: 0,
+			result: def.Byte1,
 		},
 		{
 			name:   "u16",
 			value:  math.MaxUint16,
-			result: def.Byte2,
+			result: def.Byte1 + def.Byte2,
 		},
 		{
 			name:   "u32",
 			value:  math.MaxUint16 + 1,
-			result: def.Byte4,
+			result: def.Byte1 + def.Byte4,
 		},
 		// can not run by out of memory
 		//{
@@ -169,7 +169,7 @@ func Test_writeStructArray(t *testing.T) {
 			size, err := e.calcStructArray(rv)
 			tu.NoError(t, err)
 
-			e.d = make([]byte, size+def.Byte1)
+			e.d = make([]byte, size)
 			result := e.writeStructArray(rv, 0)
 			tu.Equal(t, len(e.d), result)
 			tu.Equal(t, e.d[0], tc.code)
@@ -207,7 +207,7 @@ func Test_writeStructMap(t *testing.T) {
 			size, err := e.calcStructMap(rv)
 			tu.NoError(t, err)
 
-			e.d = make([]byte, size+def.Byte1)
+			e.d = make([]byte, size)
 			result := e.writeStructMap(rv, 0)
 			tu.Equal(t, len(e.d), result)
 			tu.Equal(t, e.d[0], tc.code)
