@@ -22,18 +22,18 @@ func ExampleAddExtCoder() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("% 02x\n", r1)
-	// Output:
-	// c7 0c 32 31 32 37 2e 30 2e 30 2e 31 2f 32 34
+	fmt.Printf("encode: % 02x\n", r1)
 
 	var v2 net.IPNet
 	err = msgpack.Unmarshal(r1, &v2)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(v2)
+	fmt.Println("decode:", v2)
+
 	// Output:
-	// {127.0.0.0 ffffff00}
+	// encode: c7 0c 32 31 32 37 2e 30 2e 30 2e 31 2f 32 34
+	// decode: {127.0.0.0 ffffff00}
 }
 
 func ExampleAddExtStreamCoder() {
@@ -49,18 +49,18 @@ func ExampleAddExtStreamCoder() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("% 02x\n", buf.Bytes())
-	// Output:
-	// c7 0c 32 31 32 37 2e 30 2e 30 2e 31 2f 32 34
+	fmt.Printf("encode: % 02x\n", buf.Bytes())
 
 	var v2 net.IPNet
 	err = msgpack.UnmarshalRead(&buf, &v2)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(v2)
+	fmt.Println("decode:", v2)
+
 	// Output:
-	// {127.0.0.0 ffffff00}
+	// encode: c7 0c 32 31 32 37 2e 30 2e 30 2e 31 2f 32 34
+	// decode: {127.0.0.0 ffffff00}
 }
 
 const ipNetCode = 50
@@ -151,7 +151,6 @@ func (s *IPNetEncoder) Type() reflect.Type {
 
 func (s *IPNetEncoder) CalcByteSize(value reflect.Value) (int, error) {
 	v := value.Interface().(net.IPNet)
-	fmt.Println(def.Byte1 + def.Byte1 + len([]byte(v.String())))
 	return def.Byte1 + def.Byte1 + def.Byte1 + len(v.String()), nil
 }
 
