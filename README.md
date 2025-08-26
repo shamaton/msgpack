@@ -11,7 +11,7 @@
 * Renaming fields via `msgpack:"field_name"`
 * Omitting fields via `msgpack:"-"`
 * Omitting empty fields via `msgpack:"field_name,omitempty"`
-* Supports extend encoder / decoder
+* Supports extend encoder / decoder [(example)](./msgpack_example_test.go)
 * Can also Encoding / Decoding struct as array
 
 ## Installation
