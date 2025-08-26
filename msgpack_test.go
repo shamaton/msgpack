@@ -2223,7 +2223,7 @@ func (s *testEncoder) Type() reflect.Type {
 
 func (s *testEncoder) CalcByteSize(value reflect.Value) (int, error) {
 	t := value.Interface().(ExtInt)
-	return def.Byte1 + def.Byte1 + 15 + 15 + 10 + len(t.Bytes), nil
+	return def.Byte1 + def.Byte1 + def.Byte1 + 15 + 15 + 10 + len(t.Bytes), nil
 }
 
 func (s *testEncoder) WriteToBytes(value reflect.Value, offset int, bytes *[]byte) int {

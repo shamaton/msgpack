@@ -8,252 +8,402 @@ import (
 )
 
 func (e *encoder) calcFixedMap(rv reflect.Value) (int, bool) {
-	size := 0
-
 	switch m := rv.Interface().(type) {
 	case map[string]int:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k, v := range m {
-			size += def.Byte1 + e.calcString(k)
-			size += def.Byte1 + e.calcInt(int64(v))
+			size += e.calcString(k)
+			size += e.calcInt(int64(v))
 		}
 		return size, true
 
 	case map[string]uint:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k, v := range m {
-			size += def.Byte1 + e.calcString(k)
-			size += def.Byte1 + e.calcUint(uint64(v))
+			size += e.calcString(k)
+			size += e.calcUint(uint64(v))
 		}
 		return size, true
 
 	case map[string]string:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k, v := range m {
-			size += def.Byte1 + e.calcString(k)
-			size += def.Byte1 + e.calcString(v)
+			size += e.calcString(k)
+			size += e.calcString(v)
 		}
 		return size, true
 
 	case map[string]float32:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k := range m {
-			size += def.Byte1 + e.calcString(k)
-			size += def.Byte1 + e.calcFloat32(0)
+			size += e.calcString(k)
+			size += e.calcFloat32(0)
 		}
 		return size, true
 
 	case map[string]float64:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k := range m {
-			size += def.Byte1 + e.calcString(k)
-			size += def.Byte1 + e.calcFloat64(0)
+			size += e.calcString(k)
+			size += e.calcFloat64(0)
 		}
 		return size, true
 
 	case map[string]bool:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k := range m {
-			size += def.Byte1 + e.calcString(k)
+			size += e.calcString(k)
 			size += def.Byte1 /*+ e.calcBool()*/
 		}
 		return size, true
 
 	case map[string]int8:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k, v := range m {
-			size += def.Byte1 + e.calcString(k)
-			size += def.Byte1 + e.calcInt(int64(v))
+			size += e.calcString(k)
+			size += e.calcInt(int64(v))
 		}
 		return size, true
 	case map[string]int16:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k, v := range m {
-			size += def.Byte1 + e.calcString(k)
-			size += def.Byte1 + e.calcInt(int64(v))
+			size += e.calcString(k)
+			size += e.calcInt(int64(v))
 		}
 		return size, true
 	case map[string]int32:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k, v := range m {
-			size += def.Byte1 + e.calcString(k)
-			size += def.Byte1 + e.calcInt(int64(v))
+			size += e.calcString(k)
+			size += e.calcInt(int64(v))
 		}
 		return size, true
 	case map[string]int64:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k, v := range m {
-			size += def.Byte1 + e.calcString(k)
-			size += def.Byte1 + e.calcInt(v)
+			size += e.calcString(k)
+			size += e.calcInt(v)
 		}
 		return size, true
 	case map[string]uint8:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k, v := range m {
-			size += def.Byte1 + e.calcString(k)
-			size += def.Byte1 + e.calcUint(uint64(v))
+			size += e.calcString(k)
+			size += e.calcUint(uint64(v))
 		}
 		return size, true
 	case map[string]uint16:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k, v := range m {
-			size += def.Byte1 + e.calcString(k)
-			size += def.Byte1 + e.calcUint(uint64(v))
+			size += e.calcString(k)
+			size += e.calcUint(uint64(v))
 		}
 		return size, true
 	case map[string]uint32:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k, v := range m {
-			size += def.Byte1 + e.calcString(k)
-			size += def.Byte1 + e.calcUint(uint64(v))
+			size += e.calcString(k)
+			size += e.calcUint(uint64(v))
 		}
 		return size, true
 	case map[string]uint64:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k, v := range m {
-			size += def.Byte1 + e.calcString(k)
-			size += def.Byte1 + e.calcUint(v)
+			size += e.calcString(k)
+			size += e.calcUint(v)
 		}
 		return size, true
 
 	case map[int]string:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k, v := range m {
-			size += def.Byte1 + e.calcInt(int64(k))
-			size += def.Byte1 + e.calcString(v)
+			size += e.calcInt(int64(k))
+			size += e.calcString(v)
 		}
 		return size, true
 	case map[int]bool:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k := range m {
-			size += def.Byte1 + e.calcInt(int64(k))
+			size += e.calcInt(int64(k))
 			size += def.Byte1 /* + e.calcBool()*/
 		}
 		return size, true
 
 	case map[uint]string:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k, v := range m {
-			size += def.Byte1 + e.calcUint(uint64(k))
-			size += def.Byte1 + e.calcString(v)
+			size += e.calcUint(uint64(k))
+			size += e.calcString(v)
 		}
 		return size, true
 	case map[uint]bool:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k := range m {
-			size += def.Byte1 + e.calcUint(uint64(k))
+			size += e.calcUint(uint64(k))
 			size += def.Byte1 /* + e.calcBool()*/
 		}
 		return size, true
 
 	case map[float32]string:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k, v := range m {
-			size += def.Byte1 + e.calcFloat32(float64(k))
-			size += def.Byte1 + e.calcString(v)
+			size += e.calcFloat32(float64(k))
+			size += e.calcString(v)
 		}
 		return size, true
 	case map[float32]bool:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k := range m {
-			size += def.Byte1 + e.calcFloat32(float64(k))
+			size += e.calcFloat32(float64(k))
 			size += def.Byte1 /* + e.calcBool()*/
 		}
 		return size, true
 
 	case map[float64]string:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k, v := range m {
-			size += def.Byte1 + e.calcFloat64(k)
-			size += def.Byte1 + e.calcString(v)
+			size += e.calcFloat64(k)
+			size += e.calcString(v)
 		}
 		return size, true
 	case map[float64]bool:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k := range m {
-			size += def.Byte1 + e.calcFloat64(k)
+			size += e.calcFloat64(k)
 			size += def.Byte1 /* + e.calcBool()*/
 		}
 		return size, true
 
 	case map[int8]string:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k, v := range m {
-			size += def.Byte1 + e.calcInt(int64(k))
-			size += def.Byte1 + e.calcString(v)
+			size += e.calcInt(int64(k))
+			size += e.calcString(v)
 		}
 		return size, true
 	case map[int8]bool:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k := range m {
-			size += def.Byte1 + e.calcInt(int64(k))
+			size += e.calcInt(int64(k))
 			size += def.Byte1 /* + e.calcBool()*/
 		}
 		return size, true
 	case map[int16]string:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k, v := range m {
-			size += def.Byte1 + e.calcInt(int64(k))
-			size += def.Byte1 + e.calcString(v)
+			size += e.calcInt(int64(k))
+			size += e.calcString(v)
 		}
 		return size, true
 	case map[int16]bool:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k := range m {
-			size += def.Byte1 + e.calcInt(int64(k))
+			size += e.calcInt(int64(k))
 			size += def.Byte1 /* + e.calcBool()*/
 		}
 		return size, true
 	case map[int32]string:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k, v := range m {
-			size += def.Byte1 + e.calcInt(int64(k))
-			size += def.Byte1 + e.calcString(v)
+			size += e.calcInt(int64(k))
+			size += e.calcString(v)
 		}
 		return size, true
 	case map[int32]bool:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k := range m {
-			size += def.Byte1 + e.calcInt(int64(k))
+			size += e.calcInt(int64(k))
 			size += def.Byte1 /* + e.calcBool()*/
 		}
 		return size, true
 	case map[int64]string:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k, v := range m {
-			size += def.Byte1 + e.calcInt(k)
-			size += def.Byte1 + e.calcString(v)
+			size += e.calcInt(k)
+			size += e.calcString(v)
 		}
 		return size, true
 	case map[int64]bool:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k := range m {
-			size += def.Byte1 + e.calcInt(k)
+			size += e.calcInt(k)
 			size += def.Byte1 /* + e.calcBool()*/
 		}
 		return size, true
 
 	case map[uint8]string:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k, v := range m {
-			size += def.Byte1 + e.calcUint(uint64(k))
-			size += def.Byte1 + e.calcString(v)
+			size += e.calcUint(uint64(k))
+			size += e.calcString(v)
 		}
 		return size, true
 	case map[uint8]bool:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k := range m {
-			size += def.Byte1 + e.calcUint(uint64(k))
+			size += e.calcUint(uint64(k))
 			size += def.Byte1 /* + e.calcBool()*/
 		}
 		return size, true
 	case map[uint16]string:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k, v := range m {
-			size += def.Byte1 + e.calcUint(uint64(k))
-			size += def.Byte1 + e.calcString(v)
+			size += e.calcUint(uint64(k))
+			size += e.calcString(v)
 		}
 		return size, true
 	case map[uint16]bool:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k := range m {
-			size += def.Byte1 + e.calcUint(uint64(k))
+			size += e.calcUint(uint64(k))
 			size += def.Byte1 /* + e.calcBool()*/
 		}
 		return size, true
 	case map[uint32]string:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k, v := range m {
-			size += def.Byte1 + e.calcUint(uint64(k))
-			size += def.Byte1 + e.calcString(v)
+			size += e.calcUint(uint64(k))
+			size += e.calcString(v)
 		}
 		return size, true
 	case map[uint32]bool:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k := range m {
-			size += def.Byte1 + e.calcUint(uint64(k))
+			size += e.calcUint(uint64(k))
 			size += def.Byte1 /* + e.calcBool()*/
 		}
 		return size, true
 	case map[uint64]string:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k, v := range m {
-			size += def.Byte1 + e.calcUint(k)
-			size += def.Byte1 + e.calcString(v)
+			size += e.calcUint(k)
+			size += e.calcString(v)
 		}
 		return size, true
 	case map[uint64]bool:
+		size, err := e.calcLength(len(m))
+		if err != nil {
+			return 0, false
+		}
 		for k := range m {
-			size += def.Byte1 + e.calcUint(k)
+			size += e.calcUint(k)
 			size += def.Byte1 /* + e.calcBool()*/
 		}
 		return size, true
 
 	}
-	return size, false
+	return 0, false
 }
 
 func (e *encoder) writeMapLength(l int, offset int) int {
