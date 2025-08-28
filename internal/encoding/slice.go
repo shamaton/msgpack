@@ -8,140 +8,101 @@ import (
 )
 
 func (e *encoder) calcFixedSlice(rv reflect.Value) (int, bool) {
+	// calcLength formally returns (int, error), but for map lengths in Go
+	// the error case is unreachable. The error value is always nil and is
+	// intentionally ignored with `_`.
 	switch sli := rv.Interface().(type) {
 	case []int:
-		size, err := e.calcLength(len(sli))
-		if err != nil {
-			return 0, false
-		}
+		size, _ := e.calcLength(len(sli))
 		for _, v := range sli {
 			size += e.calcInt(int64(v))
 		}
 		return size, true
 
 	case []uint:
-		size, err := e.calcLength(len(sli))
-		if err != nil {
-			return 0, false
-		}
+		size, _ := e.calcLength(len(sli))
 		for _, v := range sli {
 			size += e.calcUint(uint64(v))
 		}
 		return size, true
 
 	case []string:
-		size, err := e.calcLength(len(sli))
-		if err != nil {
-			return 0, false
-		}
+		size, _ := e.calcLength(len(sli))
 		for _, v := range sli {
 			size += e.calcString(v)
 		}
 		return size, true
 
 	case []float32:
-		size, err := e.calcLength(len(sli))
-		if err != nil {
-			return 0, false
-		}
+		size, _ := e.calcLength(len(sli))
 		for _, v := range sli {
 			size += e.calcFloat32(float64(v))
 		}
 		return size, true
 
 	case []float64:
-		size, err := e.calcLength(len(sli))
-		if err != nil {
-			return 0, false
-		}
+		size, _ := e.calcLength(len(sli))
 		for _, v := range sli {
 			size += e.calcFloat64(v)
 		}
 		return size, true
 
 	case []bool:
-		size, err := e.calcLength(len(sli))
-		if err != nil {
-			return 0, false
-		}
+		size, _ := e.calcLength(len(sli))
 		size += def.Byte1 * len(sli)
 		return size, true
 
 	case []int8:
-		size, err := e.calcLength(len(sli))
-		if err != nil {
-			return 0, false
-		}
+		size, _ := e.calcLength(len(sli))
 		for _, v := range sli {
 			size += e.calcInt(int64(v))
 		}
 		return size, true
 
 	case []int16:
-		size, err := e.calcLength(len(sli))
-		if err != nil {
-			return 0, false
-		}
+		size, _ := e.calcLength(len(sli))
 		for _, v := range sli {
 			size += e.calcInt(int64(v))
 		}
 		return size, true
 
 	case []int32:
-		size, err := e.calcLength(len(sli))
-		if err != nil {
-			return 0, false
-		}
+		size, _ := e.calcLength(len(sli))
 		for _, v := range sli {
 			size += e.calcInt(int64(v))
 		}
 		return size, true
 
 	case []int64:
-		size, err := e.calcLength(len(sli))
-		if err != nil {
-			return 0, false
-		}
+		size, _ := e.calcLength(len(sli))
 		for _, v := range sli {
 			size += e.calcInt(v)
 		}
 		return size, true
 
 	case []uint8:
-		size, err := e.calcLength(len(sli))
-		if err != nil {
-			return 0, false
-		}
+		size, _ := e.calcLength(len(sli))
 		for _, v := range sli {
 			size += e.calcUint(uint64(v))
 		}
 		return size, true
 
 	case []uint16:
-		size, err := e.calcLength(len(sli))
-		if err != nil {
-			return 0, false
-		}
+		size, _ := e.calcLength(len(sli))
 		for _, v := range sli {
 			size += e.calcUint(uint64(v))
 		}
 		return size, true
 
 	case []uint32:
-		size, err := e.calcLength(len(sli))
-		if err != nil {
-			return 0, false
-		}
+		size, _ := e.calcLength(len(sli))
 		for _, v := range sli {
 			size += e.calcUint(uint64(v))
 		}
 		return size, true
 
 	case []uint64:
-		size, err := e.calcLength(len(sli))
-		if err != nil {
-			return 0, false
-		}
+		size, _ := e.calcLength(len(sli))
 		for _, v := range sli {
 			size += e.calcUint(v)
 		}
