@@ -223,3 +223,46 @@ func Test_encode(t *testing.T) {
 		f(testcases, t)
 	})
 }
+
+func Test_calcLength(t *testing.T) {
+	e := encoder{}
+
+	testcases := []struct {
+		name   string
+		length int
+		size   int
+		err    error
+	}{
+		{
+			name:   "0x0f",
+			length: 0x0f,
+			size:   def.Byte1,
+			err:    nil,
+		},
+		{
+			name:   "MaxUint16",
+			length: math.MaxUint16,
+			size:   def.Byte1 + def.Byte2,
+			err:    nil,
+		},
+		{
+			name:   "MaxUint32",
+			length: math.MaxUint32,
+			size:   def.Byte1 + def.Byte4,
+			err:    nil,
+		},
+		{
+			name:   "error",
+			length: math.MaxUint32 + 1,
+			size:   0,
+			err:    def.ErrUnsupportedLength,
+		},
+	}
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			size, err := e.calcLength(tc.length)
+			tu.IsError(t, err, tc.err)
+			tu.Equal(t, size, tc.size)
+		})
+	}
+}
