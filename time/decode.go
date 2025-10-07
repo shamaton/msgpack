@@ -48,7 +48,11 @@ func (td *timeDecoder) AsValue(offset int, k reflect.Kind, d *[]byte) (interface
 	case def.Fixext4:
 		_, offset = td.ReadSize1(offset, d)
 		bs, offset := td.ReadSize4(offset, d)
-		return time.Unix(int64(binary.BigEndian.Uint32(bs)), 0), offset, nil
+		v := time.Unix(int64(binary.BigEndian.Uint32(bs)), 0)
+		if decodeAsLocal {
+			return v, offset, nil
+		}
+		return v.UTC(), offset, nil
 
 	case def.Fixext8:
 		_, offset = td.ReadSize1(offset, d)
@@ -58,7 +62,11 @@ func (td *timeDecoder) AsValue(offset int, k reflect.Kind, d *[]byte) (interface
 		if nano > 999999999 {
 			return zero, 0, fmt.Errorf("In timestamp 64 formats, nanoseconds must not be larger than 999999999 : %d", nano)
 		}
-		return time.Unix(int64(data64&0x00000003ffffffff), nano), offset, nil
+		v := time.Unix(int64(data64&0x00000003ffffffff), nano)
+		if decodeAsLocal {
+			return v, offset, nil
+		}
+		return v.UTC(), offset, nil
 
 	case def.Ext8:
 		_, offset = td.ReadSize1(offset, d)
@@ -70,7 +78,11 @@ func (td *timeDecoder) AsValue(offset int, k reflect.Kind, d *[]byte) (interface
 			return zero, 0, fmt.Errorf("In timestamp 96 formats, nanoseconds must not be larger than 999999999 : %d", nano)
 		}
 		sec := binary.BigEndian.Uint64(secbs)
-		return time.Unix(int64(sec), int64(nano)), offset, nil
+		v := time.Unix(int64(sec), int64(nano))
+		if decodeAsLocal {
+			return v, offset, nil
+		}
+		return v.UTC(), offset, nil
 	}
 
 	return zero, 0, fmt.Errorf("should not reach this line!! code %x decoding %v", code, k)
