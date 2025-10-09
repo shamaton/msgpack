@@ -60,7 +60,7 @@ func (td *timeDecoder) AsValue(offset int, k reflect.Kind, d *[]byte) (interface
 		data64 := binary.BigEndian.Uint64(bs)
 		nano := int64(data64 >> 34)
 		if nano > 999999999 {
-			return zero, 0, fmt.Errorf("In timestamp 64 formats, nanoseconds must not be larger than 999999999 : %d", nano)
+			return zero, 0, fmt.Errorf("in timestamp 64 formats, nanoseconds must not be larger than 999999999 : %d", nano)
 		}
 		v := time.Unix(int64(data64&0x00000003ffffffff), nano)
 		if decodeAsLocal {
@@ -75,7 +75,7 @@ func (td *timeDecoder) AsValue(offset int, k reflect.Kind, d *[]byte) (interface
 		secbs, offset := td.ReadSize8(offset, d)
 		nano := binary.BigEndian.Uint32(nanobs)
 		if nano > 999999999 {
-			return zero, 0, fmt.Errorf("In timestamp 96 formats, nanoseconds must not be larger than 999999999 : %d", nano)
+			return zero, 0, fmt.Errorf("in timestamp 96 formats, nanoseconds must not be larger than 999999999 : %d", nano)
 		}
 		sec := binary.BigEndian.Uint64(secbs)
 		v := time.Unix(int64(sec), int64(nano))
