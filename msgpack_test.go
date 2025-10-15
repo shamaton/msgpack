@@ -17,6 +17,7 @@ import (
 	"github.com/shamaton/msgpack/v2"
 	"github.com/shamaton/msgpack/v2/def"
 	"github.com/shamaton/msgpack/v2/ext"
+	tu "github.com/shamaton/msgpack/v2/internal/common/testutil"
 	extTime "github.com/shamaton/msgpack/v2/time"
 )
 
@@ -1370,6 +1371,46 @@ func TestTime(t *testing.T) {
 			ErrorContains(t, err, "should not reach this line")
 		})
 	})
+
+	loc := time.Local
+	utc8 := time.FixedZone("UTC-8", -8*60*60)
+
+	time.Local = utc8
+	defer func() { time.Local = loc }()
+
+	t.Run("UTC", func(t *testing.T) {
+		msgpack.SetDecodedTimeAsUTC()
+		args := []encdecArg[time.Time]{
+			{
+				n: "case",
+				v: time.Unix(now.Unix(), 0),
+				vc: func(r time.Time) error {
+					tu.Equal(t, now.Unix(), r.Unix())
+					tu.Equal(t, r.Location(), time.UTC)
+					return nil
+				},
+				skipEq: true, // skip equal check because of location difference
+			},
+		}
+		encdec(t, args...)
+	})
+
+	t.Run("Local", func(t *testing.T) {
+		msgpack.SetDecodedTimeAsLocal()
+		args := []encdecArg[time.Time]{
+			{
+				n: "case",
+				v: time.Unix(now.Unix(), 0),
+				vc: func(r time.Time) error {
+					tu.Equal(t, r.Location(), time.Local)
+					tu.Equal(t, r.Location(), utc8)
+					return nil
+				},
+			},
+		}
+		encdec(t, args...)
+	})
+
 }
 
 func TestMap(t *testing.T) {
