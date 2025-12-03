@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -1648,10 +1649,15 @@ func TestStruct(t *testing.T) {
 	t.Run("Embedded", func(t *testing.T) {
 		testEmbedded(t)
 	})
+	t.Run("EmbeddedStruct", func(t *testing.T) {
+		testEmbeddedStruct(t)
+	})
 	t.Run("Jump", func(t *testing.T) {
 		testStructJump(t)
 	})
 	t.Run("UseCase", func(t *testing.T) {
+		testStructUseCase(t)
+		msgpack.StructAsArray = true
 		testStructUseCase(t)
 	})
 }
@@ -1675,6 +1681,594 @@ func testEmbedded(t *testing.T) {
 		},
 	}
 	encdec(t, arg)
+}
+
+// testStreamCompatibility tests stream encoding/decoding and cross-compatibility
+func testStreamCompatibility[T any](t *testing.T, original T, mpBytes []byte, mpDecoded T) {
+	t.Helper()
+
+	// Test with stream
+	buf := bytes.Buffer{}
+	err := msgpack.MarshalWriteAsMap(&buf, original)
+	tu.NoError(t, err)
+	streamBytes := buf.Bytes()
+	tu.EqualSlice(t, streamBytes, mpBytes)
+
+	var streamDecoded T
+	err = msgpack.UnmarshalReadAsMap(bytes.NewReader(streamBytes), &streamDecoded)
+	tu.NoError(t, err)
+	tu.Equal(t, streamDecoded, mpDecoded)
+
+	// Test cross-compatibility: Marshal -> UnmarshalRead
+	var crossDecoded1 T
+	err = msgpack.UnmarshalReadAsMap(bytes.NewReader(mpBytes), &crossDecoded1)
+	tu.NoError(t, err)
+	tu.Equal(t, crossDecoded1, mpDecoded)
+
+	// Test cross-compatibility: MarshalWrite -> Unmarshal
+	var crossDecoded2 T
+	err = msgpack.UnmarshalAsMap(streamBytes, &crossDecoded2)
+	tu.NoError(t, err)
+	tu.Equal(t, crossDecoded2, mpDecoded)
+}
+
+func testEmbeddedStruct(t *testing.T) {
+	t.Run("SimpleEmbedded", func(t *testing.T) {
+		type Embedded struct {
+			EmbeddedField int
+			Name          string
+		}
+		type Parent struct {
+			Embedded
+			ParentField string
+		}
+
+		original := Parent{
+			Embedded:    Embedded{EmbeddedField: 42, Name: "test"},
+			ParentField: "parent",
+		}
+
+		// Test with msgpack
+		mpBytes, err := msgpack.MarshalAsMap(original)
+		if err != nil {
+			t.Fatalf("msgpack.Marshal failed: %v", err)
+		}
+
+		var mpDecoded Parent
+		err = msgpack.UnmarshalAsMap(mpBytes, &mpDecoded)
+		if err != nil {
+			t.Fatalf("msgpack.Unmarshal failed: %v", err)
+		}
+
+		// Verify fields are promoted
+		if mpDecoded.EmbeddedField != 42 {
+			t.Errorf("EmbeddedField: expected 42, got %d", mpDecoded.EmbeddedField)
+		}
+		if mpDecoded.Name != "test" {
+			t.Errorf("Name: expected 'test', got '%s'", mpDecoded.Name)
+		}
+		if mpDecoded.ParentField != "parent" {
+			t.Errorf("ParentField: expected 'parent', got '%s'", mpDecoded.ParentField)
+		}
+
+		// Test stream encoding/decoding and cross-compatibility
+		testStreamCompatibility(t, original, mpBytes, mpDecoded)
+
+		// Compare with json encoding
+		jsonBytes, _ := json.Marshal(original)
+		var jsonDecoded Parent
+		json.Unmarshal(jsonBytes, &jsonDecoded)
+
+		if mpDecoded.EmbeddedField != jsonDecoded.EmbeddedField ||
+			mpDecoded.Name != jsonDecoded.Name ||
+			mpDecoded.ParentField != jsonDecoded.ParentField {
+			t.Errorf("msgpack and json results differ:\nmsgpack: %+v\njson: %+v",
+				mpDecoded, jsonDecoded)
+		}
+	})
+
+	t.Run("EmbeddedWithTag", func(t *testing.T) {
+		type Embedded struct {
+			Field int
+		}
+		type Parent struct {
+			Embedded `msgpack:"emb"`
+			Regular  string
+		}
+
+		original := Parent{
+			Embedded: Embedded{Field: 99},
+			Regular:  "value",
+		}
+
+		mpBytes, err := msgpack.MarshalAsMap(original)
+		if err != nil {
+			t.Fatalf("msgpack.Marshal failed: %v", err)
+		}
+
+		var mpDecoded Parent
+		err = msgpack.UnmarshalAsMap(mpBytes, &mpDecoded)
+		if err != nil {
+			t.Fatalf("msgpack.Unmarshal failed: %v", err)
+		}
+
+		// Tagged embedded struct should not be promoted
+		if mpDecoded.Embedded.Field != 99 {
+			t.Errorf("Embedded.Field: expected 99, got %d", mpDecoded.Embedded.Field)
+		}
+		if mpDecoded.Regular != "value" {
+			t.Errorf("Regular: expected 'value', got '%s'", mpDecoded.Regular)
+		}
+
+		// Test stream encoding/decoding and cross-compatibility
+		testStreamCompatibility(t, original, mpBytes, mpDecoded)
+
+		// Compare with json
+		jsonBytes, _ := json.Marshal(original)
+		var jsonDecoded Parent
+		json.Unmarshal(jsonBytes, &jsonDecoded)
+
+		if mpDecoded.Embedded.Field != jsonDecoded.Embedded.Field ||
+			mpDecoded.Regular != jsonDecoded.Regular {
+			t.Errorf("msgpack and json results differ:\nmsgpack: %+v\njson: %+v",
+				mpDecoded, jsonDecoded)
+		}
+	})
+
+	t.Run("MultiLevelEmbedding", func(t *testing.T) {
+		type Deep struct {
+			DeepField int
+		}
+		type Middle struct {
+			Deep
+			MiddleField string
+		}
+		type Top struct {
+			Middle
+			TopField bool
+		}
+
+		original := Top{
+			Middle: Middle{
+				Deep:        Deep{DeepField: 100},
+				MiddleField: "middle",
+			},
+			TopField: true,
+		}
+
+		mpBytes, err := msgpack.MarshalAsMap(original)
+		if err != nil {
+			t.Fatalf("msgpack.Marshal failed: %v", err)
+		}
+
+		var mpDecoded Top
+		err = msgpack.UnmarshalAsMap(mpBytes, &mpDecoded)
+		if err != nil {
+			t.Fatalf("msgpack.Unmarshal failed: %v", err)
+		}
+
+		if mpDecoded.DeepField != 100 {
+			t.Errorf("DeepField: expected 100, got %d", mpDecoded.DeepField)
+		}
+		if mpDecoded.MiddleField != "middle" {
+			t.Errorf("MiddleField: expected 'middle', got '%s'", mpDecoded.MiddleField)
+		}
+		if mpDecoded.TopField != true {
+			t.Errorf("TopField: expected true, got %v", mpDecoded.TopField)
+		}
+
+		// Test stream encoding/decoding and cross-compatibility
+		testStreamCompatibility(t, original, mpBytes, mpDecoded)
+
+		// Compare with json
+		jsonBytes, _ := json.Marshal(original)
+		var jsonDecoded Top
+		json.Unmarshal(jsonBytes, &jsonDecoded)
+
+		if mpDecoded.DeepField != jsonDecoded.DeepField ||
+			mpDecoded.MiddleField != jsonDecoded.MiddleField ||
+			mpDecoded.TopField != jsonDecoded.TopField {
+			t.Errorf("msgpack and json results differ:\nmsgpack: %+v\njson: %+v",
+				mpDecoded, jsonDecoded)
+		}
+	})
+
+	t.Run("FieldShadowing", func(t *testing.T) {
+		type Base struct {
+			Name string
+			Age  int
+		}
+		type Derived struct {
+			Base
+			Name string // Shadows Base.Name
+		}
+
+		original := Derived{
+			Base: Base{Name: "base", Age: 30},
+			Name: "derived",
+		}
+
+		mpBytes, err := msgpack.MarshalAsMap(original)
+		if err != nil {
+			t.Fatalf("msgpack.Marshal failed: %v", err)
+		}
+
+		var mpDecoded Derived
+		err = msgpack.UnmarshalAsMap(mpBytes, &mpDecoded)
+		if err != nil {
+			t.Fatalf("msgpack.Unmarshal failed: %v", err)
+		}
+
+		// Outer Name should shadow inner Name
+		if mpDecoded.Name != "derived" {
+			t.Errorf("Name: expected 'derived', got '%s'", mpDecoded.Name)
+		}
+		if mpDecoded.Age != 30 {
+			t.Errorf("Age: expected 30, got %d", mpDecoded.Age)
+		}
+
+		// Test stream encoding/decoding and cross-compatibility
+		testStreamCompatibility(t, original, mpBytes, mpDecoded)
+
+		// Compare with json
+		jsonBytes, _ := json.Marshal(original)
+		var jsonDecoded Derived
+		json.Unmarshal(jsonBytes, &jsonDecoded)
+
+		if mpDecoded.Name != jsonDecoded.Name || mpDecoded.Age != jsonDecoded.Age {
+			t.Errorf("msgpack and json results differ:\nmsgpack: %+v\njson: %+v",
+				mpDecoded, jsonDecoded)
+		}
+	})
+
+	t.Run("AmbiguousFields", func(t *testing.T) {
+		type A struct {
+			Field string
+		}
+		type B struct {
+			Field string
+		}
+		type Derived struct {
+			A
+			B
+		}
+
+		original := Derived{
+			A: A{Field: "from A"},
+			B: B{Field: "from B"},
+		}
+
+		mpBytes, err := msgpack.MarshalAsMap(original)
+		if err != nil {
+			t.Fatalf("msgpack.Marshal failed: %v", err)
+		}
+
+		// Decode to map to check what fields are present
+		var mpMap map[string]interface{}
+		err = msgpack.UnmarshalAsMap(mpBytes, &mpMap)
+		if err != nil {
+			t.Fatalf("msgpack.Unmarshal to map failed: %v", err)
+		}
+
+		// Ambiguous field should be omitted
+		if _, exists := mpMap["Field"]; exists {
+			t.Errorf("Ambiguous field 'Field' should be omitted")
+		}
+
+		// Test stream encoding/decoding and cross-compatibility
+		buf := bytes.Buffer{}
+		err = msgpack.MarshalWriteAsMap(&buf, original)
+		tu.NoError(t, err)
+		streamBytes := buf.Bytes()
+		tu.EqualSlice(t, streamBytes, mpBytes)
+
+		var streamMap map[string]interface{}
+		err = msgpack.UnmarshalReadAsMap(bytes.NewReader(streamBytes), &streamMap)
+		tu.NoError(t, err)
+		tu.Equal(t, len(streamMap), len(mpMap))
+
+		// Test cross-compatibility
+		var crossMap1 map[string]interface{}
+		err = msgpack.UnmarshalReadAsMap(bytes.NewReader(mpBytes), &crossMap1)
+		tu.NoError(t, err)
+		tu.Equal(t, len(crossMap1), len(mpMap))
+
+		var crossMap2 map[string]interface{}
+		err = msgpack.UnmarshalAsMap(streamBytes, &crossMap2)
+		tu.NoError(t, err)
+		tu.Equal(t, len(crossMap2), len(mpMap))
+
+		// Compare with json
+		jsonBytes, _ := json.Marshal(original)
+		var jsonMap map[string]interface{}
+		json.Unmarshal(jsonBytes, &jsonMap)
+
+		if len(mpMap) != len(jsonMap) {
+			t.Errorf("Field count differs: msgpack=%d, json=%d", len(mpMap), len(jsonMap))
+		}
+	})
+
+	t.Run("PointerEmbedded", func(t *testing.T) {
+		type Base struct {
+			Value int
+		}
+		type Derived struct {
+			*Base
+			Extra string
+		}
+
+		original := Derived{
+			Base:  &Base{Value: 123},
+			Extra: "extra",
+		}
+
+		mpBytes, err := msgpack.MarshalAsMap(original)
+		if err != nil {
+			t.Fatalf("msgpack.Marshal failed: %v", err)
+		}
+
+		var mpDecoded Derived
+		err = msgpack.UnmarshalAsMap(mpBytes, &mpDecoded)
+		if err != nil {
+			t.Fatalf("msgpack.Unmarshal failed: %v", err)
+		}
+
+		if mpDecoded.Base == nil {
+			t.Fatal("Base pointer should not be nil after unmarshal")
+		}
+		if mpDecoded.Value != 123 {
+			t.Errorf("Value: expected 123, got %d", mpDecoded.Value)
+		}
+		if mpDecoded.Extra != "extra" {
+			t.Errorf("Extra: expected 'extra', got '%s'", mpDecoded.Extra)
+		}
+
+		// Test stream encoding/decoding and cross-compatibility
+		testStreamCompatibility(t, original, mpBytes, mpDecoded)
+
+		// Compare with json
+		jsonBytes, _ := json.Marshal(original)
+		var jsonDecoded Derived
+		json.Unmarshal(jsonBytes, &jsonDecoded)
+
+		if mpDecoded.Value != jsonDecoded.Value || mpDecoded.Extra != jsonDecoded.Extra {
+			t.Errorf("msgpack and json results differ:\nmsgpack: %+v\njson: %+v",
+				mpDecoded, jsonDecoded)
+		}
+	})
+
+	t.Run("TagSameAsStructName", func(t *testing.T) {
+		// Edge case: tag with same name as struct field
+		type Inner struct {
+			Value int
+		}
+		type Outer struct {
+			Inner `msgpack:"Inner"`
+			Other string
+		}
+
+		original := Outer{
+			Inner: Inner{Value: 456},
+			Other: "test",
+		}
+
+		mpBytes, err := msgpack.MarshalAsMap(original)
+		if err != nil {
+			t.Fatalf("msgpack.Marshal failed: %v", err)
+		}
+
+		var mpDecoded Outer
+		err = msgpack.UnmarshalAsMap(mpBytes, &mpDecoded)
+		if err != nil {
+			t.Fatalf("msgpack.Unmarshal failed: %v", err)
+		}
+
+		if mpDecoded.Inner.Value != 456 {
+			t.Errorf("Inner.Value: expected 456, got %d", mpDecoded.Inner.Value)
+		}
+		if mpDecoded.Other != "test" {
+			t.Errorf("Other: expected 'test', got '%s'", mpDecoded.Other)
+		}
+
+		// Test stream encoding/decoding and cross-compatibility
+		testStreamCompatibility(t, original, mpBytes, mpDecoded)
+
+		// Compare with json
+		jsonBytes, _ := json.Marshal(original)
+		var jsonDecoded Outer
+		json.Unmarshal(jsonBytes, &jsonDecoded)
+
+		if mpDecoded.Inner.Value != jsonDecoded.Inner.Value ||
+			mpDecoded.Other != jsonDecoded.Other {
+			t.Errorf("msgpack and json results differ:\nmsgpack: %+v\njson: %+v",
+				mpDecoded, jsonDecoded)
+		}
+	})
+
+	t.Run("MixedEmbeddedAndRegular", func(t *testing.T) {
+		type Timestamp struct {
+			CreatedAt string
+			UpdatedAt string
+		}
+		type Document struct {
+			Timestamp
+			ID      int
+			Content string
+			Title   string
+		}
+
+		original := Document{
+			Timestamp: Timestamp{
+				CreatedAt: "2024-01-01",
+				UpdatedAt: "2024-01-02",
+			},
+			ID:      42,
+			Content: "test content",
+			Title:   "test title",
+		}
+
+		mpBytes, err := msgpack.MarshalAsMap(original)
+		if err != nil {
+			t.Fatalf("msgpack.Marshal failed: %v", err)
+		}
+
+		var mpDecoded Document
+		err = msgpack.UnmarshalAsMap(mpBytes, &mpDecoded)
+		if err != nil {
+			t.Fatalf("msgpack.Unmarshal failed: %v", err)
+		}
+
+		if mpDecoded.CreatedAt != "2024-01-01" {
+			t.Errorf("CreatedAt: expected '2024-01-01', got '%s'", mpDecoded.CreatedAt)
+		}
+		if mpDecoded.UpdatedAt != "2024-01-02" {
+			t.Errorf("UpdatedAt: expected '2024-01-02', got '%s'", mpDecoded.UpdatedAt)
+		}
+		if mpDecoded.ID != 42 {
+			t.Errorf("ID: expected 42, got %d", mpDecoded.ID)
+		}
+		if mpDecoded.Content != "test content" {
+			t.Errorf("Content: expected 'test content', got '%s'", mpDecoded.Content)
+		}
+		if mpDecoded.Title != "test title" {
+			t.Errorf("Title: expected 'test title', got '%s'", mpDecoded.Title)
+		}
+
+		// Test stream encoding/decoding and cross-compatibility
+		testStreamCompatibility(t, original, mpBytes, mpDecoded)
+
+		// Compare with json
+		jsonBytes, _ := json.Marshal(original)
+		var jsonDecoded Document
+		json.Unmarshal(jsonBytes, &jsonDecoded)
+
+		if mpDecoded.CreatedAt != jsonDecoded.CreatedAt ||
+			mpDecoded.UpdatedAt != jsonDecoded.UpdatedAt ||
+			mpDecoded.ID != jsonDecoded.ID ||
+			mpDecoded.Content != jsonDecoded.Content ||
+			mpDecoded.Title != jsonDecoded.Title {
+			t.Errorf("msgpack and json results differ:\nmsgpack: %+v\njson: %+v",
+				mpDecoded, jsonDecoded)
+		}
+	})
+
+	t.Run("EmbeddedWithPrivateFields", func(t *testing.T) {
+		type Base struct {
+			Public  string
+			private int
+		}
+		type Derived struct {
+			Base
+			Extra string
+		}
+
+		original := Derived{
+			Base:  Base{Public: "public", private: 123},
+			Extra: "extra",
+		}
+
+		mpBytes, err := msgpack.MarshalAsMap(original)
+		if err != nil {
+			t.Fatalf("msgpack.Marshal failed: %v", err)
+		}
+
+		var mpDecoded Derived
+		err = msgpack.UnmarshalAsMap(mpBytes, &mpDecoded)
+		if err != nil {
+			t.Fatalf("msgpack.Unmarshal failed: %v", err)
+		}
+
+		// Only public fields should be marshaled
+		if mpDecoded.Public != "public" {
+			t.Errorf("Public: expected 'public', got '%s'", mpDecoded.Public)
+		}
+		if mpDecoded.Extra != "extra" {
+			t.Errorf("Extra: expected 'extra', got '%s'", mpDecoded.Extra)
+		}
+
+		// Test stream encoding/decoding and cross-compatibility
+		testStreamCompatibility(t, original, mpBytes, mpDecoded)
+
+		// Compare with json
+		jsonBytes, _ := json.Marshal(original)
+		var jsonDecoded Derived
+		json.Unmarshal(jsonBytes, &jsonDecoded)
+
+		if mpDecoded.Public != jsonDecoded.Public || mpDecoded.Extra != jsonDecoded.Extra {
+			t.Errorf("msgpack and json results differ:\nmsgpack: %+v\njson: %+v",
+				mpDecoded, jsonDecoded)
+		}
+	})
+
+	t.Run("ComplexNestedEmbedding", func(t *testing.T) {
+		type A struct {
+			FieldA string
+		}
+		type B struct {
+			A
+			FieldB int
+		}
+		type C struct {
+			B
+			FieldC bool
+		}
+		type D struct {
+			C
+			FieldD float64
+		}
+
+		original := D{
+			C: C{
+				B: B{
+					A:      A{FieldA: "a"},
+					FieldB: 1,
+				},
+				FieldC: true,
+			},
+			FieldD: 3.14,
+		}
+
+		mpBytes, err := msgpack.MarshalAsMap(original)
+		if err != nil {
+			t.Fatalf("msgpack.Marshal failed: %v", err)
+		}
+
+		var mpDecoded D
+		err = msgpack.UnmarshalAsMap(mpBytes, &mpDecoded)
+		if err != nil {
+			t.Fatalf("msgpack.Unmarshal failed: %v", err)
+		}
+
+		// All fields should be promoted to top level
+		if mpDecoded.FieldA != "a" {
+			t.Errorf("FieldA: expected 'a', got '%s'", mpDecoded.FieldA)
+		}
+		if mpDecoded.FieldB != 1 {
+			t.Errorf("FieldB: expected 1, got %d", mpDecoded.FieldB)
+		}
+		if mpDecoded.FieldC != true {
+			t.Errorf("FieldC: expected true, got %v", mpDecoded.FieldC)
+		}
+		if mpDecoded.FieldD != 3.14 {
+			t.Errorf("FieldD: expected 3.14, got %f", mpDecoded.FieldD)
+		}
+
+		// Test stream encoding/decoding and cross-compatibility
+		testStreamCompatibility(t, original, mpBytes, mpDecoded)
+
+		// Compare with json
+		jsonBytes, _ := json.Marshal(original)
+		var jsonDecoded D
+		json.Unmarshal(jsonBytes, &jsonDecoded)
+
+		if mpDecoded.FieldA != jsonDecoded.FieldA ||
+			mpDecoded.FieldB != jsonDecoded.FieldB ||
+			mpDecoded.FieldC != jsonDecoded.FieldC ||
+			mpDecoded.FieldD != jsonDecoded.FieldD {
+			t.Errorf("msgpack and json results differ:\nmsgpack: %+v\njson: %+v",
+				mpDecoded, jsonDecoded)
+		}
+	})
 }
 
 func testStructTag(t *testing.T) {

@@ -10,16 +10,152 @@ import (
 
 type structCacheTypeMap struct {
 	keys    [][]byte
-	indexes []int
+	indexes [][]int // field path (support for embedded structs)
 }
 
 type structCacheTypeArray struct {
-	m []int
+	m [][]int // field path (support for embedded structs)
 }
 
 // struct cache map
 var mapSCTM = sync.Map{}
 var mapSCTA = sync.Map{}
+
+// fieldInfo holds information about a struct field including its path for embedded structs
+type fieldInfo struct {
+	path  []int  // path to reach this field (indices for embedded structs)
+	name  string // field name or tag
+	index int    // field index in the struct
+}
+
+// collectFields collects all fields from a struct, expanding embedded structs
+// following the same rules as encoding/json
+func (d *decoder) collectFields(t reflect.Type, path []int) []fieldInfo {
+	var fields []fieldInfo
+	var embedded []fieldInfo // embedded fields to process later (lower priority)
+
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+
+		// Check field visibility
+		public, _, name := d.CheckField(field)
+		if !public {
+			continue
+		}
+
+		// Get tag to check if embedded
+		tag := field.Tag.Get("msgpack")
+		// Extract just the name part (before comma if any)
+		tagName := tag
+		if idx := len(tag); idx > 0 {
+			for j, c := range tag {
+				if c == ',' {
+					tagName = tag[:j]
+					break
+				}
+			}
+		}
+
+		// Check if this is an embedded struct
+		isEmbedded := field.Anonymous && (tag == "" || tagName == "")
+
+		if isEmbedded {
+			// Get the actual type (dereference pointer if needed)
+			fieldType := field.Type
+			if fieldType.Kind() == reflect.Ptr {
+				fieldType = fieldType.Elem()
+			}
+
+			// If it's a struct, expand its fields
+			if fieldType.Kind() == reflect.Struct {
+				newPath := append(append([]int{}, path...), i)
+				embeddedFields := d.collectFields(fieldType, newPath)
+				embedded = append(embedded, embeddedFields...)
+				continue
+			}
+		}
+
+		// Regular field or embedded non-struct
+		newPath := append(append([]int{}, path...), i)
+		fields = append(fields, fieldInfo{
+			path:  newPath,
+			name:  name,
+			index: i,
+		})
+	}
+
+	// Add embedded fields after regular fields (they have lower priority)
+	fields = append(fields, embedded...)
+
+	// Remove duplicates and handle ambiguous fields
+	// Group fields by name and depth, preserving order
+	type fieldAtDepth struct {
+		field fieldInfo
+		depth int
+	}
+	fieldsByName := make(map[string][]fieldAtDepth)
+	var seenNames []string // To preserve order
+
+	for _, f := range fields {
+		if _, seen := fieldsByName[f.name]; !seen {
+			seenNames = append(seenNames, f.name)
+		}
+		fieldsByName[f.name] = append(fieldsByName[f.name], fieldAtDepth{
+			field: f,
+			depth: len(f.path),
+		})
+	}
+
+	var result []fieldInfo
+	for _, name := range seenNames {
+		fieldsWithDepth := fieldsByName[name]
+
+		// Find minimum depth
+		minDepth := fieldsWithDepth[0].depth
+		for _, fd := range fieldsWithDepth {
+			if fd.depth < minDepth {
+				minDepth = fd.depth
+			}
+		}
+
+		// Count fields at minimum depth
+		var fieldsAtMinDepth []fieldInfo
+		for _, fd := range fieldsWithDepth {
+			if fd.depth == minDepth {
+				fieldsAtMinDepth = append(fieldsAtMinDepth, fd.field)
+			}
+		}
+
+		// If there's exactly one field at minimum depth, use it
+		// If there are multiple fields at the same minimum depth, it's ambiguous - skip it
+		if len(fieldsAtMinDepth) == 1 {
+			result = append(result, fieldsAtMinDepth[0])
+		}
+		// else: ambiguous field, skip it (following encoding/json behavior)
+	}
+
+	return result
+}
+
+func (d *decoder) isPublic(name string) bool {
+	return len(name) > 0 && 0x41 <= name[0] && name[0] <= 0x5a
+}
+
+// getFieldByPath returns the field value by following the path of indices
+func getFieldByPath(rv reflect.Value, path []int) reflect.Value {
+	for _, idx := range path {
+		// Handle pointer indirection if needed
+		if rv.Kind() == reflect.Ptr {
+			if rv.IsNil() {
+				// Allocate new value if pointer is nil
+				rv.Set(reflect.New(rv.Type().Elem()))
+			}
+			rv = rv.Elem()
+		}
+		rv = rv.Field(idx)
+	}
+	return rv
+}
 
 func (d *decoder) setStruct(rv reflect.Value, offset int, k reflect.Kind) (int, error) {
 	/*
@@ -70,10 +206,9 @@ func (d *decoder) setStructFromArray(rv reflect.Value, offset int, k reflect.Kin
 	cache, findCache := mapSCTA.Load(rv.Type())
 	if !findCache {
 		scta = &structCacheTypeArray{}
-		for i := 0; i < rv.NumField(); i++ {
-			if ok, _, _ := d.CheckField(rv.Type().Field(i)); ok {
-				scta.m = append(scta.m, i)
-			}
+		fields := d.collectFields(rv.Type(), nil)
+		for _, field := range fields {
+			scta.m = append(scta.m, field.path)
 		}
 		mapSCTA.Store(rv.Type(), scta)
 	} else {
@@ -82,7 +217,8 @@ func (d *decoder) setStructFromArray(rv reflect.Value, offset int, k reflect.Kin
 	// set value
 	for i := 0; i < l; i++ {
 		if i < len(scta.m) {
-			o, err = d.decode(rv.Field(scta.m[i]), o)
+			fieldValue := getFieldByPath(rv, scta.m[i])
+			o, err = d.decode(fieldValue, o)
 			if err != nil {
 				return 0, err
 			}
@@ -111,11 +247,10 @@ func (d *decoder) setStructFromMap(rv reflect.Value, offset int, k reflect.Kind)
 	cache, cacheFind := mapSCTM.Load(rv.Type())
 	if !cacheFind {
 		sctm = &structCacheTypeMap{}
-		for i := 0; i < rv.NumField(); i++ {
-			if ok, _, name := d.CheckField(rv.Type().Field(i)); ok {
-				sctm.keys = append(sctm.keys, []byte(name))
-				sctm.indexes = append(sctm.indexes, i)
-			}
+		fields := d.collectFields(rv.Type(), nil)
+		for _, field := range fields {
+			sctm.keys = append(sctm.keys, []byte(field.name))
+			sctm.indexes = append(sctm.indexes, field.path)
 		}
 		mapSCTM.Store(rv.Type(), sctm)
 	} else {
@@ -128,26 +263,28 @@ func (d *decoder) setStructFromMap(rv reflect.Value, offset int, k reflect.Kind)
 			return 0, err
 		}
 
-		fieldIndex := -1
+		fieldPath := []int(nil)
 		for keyIndex, keyBytes := range sctm.keys {
 			if len(keyBytes) != len(dataKey) {
 				continue
 			}
 
-			fieldIndex = sctm.indexes[keyIndex]
+			found := true
 			for dataIndex := range dataKey {
 				if dataKey[dataIndex] != keyBytes[dataIndex] {
-					fieldIndex = -1
+					found = false
 					break
 				}
 			}
-			if fieldIndex >= 0 {
+			if found {
+				fieldPath = sctm.indexes[keyIndex]
 				break
 			}
 		}
 
-		if fieldIndex >= 0 {
-			o2, err = d.decode(rv.Field(fieldIndex), o2)
+		if fieldPath != nil {
+			fieldValue := getFieldByPath(rv, fieldPath)
+			o2, err = d.decode(fieldValue, o2)
 			if err != nil {
 				return 0, err
 			}
