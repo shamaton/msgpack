@@ -3,8 +3,8 @@ package msgpack
 import (
 	"io"
 
-	"github.com/shamaton/msgpack/v2/internal/encoding"
-	streamencoding "github.com/shamaton/msgpack/v2/internal/stream/encoding"
+	"github.com/shamaton/msgpack/v3/internal/encoding"
+	streamencoding "github.com/shamaton/msgpack/v3/internal/stream/encoding"
 )
 
 // MarshalAsMap encodes data as map format.

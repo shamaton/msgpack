@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/shamaton/msgpack/v2/def"
-	"github.com/shamaton/msgpack/v2/ext"
+	"github.com/shamaton/msgpack/v3/def"
+	"github.com/shamaton/msgpack/v3/ext"
 )
 
 func Test_asInterfaceWithCode(t *testing.T) {

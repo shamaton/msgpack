@@ -4,7 +4,7 @@ import (
 	"math"
 	"unsafe"
 
-	"github.com/shamaton/msgpack/v2/def"
+	"github.com/shamaton/msgpack/v3/def"
 )
 
 func (e *encoder) writeString(str string) error {

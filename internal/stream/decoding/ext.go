@@ -2,9 +2,9 @@ package decoding
 
 import (
 	"encoding/binary"
-	"github.com/shamaton/msgpack/v2/def"
-	"github.com/shamaton/msgpack/v2/ext"
-	"github.com/shamaton/msgpack/v2/time"
+	"github.com/shamaton/msgpack/v3/def"
+	"github.com/shamaton/msgpack/v3/ext"
+	"github.com/shamaton/msgpack/v3/time"
 )
 
 var extCoderMap = map[int8]ext.StreamDecoder{time.StreamDecoder.Code(): time.StreamDecoder}

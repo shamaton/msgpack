@@ -5,10 +5,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/shamaton/msgpack/v2/def"
+	"github.com/shamaton/msgpack/v3/def"
 
-	"github.com/shamaton/msgpack/v2/internal/common"
-	tu "github.com/shamaton/msgpack/v2/internal/common/testutil"
+	"github.com/shamaton/msgpack/v3/internal/common"
+	tu "github.com/shamaton/msgpack/v3/internal/common/testutil"
 )
 
 type AsXXXTestCase[T any] struct {

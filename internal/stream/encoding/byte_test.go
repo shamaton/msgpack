@@ -3,7 +3,7 @@ package encoding
 import (
 	"testing"
 
-	"github.com/shamaton/msgpack/v2/def"
+	"github.com/shamaton/msgpack/v3/def"
 )
 
 func Test_writeByteSliceLength(t *testing.T) {
