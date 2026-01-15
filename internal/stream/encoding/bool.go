@@ -1,6 +1,6 @@
 package encoding
 
-import "github.com/shamaton/msgpack/v2/def"
+import "github.com/shamaton/msgpack/v3/def"
 
 func (e *encoder) writeBool(v bool) error {
 	if v {

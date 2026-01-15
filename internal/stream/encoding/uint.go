@@ -3,7 +3,7 @@ package encoding
 import (
 	"math"
 
-	"github.com/shamaton/msgpack/v2/def"
+	"github.com/shamaton/msgpack/v3/def"
 )
 
 func (e *encoder) writeUint(v uint64) error {

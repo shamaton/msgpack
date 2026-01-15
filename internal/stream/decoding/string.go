@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"reflect"
 
-	"github.com/shamaton/msgpack/v2/def"
+	"github.com/shamaton/msgpack/v3/def"
 )
 
 var emptyString = ""
@@ -83,7 +83,7 @@ func (d *decoder) asStringByteByLength(l int, _ reflect.Kind) ([]byte, error) {
 	if l < 1 {
 		return emptyBytes, nil
 	}
-	
+
 	// avoid common buffer reference
 	return d.copySizeN(l)
 }

@@ -6,9 +6,9 @@ import (
 	"net"
 	"reflect"
 
-	"github.com/shamaton/msgpack/v2"
-	"github.com/shamaton/msgpack/v2/def"
-	"github.com/shamaton/msgpack/v2/ext"
+	"github.com/shamaton/msgpack/v3"
+	"github.com/shamaton/msgpack/v3/def"
+	"github.com/shamaton/msgpack/v3/ext"
 )
 
 func ExampleAddExtCoder() {

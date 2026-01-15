@@ -4,7 +4,7 @@ import (
 	"io"
 	"reflect"
 
-	"github.com/shamaton/msgpack/v2/internal/common"
+	"github.com/shamaton/msgpack/v3/internal/common"
 )
 
 // StreamEncoder is an interface that extended encoders should implement.

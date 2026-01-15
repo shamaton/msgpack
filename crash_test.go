@@ -8,7 +8,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/shamaton/msgpack/v2"
+	"github.com/shamaton/msgpack/v3"
 )
 
 var crashDir = filepath.Join("testdata", "crashers")

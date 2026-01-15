@@ -14,11 +14,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shamaton/msgpack/v2"
-	"github.com/shamaton/msgpack/v2/def"
-	"github.com/shamaton/msgpack/v2/ext"
-	tu "github.com/shamaton/msgpack/v2/internal/common/testutil"
-	extTime "github.com/shamaton/msgpack/v2/time"
+	"github.com/shamaton/msgpack/v3"
+	"github.com/shamaton/msgpack/v3/def"
+	"github.com/shamaton/msgpack/v3/ext"
+	tu "github.com/shamaton/msgpack/v3/internal/common/testutil"
+	extTime "github.com/shamaton/msgpack/v3/time"
 )
 
 var now time.Time
