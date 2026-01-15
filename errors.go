@@ -1,7 +1,7 @@
 package msgpack
 
 import (
-	"github.com/shamaton/msgpack/v2/def"
+	"github.com/shamaton/msgpack/v3/def"
 )
 
 // Error is used in all msgpack error as the based error.

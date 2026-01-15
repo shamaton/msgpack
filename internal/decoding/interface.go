@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/shamaton/msgpack/v2/def"
+	"github.com/shamaton/msgpack/v3/def"
 )
 
 func (d *decoder) asInterface(offset int, k reflect.Kind) (interface{}, int, error) {

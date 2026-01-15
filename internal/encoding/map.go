@@ -4,7 +4,7 @@ import (
 	"math"
 	"reflect"
 
-	"github.com/shamaton/msgpack/v2/def"
+	"github.com/shamaton/msgpack/v3/def"
 )
 
 func (e *encoder) calcFixedMap(rv reflect.Value) (int, bool) {

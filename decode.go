@@ -3,8 +3,8 @@ package msgpack
 import (
 	"io"
 
-	"github.com/shamaton/msgpack/v2/internal/decoding"
-	streamdecoding "github.com/shamaton/msgpack/v2/internal/stream/decoding"
+	"github.com/shamaton/msgpack/v3/internal/decoding"
+	streamdecoding "github.com/shamaton/msgpack/v3/internal/stream/decoding"
 )
 
 // UnmarshalAsMap decodes data that is encoded as map format.
