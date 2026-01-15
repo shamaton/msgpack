@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/shamaton/msgpack/v2/def"
+	"github.com/shamaton/msgpack/v3/def"
 )
 
 func Test_asUint(t *testing.T) {

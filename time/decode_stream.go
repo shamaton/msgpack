@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/shamaton/msgpack/v2/def"
-	"github.com/shamaton/msgpack/v2/ext"
+	"github.com/shamaton/msgpack/v3/def"
+	"github.com/shamaton/msgpack/v3/ext"
 )
 
 var StreamDecoder = new(timeStreamDecoder)

@@ -14,18 +14,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shamaton/msgpack/v2"
-	"github.com/shamaton/msgpack/v2/def"
-	"github.com/shamaton/msgpack/v2/ext"
-	tu "github.com/shamaton/msgpack/v2/internal/common/testutil"
-	extTime "github.com/shamaton/msgpack/v2/time"
+	"github.com/shamaton/msgpack/v3"
+	"github.com/shamaton/msgpack/v3/def"
+	"github.com/shamaton/msgpack/v3/ext"
+	tu "github.com/shamaton/msgpack/v3/internal/common/testutil"
+	extTime "github.com/shamaton/msgpack/v3/time"
 )
 
 var now time.Time
 
 func init() {
 	n := time.Now()
-	now = time.Unix(n.Unix(), int64(n.Nanosecond()))
+	now = time.Unix(n.Unix(), int64(n.Nanosecond())).UTC()
 }
 
 func TestInt(t *testing.T) {
@@ -515,7 +515,7 @@ func TestAny(t *testing.T) {
 		[]byte(strings.Repeat("a", math.MaxUint16+1)),
 		[]interface{}{1, "a", 1.23}, a1, a2,
 		map[interface{}]interface{}{"1": 1, 1.23: "a"}, m1, m2,
-		time.Unix(now.Unix(), int64(now.Nanosecond())),
+		time.Unix(now.Unix(), int64(now.Nanosecond())).UTC(),
 	}
 
 	for i, v := range vars {
@@ -553,7 +553,7 @@ func TestAny(t *testing.T) {
 			{n: "Map3", v: any(map[any]any{"1": 1, 1.23: "a"})},
 			{n: "Map65535", v: any(m1)},
 			{n: "Map65536", v: any(m2)},
-			{n: "Time", v: any(time.Unix(now.Unix(), int64(now.Nanosecond())))},
+			{n: "Time", v: any(time.Unix(now.Unix(), int64(now.Nanosecond())).UTC())},
 		}
 		for i := range args {
 			i := i
@@ -1315,14 +1315,14 @@ func TestTime(t *testing.T) {
 		args := []encdecArg[time.Time]{
 			{
 				n: "Fixext4",
-				v: time.Unix(now.Unix(), 0),
+				v: time.Unix(now.Unix(), 0).UTC(),
 				c: func(d []byte) bool {
 					return d[0] == def.Fixext4
 				},
 			},
 			{
 				n: "Fixext8",
-				v: time.Unix(now.Unix(), int64(now.Nanosecond())),
+				v: time.Unix(now.Unix(), int64(now.Nanosecond())).UTC(),
 				c: func(d []byte) bool {
 					return d[0] == def.Fixext8
 				},
@@ -1376,7 +1376,25 @@ func TestTime(t *testing.T) {
 	utc8 := time.FixedZone("UTC-8", -8*60*60)
 
 	time.Local = utc8
-	defer func() { time.Local = loc }()
+	t.Cleanup(func() {
+		time.Local = loc
+		msgpack.SetDecodedTimeAsUTC()
+	})
+	t.Run("Default", func(t *testing.T) {
+		args := []encdecArg[time.Time]{
+			{
+				n: "case",
+				v: time.Unix(now.Unix(), 0),
+				vc: func(r time.Time) error {
+					tu.Equal(t, now.Unix(), r.Unix())
+					tu.Equal(t, r.Location(), time.UTC)
+					return nil
+				},
+				skipEq: true, // skip equal check because of location difference
+			},
+		}
+		encdec(t, args...)
+	})
 
 	t.Run("UTC", func(t *testing.T) {
 		msgpack.SetDecodedTimeAsUTC()

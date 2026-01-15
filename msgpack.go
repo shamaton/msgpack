@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/shamaton/msgpack/v2/def"
-	"github.com/shamaton/msgpack/v2/ext"
-	"github.com/shamaton/msgpack/v2/internal/decoding"
-	"github.com/shamaton/msgpack/v2/internal/encoding"
-	streamdecoding "github.com/shamaton/msgpack/v2/internal/stream/decoding"
-	streamencoding "github.com/shamaton/msgpack/v2/internal/stream/encoding"
-	"github.com/shamaton/msgpack/v2/time"
+	"github.com/shamaton/msgpack/v3/def"
+	"github.com/shamaton/msgpack/v3/ext"
+	"github.com/shamaton/msgpack/v3/internal/decoding"
+	"github.com/shamaton/msgpack/v3/internal/encoding"
+	streamdecoding "github.com/shamaton/msgpack/v3/internal/stream/decoding"
+	streamencoding "github.com/shamaton/msgpack/v3/internal/stream/encoding"
+	"github.com/shamaton/msgpack/v3/time"
 )
 
 // StructAsArray is encoding option.

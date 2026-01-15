@@ -4,9 +4,9 @@ import (
 	"math"
 	"testing"
 
-	"github.com/shamaton/msgpack/v2/def"
+	"github.com/shamaton/msgpack/v3/def"
 
-	tu "github.com/shamaton/msgpack/v2/internal/common/testutil"
+	tu "github.com/shamaton/msgpack/v3/internal/common/testutil"
 )
 
 func Test_calcByteSlice(t *testing.T) {

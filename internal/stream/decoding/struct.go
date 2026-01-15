@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/shamaton/msgpack/v2/def"
+	"github.com/shamaton/msgpack/v3/def"
 )
 
 type structCacheTypeMap struct {

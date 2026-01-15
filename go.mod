@@ -1,3 +1,3 @@
-module github.com/shamaton/msgpack/v2
+module github.com/shamaton/msgpack/v3
 
-go 1.20
+go 1.23
