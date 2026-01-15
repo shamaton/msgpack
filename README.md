@@ -21,17 +21,21 @@ To keep the old behavior, use `SetDecodedTimeAsLocal()`.
 
 ## Installation
 
-Current version is **msgpack/v2**.
+Current version is **msgpack/v3**.
 ```sh
-go get -u github.com/shamaton/msgpack/v2
+go get -u github.com/shamaton/msgpack/v3
 ```
+
+### Upgrading from v2
+If you are upgrading from v2, please note the `time.Time` decoding change mentioned in the announcement above.
+To keep the v2 behavior, use `msgpack.SetDecodedTimeAsLocal()` after upgrading.
 
 ## Quick Start
 ```go
 package main
 
 import (
-  "github.com/shamaton/msgpack/v2"
+  "github.com/shamaton/msgpack/v3"
   "net/http"
 )
 
