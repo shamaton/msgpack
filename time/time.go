@@ -1,6 +1,6 @@
 package time
 
-var decodeAsLocal = true
+var decodeAsLocal = false
 
 // SetDecodedAsLocal sets the decoded time to local time.
 func SetDecodedAsLocal(b bool) {
