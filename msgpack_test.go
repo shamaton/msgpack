@@ -1793,6 +1793,7 @@ func testEmbeddedStruct(t *testing.T) {
 				skipEq: true,
 				vc: func(p Parent) error {
 					// Tagged embedded struct should not be promoted
+					//nolint:staticcheck // QF1008 for test
 					tu.Equal(t, p.Embedded.Field, 99)
 					tu.Equal(t, p.Regular, "value")
 					msgDecoded = p
@@ -1806,6 +1807,7 @@ func testEmbeddedStruct(t *testing.T) {
 		var jsonDecoded Parent
 		_ = json.Unmarshal(jsonBytes, &jsonDecoded)
 
+		//nolint:staticcheck // QF1008 for test
 		if msgDecoded.Embedded.Field != jsonDecoded.Embedded.Field ||
 			msgDecoded.Regular != jsonDecoded.Regular {
 			t.Errorf("msgpack and json results differ:\nmsgpack: %+v\njson: %+v",
@@ -2230,6 +2232,7 @@ func testEmbeddedStruct(t *testing.T) {
 				v:      original,
 				skipEq: true,
 				vc: func(p Derived) error {
+					//nolint:staticcheck // QF1008 for test
 					tu.Equal(t, p.Base.Value, 123)
 					tu.Equal(t, p.Extra, "extra")
 					return nil
@@ -2268,6 +2271,7 @@ func testEmbeddedStruct(t *testing.T) {
 				v:      original,
 				skipEq: true,
 				vc: func(p Outer) error {
+					//nolint:staticcheck // QF1008 for test
 					tu.Equal(t, p.Inner.Value, 456)
 					tu.Equal(t, p.Other, "test")
 					msgDecoded = p
@@ -2281,6 +2285,7 @@ func testEmbeddedStruct(t *testing.T) {
 		var jsonDecoded Outer
 		_ = json.Unmarshal(jsonBytes, &jsonDecoded)
 
+		//nolint:staticcheck // QF1008 for test
 		if msgDecoded.Inner.Value != jsonDecoded.Inner.Value ||
 			msgDecoded.Other != jsonDecoded.Other {
 			t.Errorf("msgpack and json results differ:\nmsgpack: %+v\njson: %+v",
