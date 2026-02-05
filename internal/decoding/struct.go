@@ -9,17 +9,52 @@ import (
 )
 
 type structCacheTypeMap struct {
-	keys    [][]byte
-	indexes []int
+	keys [][]byte
+
+	// fast path detection
+	hasEmbedded bool
+
+	// fast path (hasEmbedded == false): direct field access
+	simpleIndexes []int
+
+	// embedded path (hasEmbedded == true): path-based access
+	indexes [][]int // field path (support for embedded structs)
 }
 
 type structCacheTypeArray struct {
-	m []int
+	// fast path detection
+	hasEmbedded bool
+
+	// fast path (hasEmbedded == false): direct field access
+	simpleIndexes []int
+
+	// embedded path (hasEmbedded == true): path-based access
+	indexes [][]int // field path (support for embedded structs)
 }
 
 // struct cache map
 var mapSCTM = sync.Map{}
 var mapSCTA = sync.Map{}
+
+// getFieldByPath returns the field value by following the path of indices.
+// The bool indicates whether the path was reachable (no nil pointer in the path).
+func getFieldByPath(rv reflect.Value, path []int, allowAlloc bool) (reflect.Value, bool) {
+	for _, idx := range path {
+		// Handle pointer indirection if needed
+		if rv.Kind() == reflect.Ptr {
+			if rv.IsNil() {
+				if !allowAlloc {
+					return reflect.Value{}, false
+				}
+				// Allocate new value if pointer is nil
+				rv.Set(reflect.New(rv.Type().Elem()))
+			}
+			rv = rv.Elem()
+		}
+		rv = rv.Field(idx)
+	}
+	return rv, true
+}
 
 func (d *decoder) setStruct(rv reflect.Value, offset int, k reflect.Kind) (int, error) {
 	/*
@@ -70,26 +105,66 @@ func (d *decoder) setStructFromArray(rv reflect.Value, offset int, k reflect.Kin
 	cache, findCache := mapSCTA.Load(rv.Type())
 	if !findCache {
 		scta = &structCacheTypeArray{}
-		for i := 0; i < rv.NumField(); i++ {
-			if ok, _, _ := d.CheckField(rv.Type().Field(i)); ok {
-				scta.m = append(scta.m, i)
+		fields := d.CollectFields(rv.Type(), nil)
+
+		// detect embedded fields
+		hasEmbedded := false
+		for _, f := range fields {
+			if len(f.Path) > 1 || len(f.OmitPaths) > 0 {
+				hasEmbedded = true
+				break
+			}
+		}
+		scta.hasEmbedded = hasEmbedded
+
+		for _, field := range fields {
+			if hasEmbedded {
+				scta.indexes = append(scta.indexes, field.Path)
+			} else {
+				scta.simpleIndexes = append(scta.simpleIndexes, field.Path[0])
 			}
 		}
 		mapSCTA.Store(rv.Type(), scta)
 	} else {
 		scta = cache.(*structCacheTypeArray)
 	}
+
 	// set value
-	for i := 0; i < l; i++ {
-		if i < len(scta.m) {
-			o, err = d.decode(rv.Field(scta.m[i]), o)
-			if err != nil {
-				return 0, err
+	if scta.hasEmbedded {
+		for i := 0; i < l; i++ {
+			if i < len(scta.indexes) {
+				allowAlloc := !d.isCodeNil(d.data[o])
+				fieldValue, ok := getFieldByPath(rv, scta.indexes[i], allowAlloc)
+				if ok {
+					o, err = d.decode(fieldValue, o)
+					if err != nil {
+						return 0, err
+					}
+				} else {
+					o, err = d.jumpOffset(o)
+					if err != nil {
+						return 0, err
+					}
+				}
+			} else {
+				o, err = d.jumpOffset(o)
+				if err != nil {
+					return 0, err
+				}
 			}
-		} else {
-			o, err = d.jumpOffset(o)
-			if err != nil {
-				return 0, err
+		}
+	} else {
+		for i := 0; i < l; i++ {
+			if i < len(scta.simpleIndexes) {
+				o, err = d.decode(rv.Field(scta.simpleIndexes[i]), o)
+				if err != nil {
+					return 0, err
+				}
+			} else {
+				o, err = d.jumpOffset(o)
+				if err != nil {
+					return 0, err
+				}
 			}
 		}
 	}
@@ -111,10 +186,24 @@ func (d *decoder) setStructFromMap(rv reflect.Value, offset int, k reflect.Kind)
 	cache, cacheFind := mapSCTM.Load(rv.Type())
 	if !cacheFind {
 		sctm = &structCacheTypeMap{}
-		for i := 0; i < rv.NumField(); i++ {
-			if ok, _, name := d.CheckField(rv.Type().Field(i)); ok {
-				sctm.keys = append(sctm.keys, []byte(name))
-				sctm.indexes = append(sctm.indexes, i)
+		fields := d.CollectFields(rv.Type(), nil)
+
+		// detect embedded fields
+		hasEmbedded := false
+		for _, f := range fields {
+			if len(f.Path) > 1 || len(f.OmitPaths) > 0 {
+				hasEmbedded = true
+				break
+			}
+		}
+		sctm.hasEmbedded = hasEmbedded
+
+		for _, field := range fields {
+			sctm.keys = append(sctm.keys, []byte(field.Name))
+			if hasEmbedded {
+				sctm.indexes = append(sctm.indexes, field.Path)
+			} else {
+				sctm.simpleIndexes = append(sctm.simpleIndexes, field.Path[0])
 			}
 		}
 		mapSCTM.Store(rv.Type(), sctm)
@@ -122,42 +211,93 @@ func (d *decoder) setStructFromMap(rv reflect.Value, offset int, k reflect.Kind)
 		sctm = cache.(*structCacheTypeMap)
 	}
 
-	for i := 0; i < l; i++ {
-		dataKey, o2, err := d.asStringByte(o, k)
-		if err != nil {
-			return 0, err
-		}
-
-		fieldIndex := -1
-		for keyIndex, keyBytes := range sctm.keys {
-			if len(keyBytes) != len(dataKey) {
-				continue
+	if sctm.hasEmbedded {
+		for i := 0; i < l; i++ {
+			dataKey, o2, err := d.asStringByte(o, k)
+			if err != nil {
+				return 0, err
 			}
 
-			fieldIndex = sctm.indexes[keyIndex]
-			for dataIndex := range dataKey {
-				if dataKey[dataIndex] != keyBytes[dataIndex] {
-					fieldIndex = -1
+			fieldPath := []int(nil)
+			for keyIndex, keyBytes := range sctm.keys {
+				if len(keyBytes) != len(dataKey) {
+					continue
+				}
+
+				found := true
+				for dataIndex := range dataKey {
+					if dataKey[dataIndex] != keyBytes[dataIndex] {
+						found = false
+						break
+					}
+				}
+				if found {
+					fieldPath = sctm.indexes[keyIndex]
 					break
 				}
 			}
-			if fieldIndex >= 0 {
-				break
-			}
-		}
 
-		if fieldIndex >= 0 {
-			o2, err = d.decode(rv.Field(fieldIndex), o2)
-			if err != nil {
-				return 0, err
+			if fieldPath != nil {
+				allowAlloc := !d.isCodeNil(d.data[o2])
+				fieldValue, ok := getFieldByPath(rv, fieldPath, allowAlloc)
+				if ok {
+					o2, err = d.decode(fieldValue, o2)
+					if err != nil {
+						return 0, err
+					}
+				} else {
+					o2, err = d.jumpOffset(o2)
+					if err != nil {
+						return 0, err
+					}
+				}
+			} else {
+				o2, err = d.jumpOffset(o2)
+				if err != nil {
+					return 0, err
+				}
 			}
-		} else {
-			o2, err = d.jumpOffset(o2)
-			if err != nil {
-				return 0, err
-			}
+			o = o2
 		}
-		o = o2
+	} else {
+		for i := 0; i < l; i++ {
+			dataKey, o2, err := d.asStringByte(o, k)
+			if err != nil {
+				return 0, err
+			}
+
+			fieldIndex := -1
+			for keyIndex, keyBytes := range sctm.keys {
+				if len(keyBytes) != len(dataKey) {
+					continue
+				}
+
+				found := true
+				for dataIndex := range dataKey {
+					if dataKey[dataIndex] != keyBytes[dataIndex] {
+						found = false
+						break
+					}
+				}
+				if found {
+					fieldIndex = sctm.simpleIndexes[keyIndex]
+					break
+				}
+			}
+
+			if fieldIndex >= 0 {
+				o2, err = d.decode(rv.Field(fieldIndex), o2)
+				if err != nil {
+					return 0, err
+				}
+			} else {
+				o2, err = d.jumpOffset(o2)
+				if err != nil {
+					return 0, err
+				}
+			}
+			o = o2
+		}
 	}
 	return o, nil
 }
