@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -1666,10 +1667,19 @@ func TestStruct(t *testing.T) {
 	t.Run("Embedded", func(t *testing.T) {
 		testEmbedded(t)
 	})
+	t.Run("EmbeddedStruct", func(t *testing.T) {
+		testEmbeddedStruct(t)
+	})
 	t.Run("Jump", func(t *testing.T) {
 		testStructJump(t)
 	})
 	t.Run("UseCase", func(t *testing.T) {
+		b := msgpack.StructAsArray
+		defer func() {
+			msgpack.StructAsArray = b
+		}()
+		testStructUseCase(t)
+		msgpack.StructAsArray = true
 		testStructUseCase(t)
 	})
 }
@@ -1693,6 +1703,774 @@ func testEmbedded(t *testing.T) {
 		},
 	}
 	encdec(t, arg)
+}
+
+func testEmbeddedStruct(t *testing.T) {
+	b := msgpack.StructAsArray
+	defer func() {
+		msgpack.StructAsArray = b
+	}()
+
+	t.Run("SimpleEmbedded", func(t *testing.T) {
+		type Embedded struct {
+			EmbeddedField int
+			Name          string
+		}
+		type Parent struct {
+			Embedded
+			ParentField string
+		}
+
+		original := Parent{
+			Embedded:    Embedded{EmbeddedField: 42, Name: "test"},
+			ParentField: "parent",
+		}
+
+		// Test with msgpack
+		_, err := msgpack.MarshalAsMap(original)
+		if err != nil {
+			t.Fatalf("msgpack.Marshal failed: %v", err)
+		}
+
+		var msgDecoded Parent
+
+		// Test stream encoding/decoding and cross-compatibility
+		for _, isArray := range []bool{false, true} {
+			msgpack.StructAsArray = isArray
+			encdec(t, encdecArg[Parent]{
+				v:      original,
+				skipEq: true,
+				vc: func(p Parent) error {
+					// Verify fields are promoted
+					tu.Equal(t, p.EmbeddedField, 42)
+					tu.Equal(t, p.Name, "test")
+					tu.Equal(t, p.ParentField, "parent")
+					msgDecoded = p
+					return nil
+				},
+			})
+		}
+
+		// Compare with JSON
+		jsonBytes, _ := json.Marshal(original)
+		var jsonDecoded Parent
+		_ = json.Unmarshal(jsonBytes, &jsonDecoded)
+
+		if msgDecoded.EmbeddedField != jsonDecoded.EmbeddedField ||
+			msgDecoded.Name != jsonDecoded.Name ||
+			msgDecoded.ParentField != jsonDecoded.ParentField {
+			t.Errorf("msgpack and json results differ:\nmsgpack: %+v\njson: %+v",
+				msgDecoded, jsonDecoded)
+		}
+	})
+
+	t.Run("EmbeddedWithTag", func(t *testing.T) {
+		type Embedded struct {
+			Field int
+		}
+		type Parent struct {
+			Embedded `msgpack:"emb"`
+			Regular  string
+		}
+
+		original := Parent{
+			Embedded: Embedded{Field: 99},
+			Regular:  "value",
+		}
+
+		_, err := msgpack.MarshalAsMap(original)
+		if err != nil {
+			t.Fatalf("msgpack.Marshal failed: %v", err)
+		}
+
+		var msgDecoded Parent
+
+		// Test stream encoding/decoding and cross-compatibility
+		for _, isArray := range []bool{false, true} {
+			msgpack.StructAsArray = isArray
+			encdec(t, encdecArg[Parent]{
+				v:      original,
+				skipEq: true,
+				vc: func(p Parent) error {
+					// Tagged embedded struct should not be promoted
+					//nolint:staticcheck // QF1008 for test
+					tu.Equal(t, p.Embedded.Field, 99)
+					tu.Equal(t, p.Regular, "value")
+					msgDecoded = p
+					return nil
+				},
+			})
+		}
+
+		// Compare with JSON
+		jsonBytes, _ := json.Marshal(original)
+		var jsonDecoded Parent
+		_ = json.Unmarshal(jsonBytes, &jsonDecoded)
+
+		//nolint:staticcheck // QF1008 for test
+		if msgDecoded.Embedded.Field != jsonDecoded.Embedded.Field ||
+			msgDecoded.Regular != jsonDecoded.Regular {
+			t.Errorf("msgpack and json results differ:\nmsgpack: %+v\njson: %+v",
+				msgDecoded, jsonDecoded)
+		}
+	})
+
+	t.Run("MultiLevelEmbedding", func(t *testing.T) {
+		type Deep struct {
+			DeepField int
+		}
+		type Middle struct {
+			Deep
+			MiddleField string
+		}
+		type Top struct {
+			Middle
+			TopField bool
+		}
+
+		original := Top{
+			Middle: Middle{
+				Deep:        Deep{DeepField: 100},
+				MiddleField: "middle",
+			},
+			TopField: true,
+		}
+
+		_, err := msgpack.MarshalAsMap(original)
+		if err != nil {
+			t.Fatalf("msgpack.Marshal failed: %v", err)
+		}
+
+		var msgDecoded Top
+
+		// Test stream encoding/decoding and cross-compatibility
+		for _, isArray := range []bool{false, true} {
+			msgpack.StructAsArray = isArray
+			encdec(t, encdecArg[Top]{
+				v:      original,
+				skipEq: true,
+				vc: func(p Top) error {
+					tu.Equal(t, p.DeepField, 100)
+					tu.Equal(t, p.MiddleField, "middle")
+					tu.Equal(t, p.TopField, true)
+					msgDecoded = p
+					return nil
+				},
+			})
+		}
+
+		// Compare with JSON
+		jsonBytes, _ := json.Marshal(original)
+		var jsonDecoded Top
+		_ = json.Unmarshal(jsonBytes, &jsonDecoded)
+
+		if msgDecoded.DeepField != jsonDecoded.DeepField ||
+			msgDecoded.MiddleField != jsonDecoded.MiddleField ||
+			msgDecoded.TopField != jsonDecoded.TopField {
+			t.Errorf("msgpack and json results differ:\nmsgpack: %+v\njson: %+v",
+				msgDecoded, jsonDecoded)
+		}
+	})
+
+	t.Run("FieldShadowing", func(t *testing.T) {
+		type Base struct {
+			Name string
+			Age  int
+		}
+		type Derived struct {
+			Base
+			Name string // Shadows Base.Name
+		}
+
+		original := Derived{
+			Base: Base{Name: "base", Age: 30},
+			Name: "derived",
+		}
+
+		_, err := msgpack.MarshalAsMap(original)
+		if err != nil {
+			t.Fatalf("msgpack.Marshal failed: %v", err)
+		}
+
+		var msgDecoded Derived
+
+		// Test stream encoding/decoding and cross-compatibility
+		for _, isArray := range []bool{false, true} {
+			msgpack.StructAsArray = isArray
+			encdec(t, encdecArg[Derived]{
+				v:      original,
+				skipEq: true,
+				vc: func(p Derived) error {
+					tu.Equal(t, p.Name, "derived")
+					tu.Equal(t, p.Age, 30)
+					tu.Equal(t, p.Base.Name, "")
+					msgDecoded = p
+					return nil
+				},
+			})
+		}
+
+		// Compare with JSON
+		jsonBytes, _ := json.Marshal(original)
+		var jsonDecoded Derived
+		_ = json.Unmarshal(jsonBytes, &jsonDecoded)
+
+		if msgDecoded.Name != jsonDecoded.Name || msgDecoded.Age != jsonDecoded.Age {
+			t.Errorf("msgpack and json results differ:\nmsgpack: %+v\njson: %+v",
+				msgDecoded, jsonDecoded)
+		}
+	})
+
+	t.Run("TaggedFieldPriority", func(t *testing.T) {
+		type Tagged struct {
+			Name string `msgpack:"Name" json:"Name"`
+		}
+		type Plain struct {
+			Name string
+		}
+		type Derived struct {
+			Tagged
+			Plain
+		}
+
+		original := Derived{
+			Tagged: Tagged{Name: "tagged"},
+			Plain:  Plain{Name: "plain"},
+		}
+
+		_, err := msgpack.MarshalAsMap(original)
+		if err != nil {
+			t.Fatalf("msgpack.Marshal failed: %v", err)
+		}
+
+		var msgDecoded Derived
+
+		for _, isArray := range []bool{false, true} {
+			msgpack.StructAsArray = isArray
+			encdec(t, encdecArg[Derived]{
+				v:      original,
+				skipEq: true,
+				vc: func(p Derived) error {
+					tu.Equal(t, p.Tagged.Name, "tagged")
+					tu.Equal(t, p.Plain.Name, "")
+					msgDecoded = p
+					return nil
+				},
+			})
+		}
+
+		jsonBytes, _ := json.Marshal(original)
+		var jsonDecoded Derived
+		_ = json.Unmarshal(jsonBytes, &jsonDecoded)
+
+		if msgDecoded.Tagged.Name != jsonDecoded.Tagged.Name ||
+			msgDecoded.Plain.Name != jsonDecoded.Plain.Name {
+			t.Errorf("msgpack and json results differ:\nmsgpack: %+v\njson: %+v",
+				msgDecoded, jsonDecoded)
+		}
+	})
+
+	t.Run("EmbeddedOmitEmpty", func(t *testing.T) {
+		type Embedded struct {
+			A int
+			B string
+		}
+		type Parent struct {
+			Embedded `msgpack:",omitempty"`
+			C        int
+		}
+
+		msgpack.StructAsArray = false
+		encdec(t, encdecArg[map[string]any]{
+			v:      Parent{Embedded: Embedded{}, C: 1},
+			skipEq: true,
+			vc: func(p map[string]any) error {
+				if _, ok := p["A"]; ok {
+					return fmt.Errorf("embedded field A should be omitted")
+				}
+				if _, ok := p["B"]; ok {
+					return fmt.Errorf("embedded field B should be omitted")
+				}
+				if _, ok := p["C"]; !ok {
+					return fmt.Errorf("field C should be present")
+				}
+				return nil
+			},
+		})
+
+		encdec(t, encdecArg[map[string]any]{
+			v:      Parent{Embedded: Embedded{A: 1, B: "b"}, C: 2},
+			skipEq: true,
+			vc: func(p map[string]any) error {
+				if _, ok := p["A"]; !ok {
+					return fmt.Errorf("embedded field A should be present")
+				}
+				if _, ok := p["B"]; !ok {
+					return fmt.Errorf("embedded field B should be present")
+				}
+				if _, ok := p["C"]; !ok {
+					return fmt.Errorf("field C should be present")
+				}
+				return nil
+			},
+		})
+
+		msgpack.StructAsArray = true
+		encdec(t, encdecArg[Parent]{
+			v: Parent{Embedded: Embedded{}, C: 1},
+			c: func(d []byte) bool {
+				return len(d) == 4 &&
+					d[0] == def.FixArray+0x03 &&
+					d[1] == 0x01 &&
+					d[2] == def.Nil &&
+					d[3] == def.Nil
+			},
+			vc: func(p Parent) error {
+				if p.A != 0 || p.B != "" || p.C != 1 {
+					return fmt.Errorf("unexpected array decode: %+v", p)
+				}
+				return nil
+			},
+		})
+
+		encdec(t, encdecArg[Parent]{
+			v: Parent{Embedded: Embedded{A: 1, B: "b"}, C: 2},
+			c: func(d []byte) bool {
+				return len(d) == 5 &&
+					d[0] == def.FixArray+0x03 &&
+					d[1] == 0x02 &&
+					d[2] == 0x01 &&
+					d[3] == 0xa1 &&
+					d[4] == 'b'
+			},
+			vc: func(p Parent) error {
+				if p.A != 1 || p.B != "b" || p.C != 2 {
+					return fmt.Errorf("unexpected array decode: %+v", p)
+				}
+				return nil
+			},
+		})
+	})
+
+	t.Run("AmbiguousFields", func(t *testing.T) {
+		type A struct {
+			Field string
+		}
+		type B struct {
+			Field string
+		}
+		type Derived struct {
+			A
+			B
+		}
+
+		original := Derived{
+			A: A{Field: "from A"},
+			B: B{Field: "from B"},
+		}
+
+		_, err := msgpack.MarshalAsMap(original)
+		if err != nil {
+			t.Fatalf("msgpack.Marshal failed: %v", err)
+		}
+
+		// Decode to map to check what fields are present
+		var msgDecoded map[string]interface{}
+
+		// Test stream encoding/decoding and cross-compatibility
+		for _, isArray := range []bool{false} {
+			msgpack.StructAsArray = isArray
+			encdec(t, encdecArg[map[string]any]{
+				v:      original,
+				skipEq: true,
+				vc: func(p map[string]any) error {
+					// Ambiguous field should be omitted
+					if _, exists := p["Field"]; exists {
+						t.Errorf("Ambiguous field 'Field' should be omitted")
+					}
+					msgDecoded = p
+					return nil
+				},
+			})
+		}
+
+		// Compare with JSON
+		jsonBytes, _ := json.Marshal(original)
+		var jsonMap map[string]interface{}
+		_ = json.Unmarshal(jsonBytes, &jsonMap)
+
+		if len(msgDecoded) != len(jsonMap) {
+			t.Errorf("Field count differs: msgpack=%d, json=%d", len(msgDecoded), len(jsonMap))
+		}
+	})
+
+	t.Run("PointerEmbedded", func(t *testing.T) {
+		type Base struct {
+			Value int
+		}
+		type Derived struct {
+			*Base
+			Extra string
+		}
+
+		original := Derived{
+			Base:  &Base{Value: 123},
+			Extra: "extra",
+		}
+
+		_, err := msgpack.MarshalAsMap(original)
+		if err != nil {
+			t.Fatalf("msgpack.Marshal failed: %v", err)
+		}
+
+		var msgDecoded Derived
+
+		// Test stream encoding/decoding and cross-compatibility
+		for _, isArray := range []bool{false, true} {
+			msgpack.StructAsArray = isArray
+			encdec(t, encdecArg[Derived]{
+				v:      original,
+				skipEq: true,
+				vc: func(p Derived) error {
+					if p.Base == nil {
+						return fmt.Errorf("base pointer should not be nil after unmarshal")
+					}
+					tu.Equal(t, p.Value, 123)
+					tu.Equal(t, p.Extra, "extra")
+					msgDecoded = p
+					return nil
+				},
+			})
+		}
+
+		// Compare with JSON
+		jsonBytes, _ := json.Marshal(original)
+		var jsonDecoded Derived
+		_ = json.Unmarshal(jsonBytes, &jsonDecoded)
+
+		if msgDecoded.Value != jsonDecoded.Value || msgDecoded.Extra != jsonDecoded.Extra {
+			t.Errorf("msgpack and json results differ:\nmsgpack: %+v\njson: %+v",
+				msgDecoded, jsonDecoded)
+		}
+	})
+
+	t.Run("PointerEmbeddedNil", func(t *testing.T) {
+		type Base struct {
+			Value int
+		}
+		type Derived struct {
+			*Base
+			Extra string
+		}
+
+		original := Derived{
+			Base:  nil,
+			Extra: "extra",
+		}
+
+		_, err := msgpack.MarshalAsMap(original)
+		if err != nil {
+			t.Fatalf("msgpack.Marshal failed: %v", err)
+		}
+
+		msgpack.StructAsArray = false
+		encdec(t, encdecArg[Derived]{
+			v:      original,
+			skipEq: true,
+			vc: func(p Derived) error {
+				if p.Base != nil {
+					return fmt.Errorf("base pointer should be nil after unmarshal")
+				}
+				tu.Equal(t, p.Extra, "extra")
+				return nil
+			},
+		})
+
+		msgpack.StructAsArray = true
+		encdec(t, encdecArg[Derived]{
+			v:      original,
+			skipEq: true,
+			vc: func(p Derived) error {
+				if p.Base != nil {
+					return fmt.Errorf("base pointer should be nil after unmarshal")
+				}
+				tu.Equal(t, p.Extra, "extra")
+				return nil
+			},
+		})
+		/*
+
+			var msgDecoded Derived
+
+			for _, isArray := range []bool{false, true} {
+				msgpack.StructAsArray = isArray
+				encdec(t, encdecArg[Derived]{
+					v:      original,
+					skipEq: true,
+					vc: func(p Derived) error {
+						if p.Base != nil {
+							return fmt.Errorf("base pointer should be nil after unmarshal")
+						}
+						tu.Equal(t, p.Extra, "extra")
+						msgDecoded = p
+						return nil
+					},
+				})
+			}
+
+			// Compare with JSON
+			jsonBytes, _ := json.Marshal(original)
+			var jsonDecoded Derived
+			_ = json.Unmarshal(jsonBytes, &jsonDecoded)
+			tu.Equal(t, jsonDecoded, msgDecoded)
+		*/
+
+		original.Base = &Base{Value: 123}
+		for _, isArray := range []bool{false, true} {
+			msgpack.StructAsArray = isArray
+			encdec(t, encdecArg[Derived]{
+				v:      original,
+				skipEq: true,
+				vc: func(p Derived) error {
+					//nolint:staticcheck // QF1008 for test
+					tu.Equal(t, p.Base.Value, 123)
+					tu.Equal(t, p.Extra, "extra")
+					return nil
+				},
+			})
+		}
+
+	})
+
+	t.Run("TagSameAsStructName", func(t *testing.T) {
+		// Edge case: tag with same name as struct field
+		type Inner struct {
+			Value int
+		}
+		type Outer struct {
+			Inner `msgpack:"Inner"`
+			Other string
+		}
+
+		original := Outer{
+			Inner: Inner{Value: 456},
+			Other: "test",
+		}
+
+		_, err := msgpack.MarshalAsMap(original)
+		if err != nil {
+			t.Fatalf("msgpack.Marshal failed: %v", err)
+		}
+
+		var msgDecoded Outer
+
+		// Test stream encoding/decoding and cross-compatibility
+		for _, isArray := range []bool{false, true} {
+			msgpack.StructAsArray = isArray
+			encdec(t, encdecArg[Outer]{
+				v:      original,
+				skipEq: true,
+				vc: func(p Outer) error {
+					//nolint:staticcheck // QF1008 for test
+					tu.Equal(t, p.Inner.Value, 456)
+					tu.Equal(t, p.Other, "test")
+					msgDecoded = p
+					return nil
+				},
+			})
+		}
+
+		// Compare with JSON
+		jsonBytes, _ := json.Marshal(original)
+		var jsonDecoded Outer
+		_ = json.Unmarshal(jsonBytes, &jsonDecoded)
+
+		//nolint:staticcheck // QF1008 for test
+		if msgDecoded.Inner.Value != jsonDecoded.Inner.Value ||
+			msgDecoded.Other != jsonDecoded.Other {
+			t.Errorf("msgpack and json results differ:\nmsgpack: %+v\njson: %+v",
+				msgDecoded, jsonDecoded)
+		}
+	})
+
+	t.Run("MixedEmbeddedAndRegular", func(t *testing.T) {
+		type Timestamp struct {
+			CreatedAt string
+			UpdatedAt string
+		}
+		type Document struct {
+			Timestamp
+			ID      int
+			Content string
+			Title   string
+		}
+
+		original := Document{
+			Timestamp: Timestamp{
+				CreatedAt: "2024-01-01",
+				UpdatedAt: "2024-01-02",
+			},
+			ID:      42,
+			Content: "test content",
+			Title:   "test title",
+		}
+
+		_, err := msgpack.MarshalAsMap(original)
+		if err != nil {
+			t.Fatalf("msgpack.Marshal failed: %v", err)
+		}
+
+		var msgDecoded Document
+
+		// Test stream encoding/decoding and cross-compatibility
+		for _, isArray := range []bool{false, true} {
+			msgpack.StructAsArray = isArray
+			encdec(t, encdecArg[Document]{
+				v:      original,
+				skipEq: true,
+				vc: func(p Document) error {
+					tu.Equal(t, p.CreatedAt, "2024-01-01")
+					tu.Equal(t, p.UpdatedAt, "2024-01-02")
+					tu.Equal(t, p.ID, 42)
+					tu.Equal(t, p.Content, "test content")
+					tu.Equal(t, p.Title, "test title")
+					msgDecoded = p
+					return nil
+				},
+			})
+		}
+
+		// Compare with JSON
+		jsonBytes, _ := json.Marshal(original)
+		var jsonDecoded Document
+		_ = json.Unmarshal(jsonBytes, &jsonDecoded)
+
+		if msgDecoded.CreatedAt != jsonDecoded.CreatedAt ||
+			msgDecoded.UpdatedAt != jsonDecoded.UpdatedAt ||
+			msgDecoded.ID != jsonDecoded.ID ||
+			msgDecoded.Content != jsonDecoded.Content ||
+			msgDecoded.Title != jsonDecoded.Title {
+			t.Errorf("msgpack and json results differ:\nmsgpack: %+v\njson: %+v",
+				msgDecoded, jsonDecoded)
+		}
+	})
+
+	t.Run("EmbeddedWithPrivateFields", func(t *testing.T) {
+		type Base struct {
+			Public  string
+			private int
+		}
+		type Derived struct {
+			Base
+			Extra string
+		}
+
+		original := Derived{
+			Base:  Base{Public: "public", private: 123},
+			Extra: "extra",
+		}
+
+		_, err := msgpack.MarshalAsMap(original)
+		if err != nil {
+			t.Fatalf("msgpack.Marshal failed: %v", err)
+		}
+
+		var msgDecoded Derived
+
+		// Test stream encoding/decoding and cross-compatibility
+		for _, isArray := range []bool{false, true} {
+			msgpack.StructAsArray = isArray
+			encdec(t, encdecArg[Derived]{
+				v:      original,
+				skipEq: true,
+				vc: func(p Derived) error {
+					// Only public fields should be marshaled
+					tu.Equal(t, p.Public, "public")
+					tu.Equal(t, p.Extra, "extra")
+					tu.Equal(t, p.private, 0) // private field should be zero value
+					msgDecoded = p
+					return nil
+				},
+			})
+		}
+
+		// Compare with JSON
+		jsonBytes, _ := json.Marshal(original)
+		var jsonDecoded Derived
+		_ = json.Unmarshal(jsonBytes, &jsonDecoded)
+
+		if msgDecoded.Public != jsonDecoded.Public || msgDecoded.Extra != jsonDecoded.Extra {
+			t.Errorf("msgpack and json results differ:\nmsgpack: %+v\njson: %+v",
+				msgDecoded, jsonDecoded)
+		}
+	})
+
+	t.Run("ComplexNestedEmbedding", func(t *testing.T) {
+		type A struct {
+			FieldA string
+		}
+		type B struct {
+			A
+			FieldB int
+		}
+		type C struct {
+			B
+			FieldC bool
+		}
+		type D struct {
+			C
+			FieldD float64
+		}
+
+		original := D{
+			C: C{
+				B: B{
+					A:      A{FieldA: "a"},
+					FieldB: 1,
+				},
+				FieldC: true,
+			},
+			FieldD: 3.14,
+		}
+
+		_, err := msgpack.MarshalAsMap(original)
+		if err != nil {
+			t.Fatalf("msgpack.Marshal failed: %v", err)
+		}
+
+		var msgDecoded D
+
+		// Test stream encoding/decoding and cross-compatibility
+		for _, isArray := range []bool{false, true} {
+			msgpack.StructAsArray = isArray
+			encdec(t, encdecArg[D]{
+				v:      original,
+				skipEq: true,
+				vc: func(p D) error {
+					// All fields should be promoted to top level
+					tu.Equal(t, p.FieldA, "a")
+					tu.Equal(t, p.FieldB, 1)
+					tu.Equal(t, p.FieldC, true)
+					tu.Equal(t, p.FieldD, 3.14)
+					msgDecoded = p
+					return nil
+				},
+			})
+		}
+
+		// Compare with JSON
+		jsonBytes, _ := json.Marshal(original)
+		var jsonDecoded D
+		_ = json.Unmarshal(jsonBytes, &jsonDecoded)
+
+		if msgDecoded.FieldA != jsonDecoded.FieldA ||
+			msgDecoded.FieldB != jsonDecoded.FieldB ||
+			msgDecoded.FieldC != jsonDecoded.FieldC ||
+			msgDecoded.FieldD != jsonDecoded.FieldD {
+			t.Errorf("msgpack and json results differ:\nmsgpack: %+v\njson: %+v",
+				msgDecoded, jsonDecoded)
+		}
+	})
 }
 
 func testStructTag(t *testing.T) {
