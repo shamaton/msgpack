@@ -62,8 +62,10 @@ func Test_asComplex64(t *testing.T) {
 		},
 		{
 			Name: "Fixext16.ok",
-			Data: []byte{def.Fixext16, byte(def.ComplexTypeCode()),
-				63, 240, 0, 0, 0, 0, 0, 0, 63, 240, 0, 0, 0, 0, 0, 0},
+			Data: []byte{
+				def.Fixext16, byte(def.ComplexTypeCode()),
+				63, 240, 0, 0, 0, 0, 0, 0, 63, 240, 0, 0, 0, 0, 0, 0,
+			},
 			Expected: complex(1, 1),
 			MethodAs: method,
 		},
@@ -132,8 +134,10 @@ func Test_asComplex128(t *testing.T) {
 		},
 		{
 			Name: "Fixext16.ok",
-			Data: []byte{def.Fixext16, byte(def.ComplexTypeCode()),
-				63, 240, 0, 0, 0, 0, 0, 0, 63, 240, 0, 0, 0, 0, 0, 0},
+			Data: []byte{
+				def.Fixext16, byte(def.ComplexTypeCode()),
+				63, 240, 0, 0, 0, 0, 0, 0, 63, 240, 0, 0, 0, 0, 0, 0,
+			},
 			Expected: complex(1, 1),
 			MethodAs: method,
 		},

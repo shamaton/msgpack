@@ -33,8 +33,10 @@ type structCacheTypeArray struct {
 }
 
 // struct cache map
-var mapSCTM = sync.Map{}
-var mapSCTA = sync.Map{}
+var (
+	mapSCTM = sync.Map{}
+	mapSCTA = sync.Map{}
+)
 
 // getFieldByPath returns the field value by following the path of indices.
 // The bool indicates whether the path was reachable (no nil pointer in the path).

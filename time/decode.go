@@ -54,21 +54,22 @@ func (td *timeDecoder) IsType(offset int, d *[]byte) bool {
 		return false
 	}
 
-	if code == def.Fixext4 {
+	switch code {
+	case def.Fixext4:
 		t, _, ok := td.readSize1Safe(offset, d)
 		if !ok || int8(t) != td.Code() {
 			return false
 		}
 		_, _, ok = td.readSize4Safe(offset+def.Byte1, d)
 		return ok
-	} else if code == def.Fixext8 {
+	case def.Fixext8:
 		t, _, ok := td.readSize1Safe(offset, d)
 		if !ok || int8(t) != td.Code() {
 			return false
 		}
 		_, _, ok = td.readSize8Safe(offset+def.Byte1, d)
 		return ok
-	} else if code == def.Ext8 {
+	case def.Ext8:
 		l, offset, ok := td.readSize1Safe(offset, d)
 		if !ok {
 			return false

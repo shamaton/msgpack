@@ -11,7 +11,6 @@ import (
 
 func Test_setStruct_ext(t *testing.T) {
 	run := func(t *testing.T, rv reflect.Value) {
-
 		method := func(d *decoder) func(int, reflect.Kind) (any, int, error) {
 			return func(offset int, k reflect.Kind) (any, int, error) {
 				o, err := d.setStruct(rv, offset, k)
@@ -337,7 +336,8 @@ func Test_jumpOffset(t *testing.T) {
 			Name:     "Array16.ok",
 			Data:     []byte{def.Array16, 0, 1, 0xc1},
 			MethodAs: method,
-		}, {
+		},
+		{
 			Name:     "Array32.ng.len",
 			Data:     []byte{def.Array32},
 			Error:    def.ErrTooShortBytes,
@@ -381,7 +381,8 @@ func Test_jumpOffset(t *testing.T) {
 			Name:     "Map16.ok",
 			Data:     []byte{def.Map16, 0, 1, 0xc1, 0xc1},
 			MethodAs: method,
-		}, {
+		},
+		{
 			Name:     "Map32.ng.len",
 			Data:     []byte{def.Map32},
 			Error:    def.ErrTooShortBytes,

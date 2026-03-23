@@ -1,0 +1,23 @@
+{
+  "global": {},
+  "exclude-rules": [
+    {
+      "path": "(.*/)?(internal/(encoding|decoding|stream/encoding|stream/decoding)|ext|time)/.*\\.go$",
+      "rules": [
+        "G115"
+      ]
+    },
+    {
+      "path": "(.*/)?internal/common/testutil/.*\\.go$",
+      "rules": [
+        "G115"
+      ]
+    },
+    {
+      "path": "(.*/)?internal/(encoding/string|decoding/bin|stream/encoding/string|stream/decoding/bin)\\.go$",
+      "rules": [
+        "G103"
+      ]
+    }
+  ]
+}

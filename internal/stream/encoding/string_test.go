@@ -48,7 +48,8 @@ func Test_writeString(t *testing.T) {
 			),
 			BufferSize: 1,
 			Method:     method,
-		}, {
+		},
+		{
 			Name:         "Str16.error.def",
 			Value:        str16,
 			BufferSize:   1,
