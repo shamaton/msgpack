@@ -257,6 +257,27 @@ func TestStreamDecodeToValueErrors(t *testing.T) {
 	})
 }
 
+func TestStreamDecodeToValueTooShort(t *testing.T) {
+	decoder := StreamDecoder
+
+	testcases := []struct {
+		name string
+		code byte
+		data []byte
+	}{
+		{name: "Fixext4", code: def.Fixext4, data: []byte{}},
+		{name: "Fixext8", code: def.Fixext8, data: []byte{}},
+		{name: "Ext8", code: def.Ext8, data: []byte{}},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := decoder.ToValue(tc.code, tc.data, reflect.TypeOf(time.Time{}).Kind())
+			tu.IsError(t, err, def.ErrTooShortBytes)
+		})
+	}
+}
+
 func TestStreamDecodeTimezone(t *testing.T) {
 	decoder := StreamDecoder
 

@@ -399,8 +399,20 @@ func Test_jumpOffset(t *testing.T) {
 			MethodAs: method,
 		},
 		{
+			Name:     "Fixext1.ng",
+			Data:     []byte{def.Fixext1},
+			Error:    def.ErrTooShortBytes,
+			MethodAs: method,
+		},
+		{
 			Name:     "Fixext1.ok",
 			Data:     []byte{def.Fixext1, 0, 0},
+			MethodAs: method,
+		},
+		{
+			Name:     "Fixext2.ng",
+			Data:     []byte{def.Fixext2},
+			Error:    def.ErrTooShortBytes,
 			MethodAs: method,
 		},
 		{
@@ -409,13 +421,31 @@ func Test_jumpOffset(t *testing.T) {
 			MethodAs: method,
 		},
 		{
+			Name:     "Fixext4.ng",
+			Data:     []byte{def.Fixext4},
+			Error:    def.ErrTooShortBytes,
+			MethodAs: method,
+		},
+		{
 			Name:     "Fixext4.ok",
 			Data:     []byte{def.Fixext4, 0, 0, 0, 0, 0},
 			MethodAs: method,
 		},
 		{
+			Name:     "Fixext8.ng",
+			Data:     []byte{def.Fixext8},
+			Error:    def.ErrTooShortBytes,
+			MethodAs: method,
+		},
+		{
 			Name:     "Fixext8.ok",
 			Data:     []byte{def.Fixext8, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			MethodAs: method,
+		},
+		{
+			Name:     "Fixext16.ng",
+			Data:     []byte{def.Fixext16},
+			Error:    def.ErrTooShortBytes,
 			MethodAs: method,
 		},
 		{
