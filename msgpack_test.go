@@ -31,27 +31,32 @@ func init() {
 
 func TestInt(t *testing.T) {
 	{
-		args := []encdecArg[int]{{
-			n: "FixInt",
-			v: -8,
-			c: func(d []byte) bool {
-				return def.NegativeFixintMin <= int8(d[0]) && int8(d[0]) <= def.NegativeFixintMax
-			}}, {
-			n: "Int8",
-			v: -108,
-			c: func(d []byte) bool {
-				return d[0] == def.Int8
-			}}, {
-			n: "Int16",
-			v: -30108,
-			c: func(d []byte) bool {
-				return d[0] == def.Int16
-			}}, {
-			n: "Int32",
-			v: -1030108,
-			c: func(d []byte) bool {
-				return d[0] == def.Int32
-			}},
+		args := []encdecArg[int]{
+			{
+				n: "FixInt",
+				v: -8,
+				c: func(d []byte) bool {
+					return def.NegativeFixintMin <= int8(d[0]) && int8(d[0]) <= def.NegativeFixintMax
+				},
+			}, {
+				n: "Int8",
+				v: -108,
+				c: func(d []byte) bool {
+					return d[0] == def.Int8
+				},
+			}, {
+				n: "Int16",
+				v: -30108,
+				c: func(d []byte) bool {
+					return d[0] == def.Int16
+				},
+			}, {
+				n: "Int32",
+				v: -1030108,
+				c: func(d []byte) bool {
+					return d[0] == def.Int32
+				},
+			},
 		}
 		encdec(t, args...)
 	}
@@ -93,27 +98,32 @@ func TestInt(t *testing.T) {
 
 func TestUint(t *testing.T) {
 	{
-		args := []encdecArg[uint]{{
-			n: "FixUint",
-			v: uint(8),
-			c: func(d []byte) bool {
-				return def.PositiveFixIntMin <= uint8(d[0]) && uint8(d[0]) <= def.PositiveFixIntMax
-			}}, {
-			n: "Uint8",
-			v: uint(130),
-			c: func(d []byte) bool {
-				return d[0] == def.Uint8
-			}}, {
-			n: "Uint16",
-			v: uint(30130),
-			c: func(d []byte) bool {
-				return d[0] == def.Uint16
-			}}, {
-			n: "Uint32",
-			v: uint(1030130),
-			c: func(d []byte) bool {
-				return d[0] == def.Uint32
-			}},
+		args := []encdecArg[uint]{
+			{
+				n: "FixUint",
+				v: uint(8),
+				c: func(d []byte) bool {
+					return def.PositiveFixIntMin <= uint8(d[0]) && uint8(d[0]) <= def.PositiveFixIntMax
+				},
+			}, {
+				n: "Uint8",
+				v: uint(130),
+				c: func(d []byte) bool {
+					return d[0] == def.Uint8
+				},
+			}, {
+				n: "Uint16",
+				v: uint(30130),
+				c: func(d []byte) bool {
+					return d[0] == def.Uint16
+				},
+			}, {
+				n: "Uint32",
+				v: uint(1030130),
+				c: func(d []byte) bool {
+					return d[0] == def.Uint32
+				},
+			},
 		}
 		encdec(t, args...)
 	}
@@ -128,6 +138,7 @@ func TestUint(t *testing.T) {
 		encdec(t, arg)
 	}
 }
+
 func TestFloat(t *testing.T) {
 	t.Run("Float32", func(t *testing.T) {
 		c := func(d []byte) bool {
@@ -514,8 +525,10 @@ func TestAny(t *testing.T) {
 		[]byte(strings.Repeat("a", math.MaxUint8)),
 		[]byte(strings.Repeat("a", math.MaxUint16)),
 		[]byte(strings.Repeat("a", math.MaxUint16+1)),
-		[]interface{}{1, "a", 1.23}, a1, a2,
-		map[interface{}]interface{}{"1": 1, 1.23: "a"}, m1, m2,
+		[]interface{}{1, "a", 1.23},
+		a1, a2,
+		map[interface{}]interface{}{"1": 1, 1.23: "a"},
+		m1, m2,
 		time.Unix(now.Unix(), int64(now.Nanosecond())).UTC(),
 	}
 
@@ -1429,7 +1442,6 @@ func TestTime(t *testing.T) {
 		}
 		encdec(t, args...)
 	})
-
 }
 
 func TestMap(t *testing.T) {
@@ -2239,7 +2251,6 @@ func testEmbeddedStruct(t *testing.T) {
 				},
 			})
 		}
-
 	})
 
 	t.Run("TagSameAsStructName", func(t *testing.T) {
@@ -2654,8 +2665,10 @@ func testStructCode(t *testing.T) {
 		I16 int
 	}
 	v1 := st1{Int: math.MinInt32}
-	v16 := st16{I1: 1, I2: 2, I3: 3, I4: 4, I5: 5, I6: 6, I7: 7, I8: 8, I9: 9, I10: 10,
-		I11: 11, I12: 12, I13: 13, I14: 14, I15: 15, I16: 16}
+	v16 := st16{
+		I1: 1, I2: 2, I3: 3, I4: 4, I5: 5, I6: 6, I7: 7, I8: 8, I9: 9, I10: 10,
+		I11: 11, I12: 12, I13: 13, I14: 14, I15: 15, I16: 16,
+	}
 
 	t.Run("Map", func(t *testing.T) {
 		t.Run("st1", func(t *testing.T) {
@@ -2813,16 +2826,28 @@ func testStructJump(t *testing.T) {
 
 	vs := []v1{
 		{A: true},
-		{A: 1}, {A: -1},
-		{A: math.MaxUint8}, {A: math.MinInt8},
-		{A: math.MaxUint16}, {A: math.MinInt16},
-		{A: math.MaxUint32 + 1}, {A: math.MinInt32 - 1}, {A: math.MaxFloat64},
+		{A: 1},
+		{A: -1},
+		{A: math.MaxUint8},
+		{A: math.MinInt8},
+		{A: math.MaxUint16},
+		{A: math.MinInt16},
+		{A: math.MaxUint32 + 1},
+		{A: math.MinInt32 - 1},
+		{A: math.MaxFloat64},
 		{A: "a"},
-		{A: strings.Repeat("b", math.MaxUint8)}, {A: []byte(strings.Repeat("c", math.MaxUint8))},
-		{A: strings.Repeat("e", math.MaxUint16)}, {A: []byte(strings.Repeat("d", math.MaxUint16))},
-		{A: strings.Repeat("f", math.MaxUint16+1)}, {A: []byte(strings.Repeat("g", math.MaxUint16+1))},
-		{A: []int{1}}, {A: a1}, {A: a2},
-		{A: map[string]int{"a": 1}}, {A: m1}, {A: m2},
+		{A: strings.Repeat("b", math.MaxUint8)},
+		{A: []byte(strings.Repeat("c", math.MaxUint8))},
+		{A: strings.Repeat("e", math.MaxUint16)},
+		{A: []byte(strings.Repeat("d", math.MaxUint16))},
+		{A: strings.Repeat("f", math.MaxUint16+1)},
+		{A: []byte(strings.Repeat("g", math.MaxUint16+1))},
+		{A: []int{1}},
+		{A: a1},
+		{A: a2},
+		{A: map[string]int{"a": 1}},
+		{A: m1},
+		{A: m2},
 		{A: time.Unix(now.Unix(), int64(now.Nanosecond()))},
 	}
 	msgpack.StructAsArray = false
@@ -3382,6 +3407,7 @@ var marshallers = []struct {
 		return buf.Bytes(), err
 	}},
 }
+
 var unmarshallers = []struct {
 	name string
 	u    unmarshaller
