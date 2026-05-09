@@ -7,11 +7,13 @@
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fshamaton%2Fmsgpack.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fshamaton%2Fmsgpack?ref=badge_shield)
 
 ## 📣 Announcement: `time.Time` decoding defaults to **UTC** in v3
+
 Starting with **v3.0.0**, when decoding MessagePack **Timestamp** into Go’s `time.Time`,
 the default `Location` will be **UTC** (previously `Local`). The instant is unchanged.
 To keep the old behavior, use `SetDecodedTimeAsLocal()`.
 
 ## Features
+
 * Supported types : primitive / array / slice / struct / map / interface{} and time.Time
 * Renaming fields via `msgpack:"field_name"`
 * Omitting fields via `msgpack:"-"`
@@ -22,15 +24,18 @@ To keep the old behavior, use `SetDecodedTimeAsLocal()`.
 ## Installation
 
 Current version is **msgpack/v3**.
+
 ```sh
 go get -u github.com/shamaton/msgpack/v3
 ```
 
 ### Upgrading from v2
+
 If you are upgrading from v2, please note the `time.Time` decoding change mentioned in the announcement above.
 To keep the v2 behavior, use `msgpack.SetDecodedTimeAsLocal()` after upgrading.
 
 ## Quick Start
+
 ```go
 package main
 
@@ -40,36 +45,36 @@ import (
 )
 
 type Struct struct {
-	String string
+  String string
 }
 
 // simple
 func main() {
-	v := Struct{String: "msgpack"}
+  v := Struct{String: "msgpack"}
 
-	d, err := msgpack.Marshal(v)
-	if err != nil {
-		panic(err)
-	}
-	r := Struct{}
-	if err =  msgpack.Unmarshal(d, &r); err != nil {
-		panic(err)
-	}
+  d, err := msgpack.Marshal(v)
+  if err != nil {
+    panic(err)
+  }
+  r := Struct{}
+  if err = msgpack.Unmarshal(d, &r); err != nil {
+    panic(err)
+  }
 }
 
 // streaming
 func handle(w http.ResponseWriter, r *http.Request) {
-	var body Struct
-	if err := msgpack.UnmarshalRead(r, &body); err != nil {
-		panic(err)
-    }
-	if err := msgpack.MarshalWrite(w, body); err != nil {
-		panic(err)
-    }
+  var body Struct
+  if err := msgpack.UnmarshalRead(r, &body); err != nil {
+    panic(err)
+  }
+  if err := msgpack.MarshalWrite(w, body); err != nil {
+    panic(err)
+  }
 }
 ```
 
-## 📣 Announcement: `time.Time` decoding defaults to **UTC** in v3
+## v3: `time.Time` decoding defaults to **UTC**
 
 **TL;DR:** Starting with **v3.0.0**, when decoding MessagePack **Timestamp** into Go’s `time.Time`, the default `Location` will be **UTC** (previously `Local`). The **instant** is unchanged—only the display/location changes. This avoids host-dependent differences and aligns with common distributed systems practice.
 
@@ -82,7 +87,7 @@ MessagePack’s Timestamp encodes an **instant** (epoch seconds + nanoseconds) a
 
 ### Why?
 
-* Eliminate environment-dependent behavior (e.g., different hosts showing different local zones).
+* Eliminate environment-dependent behavior, such as different hosts showing different local zones.
 * Make “UTC by default” the safe, predictable baseline for logs, APIs, and distributed apps.
 
 ### Who is affected?
@@ -115,6 +120,7 @@ msgpack.SetDecodedTimeAsUTC()
 ```
 
 ## Benchmark
+
 This result made from [shamaton/msgpack_bench](https://github.com/shamaton/msgpack_bench)
 
 ![msgpack_bench](https://github.com/user-attachments/assets/ed5bc4c5-a149-4083-98b8-ee6820c00eae)

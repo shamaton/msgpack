@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/shamaton/msgpack/v3/def"
-
 	"github.com/shamaton/msgpack/v3/internal/common"
 	tu "github.com/shamaton/msgpack/v3/internal/common/testutil"
 )
@@ -92,7 +91,6 @@ func TestDecoding(t *testing.T) {
 }
 
 func Test_decodeWithCode(t *testing.T) {
-
 	var target any
 	method := func(d *decoder) func(code byte, _ reflect.Kind) (bool, error) {
 		return func(code byte, _ reflect.Kind) (bool, error) {

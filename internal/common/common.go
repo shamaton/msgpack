@@ -6,8 +6,7 @@ import (
 )
 
 // Common is used encoding/decoding
-type Common struct {
-}
+type Common struct{}
 
 // FieldInfo holds information about a struct field including its path for embedded structs
 type FieldInfo struct {
