@@ -1,0 +1,7 @@
+[tagpr]
+    releaseBranch = main
+    versionFile = -
+    vPrefix = true
+    changelog = true
+    release = true
+    fixedMajorVersion = 3
