@@ -572,7 +572,7 @@ func TestAny(t *testing.T) {
 	t.Run("AnyError", func(t *testing.T) {
 		var r any
 		err := msgpack.Unmarshal([]byte{def.Ext32}, &r)
-		ErrorContains(t, err, "invalid code")
+		ErrorContains(t, err, "too short bytes")
 	})
 }
 

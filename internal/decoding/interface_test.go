@@ -151,8 +151,14 @@ func Test_asInterfaceWithCode(t *testing.T) {
 			MethodAs: method,
 		},
 		{
-			Name:     "ExtCoder.error",
+			Name:     "ExtCoder.error.truncated",
 			Data:     []byte{def.Fixext1, 3},
+			Error:    def.ErrTooShortBytes,
+			MethodAs: method,
+		},
+		{
+			Name:     "ExtCoder.error",
+			Data:     []byte{def.Fixext1, 3, 0},
 			Error:    ErrTestExtDecoder,
 			MethodAs: method,
 		},
