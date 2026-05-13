@@ -75,6 +75,30 @@ func TestDecodeIsType(t *testing.T) {
 	}
 }
 
+func TestDecodeIsTypeShortInput(t *testing.T) {
+	decoder := Decoder
+	ts := def.TimeStamp
+
+	testcases := []struct {
+		name string
+		data []byte
+	}{
+		{name: "Fixext4 missing type", data: []byte{def.Fixext4}},
+		{name: "Fixext8 missing type", data: []byte{def.Fixext8}},
+		{name: "Ext8 missing length", data: []byte{def.Ext8}},
+		{name: "Ext8 missing type", data: []byte{def.Ext8, 12}},
+		{name: "Fixext4 missing payload", data: []byte{def.Fixext4, byte(ts)}},
+		{name: "Fixext8 missing payload", data: []byte{def.Fixext8, byte(ts)}},
+		{name: "Ext8 missing payload", data: []byte{def.Ext8, 12, byte(ts)}},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			tu.Equal(t, decoder.IsType(0, &tc.data), false)
+		})
+	}
+}
+
 func TestDecodeAsValueFixext4(t *testing.T) {
 	decoder := Decoder
 	ts := def.TimeStamp
@@ -256,6 +280,31 @@ func TestDecodeAsValueErrors(t *testing.T) {
 		_, _, err := decoder.AsValue(0, reflect.TypeOf(time.Time{}).Kind(), &data)
 		tu.ErrorContains(t, err, "should not reach")
 	})
+}
+
+func TestDecodeAsValueTooShort(t *testing.T) {
+	decoder := Decoder
+	ts := def.TimeStamp
+
+	testcases := []struct {
+		name string
+		data []byte
+	}{
+		{name: "Fixext4 missing type", data: []byte{def.Fixext4}},
+		{name: "Fixext4 missing payload", data: []byte{def.Fixext4, byte(ts)}},
+		{name: "Fixext8 missing type", data: []byte{def.Fixext8}},
+		{name: "Fixext8 missing payload", data: []byte{def.Fixext8, byte(ts)}},
+		{name: "Ext8 missing length", data: []byte{def.Ext8}},
+		{name: "Ext8 missing type", data: []byte{def.Ext8, 12}},
+		{name: "Ext8 missing payload", data: []byte{def.Ext8, 12, byte(ts)}},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, _, err := decoder.AsValue(0, reflect.TypeOf(time.Time{}).Kind(), &tc.data)
+			tu.IsError(t, err, def.ErrTooShortBytes)
+		})
+	}
 }
 
 func TestDecodeTimezone(t *testing.T) {
