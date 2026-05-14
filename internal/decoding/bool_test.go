@@ -1,9 +1,10 @@
 package decoding
 
 import (
-	"github.com/shamaton/msgpack/v2/def"
 	"reflect"
 	"testing"
+
+	"github.com/shamaton/msgpack/v2/def"
 )
 
 func Test_asBool(t *testing.T) {

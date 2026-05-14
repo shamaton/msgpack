@@ -45,7 +45,8 @@ func check(t *testing.T, wg *sync.WaitGroup, ch <-chan string) {
 	defer wg.Done()
 	defer func() {
 		if e := recover(); e != nil {
-			t.Logf("panic occurred.\nfile: %s\nlen: %d\nbin: % x\nerr: %+v",
+			t.Logf(
+				"panic occurred.\nfile: %s\nlen: %d\nbin: % x\nerr: %+v",
 				path, len(data), data, e,
 			)
 		}
@@ -74,7 +75,8 @@ func check(t *testing.T, wg *sync.WaitGroup, ch <-chan string) {
 		var r interface{}
 		err = msgpack.Unmarshal(data, &r)
 		if err == nil {
-			t.Logf("err should be occurred.\nname: %s\nlen: %d\nbin: % x",
+			t.Logf(
+				"err should be occurred.\nname: %s\nlen: %d\nbin: % x",
 				file.Name(), len(data), data,
 			)
 			t.Fail()

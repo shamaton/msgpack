@@ -18,8 +18,10 @@ type structCacheTypeArray struct {
 }
 
 // struct cache map
-var mapSCTM = sync.Map{}
-var mapSCTA = sync.Map{}
+var (
+	mapSCTM = sync.Map{}
+	mapSCTA = sync.Map{}
+)
 
 func (d *decoder) setStruct(rv reflect.Value, offset int, k reflect.Kind) (int, error) {
 	/*

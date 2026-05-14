@@ -13,7 +13,6 @@ import (
 
 func Test_setStruct_ext(t *testing.T) {
 	run := func(t *testing.T, rv reflect.Value) {
-
 		method := func(d *decoder) func(byte, reflect.Kind) (any, error) {
 			return func(code byte, k reflect.Kind) (any, error) {
 				return nil, d.setStruct(code, rv, k)
@@ -184,6 +183,7 @@ func Test_setStructFromArray(t *testing.T) {
 	run(t, reflect.ValueOf(v1).Elem())
 	tu.Equal(t, v1.V, 8)
 }
+
 func Test_jumpOffset(t *testing.T) {
 	method := func(d *decoder) (any, error) {
 		return nil, d.jumpOffset()
@@ -516,7 +516,8 @@ func Test_jumpOffset(t *testing.T) {
 			Data:           []byte{def.Array16, 0, 1, 0xc1},
 			ReadCount:      3,
 			MethodAsCustom: method,
-		}, {
+		},
+		{
 			Name:           "Array32.ng.len",
 			Data:           []byte{def.Array32},
 			ReadCount:      1,
@@ -568,7 +569,8 @@ func Test_jumpOffset(t *testing.T) {
 			Data:           []byte{def.Map16, 0, 1, 0xc1, 0xc1},
 			ReadCount:      4,
 			MethodAsCustom: method,
-		}, {
+		},
+		{
 			Name:           "Map32.ng.len",
 			Data:           []byte{def.Map32},
 			ReadCount:      1,
