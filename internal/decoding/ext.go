@@ -8,8 +8,10 @@ import (
 	"github.com/shamaton/msgpack/v2/time"
 )
 
-var extCoderMap = map[int8]ext.Decoder{time.Decoder.Code(): time.Decoder}
-var extCoders = []ext.Decoder{time.Decoder}
+var (
+	extCoderMap = map[int8]ext.Decoder{time.Decoder.Code(): time.Decoder}
+	extCoders   = []ext.Decoder{time.Decoder}
+)
 
 // AddExtDecoder adds decoders for extension types.
 func AddExtDecoder(f ext.Decoder) {

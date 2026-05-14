@@ -714,7 +714,7 @@ func Test_decodeWithCode(t *testing.T) {
 				MethodAs: method,
 			},
 		}
-		v := (any)(new(int))
+		v := any(new(int))
 		target = &v
 		testcases.Run(t)
 		vv := v.(*int)

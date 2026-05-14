@@ -92,7 +92,6 @@ func TestDecoding(t *testing.T) {
 }
 
 func Test_decodeWithCode(t *testing.T) {
-
 	var target any
 	method := func(d *decoder) func(code byte, _ reflect.Kind) (bool, error) {
 		return func(code byte, _ reflect.Kind) (bool, error) {
@@ -823,7 +822,7 @@ func Test_decodeWithCode(t *testing.T) {
 				MethodAsWithCode: method,
 			},
 		}
-		v := (any)(new(int))
+		v := any(new(int))
 		target = &v
 		testcases.Run(t)
 		vv := v.(*int)
