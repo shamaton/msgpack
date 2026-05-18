@@ -31,14 +31,12 @@ func CreateStruct(fieldNum int) (v any, asMapBytes []byte, asArrayBytes []byte) 
 
 		// set encoded bytes
 		if len(name) < 32 {
-			asMapBytes = append(asMapBytes, def.FixStr+byte(len(name)))
+			asMapBytes = append(asMapBytes, def.FixStr+byte(len(name))) // #nosec G115 -- name length is checked to fit fixstr.
 		} else if len(name) < math.MaxUint8 {
 			asMapBytes = append(asMapBytes, def.Str8)
-			asMapBytes = append(asMapBytes, byte(len(name)))
+			asMapBytes = append(asMapBytes, byte(len(name))) // #nosec G115 -- name length is checked to fit str8.
 		}
-		for _, c := range name {
-			asMapBytes = append(asMapBytes, byte(c))
-		}
+		asMapBytes = append(asMapBytes, name...)
 		value := byte(i % 0x7f)
 		asMapBytes = append(asMapBytes, value)
 		asArrayBytes = append(asArrayBytes, value)

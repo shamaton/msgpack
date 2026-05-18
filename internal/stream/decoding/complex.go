@@ -7,6 +7,7 @@ import (
 	"reflect"
 
 	"github.com/shamaton/msgpack/v3/def"
+	"github.com/shamaton/msgpack/v3/internal/common/decodingutil"
 )
 
 func (d *decoder) asComplex64(code byte, k reflect.Kind) (complex64, error) {
@@ -16,7 +17,7 @@ func (d *decoder) asComplex64(code byte, k reflect.Kind) (complex64, error) {
 		if err != nil {
 			return complex(0, 0), err
 		}
-		if int8(t) != def.ComplexTypeCode() {
+		if decodingutil.Int8FromByte(t) != def.ComplexTypeCode() {
 			return complex(0, 0), fmt.Errorf("fixext8. complex type is diffrent %d, %d", t, def.ComplexTypeCode())
 		}
 		rb, err := d.readSize4()
@@ -37,7 +38,7 @@ func (d *decoder) asComplex64(code byte, k reflect.Kind) (complex64, error) {
 		if err != nil {
 			return complex(0, 0), err
 		}
-		if int8(t) != def.ComplexTypeCode() {
+		if decodingutil.Int8FromByte(t) != def.ComplexTypeCode() {
 			return complex(0, 0), fmt.Errorf("fixext16. complex type is diffrent %d, %d", t, def.ComplexTypeCode())
 		}
 		rb, err := d.readSize8()
@@ -65,7 +66,7 @@ func (d *decoder) asComplex128(code byte, k reflect.Kind) (complex128, error) {
 		if err != nil {
 			return complex(0, 0), err
 		}
-		if int8(t) != def.ComplexTypeCode() {
+		if decodingutil.Int8FromByte(t) != def.ComplexTypeCode() {
 			return complex(0, 0), fmt.Errorf("fixext8. complex type is diffrent %d, %d", t, def.ComplexTypeCode())
 		}
 		rb, err := d.readSize4()
@@ -86,7 +87,7 @@ func (d *decoder) asComplex128(code byte, k reflect.Kind) (complex128, error) {
 		if err != nil {
 			return complex(0, 0), err
 		}
-		if int8(t) != def.ComplexTypeCode() {
+		if decodingutil.Int8FromByte(t) != def.ComplexTypeCode() {
 			return complex(0, 0), fmt.Errorf("fixext16. complex type is diffrent %d, %d", t, def.ComplexTypeCode())
 		}
 		rb, err := d.readSize8()

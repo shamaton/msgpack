@@ -223,6 +223,36 @@ func TestStreamEncodedDataAccuracy(t *testing.T) {
 	}
 }
 
+func TestStreamWriteNegativeTimestamp(t *testing.T) {
+	encoder := StreamEncoder
+	original := time.Unix(-1, 123456789)
+	value := reflect.ValueOf(original)
+	buf := &bytes.Buffer{}
+	buffer := common.GetBuffer()
+	defer common.PutBuffer(buffer)
+	w := ext.CreateStreamWriter(buf, buffer)
+
+	err := encoder.Write(w, value)
+	tu.NoError(t, err)
+	err = buffer.Flush(buf)
+	tu.NoError(t, err)
+
+	b := buf.Bytes()
+	tu.Equal(t, len(b), 15)
+	tu.Equal(t, b[0], def.Ext8)
+	tu.Equal(t, b[1], byte(12))
+	tu.Equal(t, int8(b[2]), def.TimeStamp)
+	tu.Equal(t, binary.BigEndian.Uint32(b[3:7]), uint32(original.Nanosecond()))
+	tu.Equal(t, binary.BigEndian.Uint64(b[7:15]), ^uint64(0))
+
+	decoded, err := StreamDecoder.ToValue(def.Ext8, b[3:15], reflect.TypeOf(time.Time{}).Kind())
+	tu.NoError(t, err)
+
+	decodedTime := decoded.(time.Time)
+	tu.Equal(t, decodedTime.Unix(), original.Unix())
+	tu.Equal(t, decodedTime.Nanosecond(), original.Nanosecond())
+}
+
 func TestStreamWriteWithVariousNanoseconds(t *testing.T) {
 	encoder := StreamEncoder
 

@@ -6,6 +6,7 @@ import (
 
 	"github.com/shamaton/msgpack/v3/def"
 	"github.com/shamaton/msgpack/v3/internal/common"
+	"github.com/shamaton/msgpack/v3/internal/common/decodingutil"
 )
 
 type decoder struct {
@@ -47,11 +48,19 @@ func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
 		if err != nil {
 			return 0, err
 		}
+		v, err = decodingutil.IntValueForKind(v, k)
+		if err != nil {
+			return 0, err
+		}
 		rv.SetInt(v)
 		offset = o
 
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		v, o, err := d.asUint(offset, k)
+		if err != nil {
+			return 0, err
+		}
+		v, err = decodingutil.UintValueForKind(v, k)
 		if err != nil {
 			return 0, err
 		}

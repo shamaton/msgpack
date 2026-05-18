@@ -2,15 +2,12 @@ package encoding
 
 import (
 	"math"
-	"unsafe"
 
 	"github.com/shamaton/msgpack/v3/def"
 )
 
 func (e *encoder) writeString(str string) error {
-	// NOTE : unsafe
-	strBytes := *(*[]byte)(unsafe.Pointer(&str))
-	l := len(strBytes)
+	l := len(str)
 	if l < 32 {
 		if err := e.setByte1Int(def.FixStr + l); err != nil {
 			return err
@@ -37,5 +34,5 @@ func (e *encoder) writeString(str string) error {
 			return err
 		}
 	}
-	return e.setBytes(strBytes)
+	return e.setString(str)
 }

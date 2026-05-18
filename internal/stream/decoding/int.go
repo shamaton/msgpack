@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	"github.com/shamaton/msgpack/v3/def"
+	"github.com/shamaton/msgpack/v3/internal/common/decodingutil"
 )
 
 func (d *decoder) isPositiveFixNum(v byte) bool {
@@ -12,7 +13,8 @@ func (d *decoder) isPositiveFixNum(v byte) bool {
 }
 
 func (d *decoder) isNegativeFixNum(v byte) bool {
-	return def.NegativeFixintMin <= int8(v) && int8(v) <= def.NegativeFixintMax
+	// MessagePack negative fixint is encoded as a single byte in 0xe0..0xff (-32..-1).
+	return v >= 0xe0
 }
 
 func (d *decoder) asInt(k reflect.Kind) (int64, error) {
@@ -29,7 +31,7 @@ func (d *decoder) asIntWithCode(code byte, k reflect.Kind) (int64, error) {
 		return int64(code), nil
 
 	case d.isNegativeFixNum(code):
-		return int64(int8(code)), nil
+		return decodingutil.Int64FromInt8Byte(code), nil
 
 	case code == def.Uint8:
 		b, err := d.readSize1()
@@ -43,7 +45,7 @@ func (d *decoder) asIntWithCode(code byte, k reflect.Kind) (int64, error) {
 		if err != nil {
 			return 0, err
 		}
-		return int64(int8(b)), nil
+		return decodingutil.Int64FromInt8Byte(b), nil
 
 	case code == def.Uint16:
 		bs, err := d.readSize2()
@@ -58,8 +60,7 @@ func (d *decoder) asIntWithCode(code byte, k reflect.Kind) (int64, error) {
 		if err != nil {
 			return 0, err
 		}
-		v := int16(binary.BigEndian.Uint16(bs))
-		return int64(v), nil
+		return decodingutil.Int64FromInt16Bits(binary.BigEndian.Uint16(bs)), nil
 
 	case code == def.Uint32:
 		bs, err := d.readSize4()
@@ -74,36 +75,35 @@ func (d *decoder) asIntWithCode(code byte, k reflect.Kind) (int64, error) {
 		if err != nil {
 			return 0, err
 		}
-		v := int32(binary.BigEndian.Uint32(bs))
-		return int64(v), nil
+		return decodingutil.Int64FromInt32Bits(binary.BigEndian.Uint32(bs)), nil
 
 	case code == def.Uint64:
 		bs, err := d.readSize8()
 		if err != nil {
 			return 0, err
 		}
-		return int64(binary.BigEndian.Uint64(bs)), nil
+		return decodingutil.Int64FromUint64(binary.BigEndian.Uint64(bs), k)
 
 	case code == def.Int64:
 		bs, err := d.readSize8()
 		if err != nil {
 			return 0, err
 		}
-		return int64(binary.BigEndian.Uint64(bs)), nil
+		return decodingutil.Int64FromInt64Bits(binary.BigEndian.Uint64(bs)), nil
 
 	case code == def.Float32:
 		v, err := d.asFloat32WithCode(code, k)
 		if err != nil {
 			return 0, err
 		}
-		return int64(v), nil
+		return decodingutil.Int64FromFloat64(float64(v), k)
 
 	case code == def.Float64:
 		v, err := d.asFloat64WithCode(code, k)
 		if err != nil {
 			return 0, err
 		}
-		return int64(v), nil
+		return decodingutil.Int64FromFloat64(v, k)
 
 	case code == def.Nil:
 		return 0, nil

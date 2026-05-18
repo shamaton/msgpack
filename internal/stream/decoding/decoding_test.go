@@ -1,6 +1,7 @@
 package decoding
 
 import (
+	"bytes"
 	"io"
 	"reflect"
 	"testing"
@@ -87,6 +88,36 @@ func TestDecoding(t *testing.T) {
 		r := tu.NewTestReader([]byte{def.PositiveFixIntMax})
 		err := Decode(r, v, false)
 		tu.IsError(t, err, def.ErrReceiverNotPointer)
+	})
+}
+
+func TestDecodeIntegerOutOfRange(t *testing.T) {
+	t.Run("scalar uint8", func(t *testing.T) {
+		var v uint8
+		err := Decode(bytes.NewReader([]byte{def.Uint16, 0x01, 0x00}), &v, false)
+		tu.IsError(t, err, def.ErrValueOutOfRange)
+	})
+
+	t.Run("struct field int8", func(t *testing.T) {
+		var v struct {
+			Value int8
+		}
+		err := Decode(bytes.NewReader([]byte{def.FixArray + 1, def.Uint16, 0x00, 0x80}), &v, true)
+		tu.IsError(t, err, def.ErrValueOutOfRange)
+	})
+
+	t.Run("dynamic slice int8", func(t *testing.T) {
+		type smallInt int8
+		var v []smallInt
+		err := Decode(bytes.NewReader([]byte{def.FixArray + 1, def.Uint16, 0x00, 0x80}), &v, false)
+		tu.IsError(t, err, def.ErrValueOutOfRange)
+	})
+
+	t.Run("dynamic map uint8", func(t *testing.T) {
+		type smallUint uint8
+		var v map[string]smallUint
+		err := Decode(bytes.NewReader([]byte{def.FixMap + 1, def.FixStr + 1, 'a', def.Uint16, 0x01, 0x00}), &v, false)
+		tu.IsError(t, err, def.ErrValueOutOfRange)
 	})
 }
 

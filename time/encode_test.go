@@ -127,6 +127,33 @@ func TestEncodedDataAccuracy(t *testing.T) {
 	}
 }
 
+func TestWriteToBytesNegativeTimestamp(t *testing.T) {
+	encoder := Encoder
+	original := time.Unix(-1, 123456789)
+	value := reflect.ValueOf(original)
+
+	size, err := encoder.CalcByteSize(value)
+	tu.NoError(t, err)
+	tu.Equal(t, size, 15)
+
+	bytes := make([]byte, size)
+	offset := encoder.WriteToBytes(value, 0, &bytes)
+	tu.Equal(t, offset, size)
+	tu.Equal(t, bytes[0], def.Ext8)
+	tu.Equal(t, bytes[1], byte(12))
+	tu.Equal(t, int8(bytes[2]), def.TimeStamp)
+	tu.Equal(t, binary.BigEndian.Uint32(bytes[3:7]), uint32(original.Nanosecond()))
+	tu.Equal(t, binary.BigEndian.Uint64(bytes[7:15]), ^uint64(0))
+
+	decoded, offset, err := Decoder.AsValue(0, reflect.TypeOf(time.Time{}).Kind(), &bytes)
+	tu.NoError(t, err)
+	tu.Equal(t, offset, size)
+
+	decodedTime := decoded.(time.Time)
+	tu.Equal(t, decodedTime.Unix(), original.Unix())
+	tu.Equal(t, decodedTime.Nanosecond(), original.Nanosecond())
+}
+
 func TestWriteToBytes(t *testing.T) {
 	tests := []struct {
 		name           string

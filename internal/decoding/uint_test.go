@@ -1,7 +1,6 @@
 package decoding
 
 import (
-	"math"
 	"reflect"
 	"testing"
 
@@ -74,9 +73,9 @@ func Test_asUint(t *testing.T) {
 			MethodAs: method,
 		},
 		{
-			Name:     "NegativeFixNum.ok",
+			Name:     "NegativeFixNum.error.out_of_range",
 			Data:     []byte{0xff},
-			Expected: uint64(math.MaxUint64),
+			Error:    def.ErrValueOutOfRange,
 			MethodAs: method,
 		},
 		{
@@ -86,9 +85,9 @@ func Test_asUint(t *testing.T) {
 			MethodAs: method,
 		},
 		{
-			Name:     "Int8.ok",
+			Name:     "Int8.error.out_of_range",
 			Data:     []byte{def.Int8, 0xff},
-			Expected: uint64(math.MaxUint64),
+			Error:    def.ErrValueOutOfRange,
 			MethodAs: method,
 		},
 		{
@@ -98,9 +97,9 @@ func Test_asUint(t *testing.T) {
 			MethodAs: method,
 		},
 		{
-			Name:     "Int16.ok",
+			Name:     "Int16.error.out_of_range",
 			Data:     []byte{def.Int16, 0xff, 0xff},
-			Expected: uint64(math.MaxUint64),
+			Error:    def.ErrValueOutOfRange,
 			MethodAs: method,
 		},
 		{
@@ -110,9 +109,9 @@ func Test_asUint(t *testing.T) {
 			MethodAs: method,
 		},
 		{
-			Name:     "Int32.ok",
+			Name:     "Int32.error.out_of_range",
 			Data:     []byte{def.Int32, 0xff, 0xff, 0xff, 0xff},
-			Expected: uint64(math.MaxUint64),
+			Error:    def.ErrValueOutOfRange,
 			MethodAs: method,
 		},
 		{
@@ -122,9 +121,9 @@ func Test_asUint(t *testing.T) {
 			MethodAs: method,
 		},
 		{
-			Name:     "Int64.ok",
+			Name:     "Int64.error.out_of_range",
 			Data:     []byte{def.Int64, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
-			Expected: uint64(math.MaxUint64),
+			Error:    def.ErrValueOutOfRange,
 			MethodAs: method,
 		},
 		{

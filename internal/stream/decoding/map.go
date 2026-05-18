@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	"github.com/shamaton/msgpack/v3/def"
+	"github.com/shamaton/msgpack/v3/internal/common/decodingutil"
 )
 
 var (
@@ -97,7 +98,11 @@ func (d *decoder) asFixedMap(rv reflect.Value, l int) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			m[k] = int(v)
+			vv, err := decodingutil.IntFromInt64(v, valueKind)
+			if err != nil {
+				return false, err
+			}
+			m[k] = vv
 		}
 		rv.Set(reflect.ValueOf(m))
 		return true, nil
@@ -113,7 +118,11 @@ func (d *decoder) asFixedMap(rv reflect.Value, l int) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			m[k] = uint(v)
+			vv, err := decodingutil.UintFromUint64(v, valueKind)
+			if err != nil {
+				return false, err
+			}
+			m[k] = vv
 		}
 		rv.Set(reflect.ValueOf(m))
 		return true, nil
@@ -193,7 +202,11 @@ func (d *decoder) asFixedMap(rv reflect.Value, l int) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			m[k] = int8(v)
+			vv, err := decodingutil.Int8FromInt64(v, valueKind)
+			if err != nil {
+				return false, err
+			}
+			m[k] = vv
 		}
 		rv.Set(reflect.ValueOf(m))
 		return true, nil
@@ -209,7 +222,11 @@ func (d *decoder) asFixedMap(rv reflect.Value, l int) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			m[k] = int16(v)
+			vv, err := decodingutil.Int16FromInt64(v, valueKind)
+			if err != nil {
+				return false, err
+			}
+			m[k] = vv
 		}
 		rv.Set(reflect.ValueOf(m))
 		return true, nil
@@ -225,7 +242,11 @@ func (d *decoder) asFixedMap(rv reflect.Value, l int) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			m[k] = int32(v)
+			vv, err := decodingutil.Int32FromInt64(v, valueKind)
+			if err != nil {
+				return false, err
+			}
+			m[k] = vv
 		}
 		rv.Set(reflect.ValueOf(m))
 		return true, nil
@@ -257,7 +278,11 @@ func (d *decoder) asFixedMap(rv reflect.Value, l int) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			m[k] = uint8(v)
+			vv, err := decodingutil.Uint8FromUint64(v, valueKind)
+			if err != nil {
+				return false, err
+			}
+			m[k] = vv
 		}
 		rv.Set(reflect.ValueOf(m))
 		return true, nil
@@ -272,7 +297,11 @@ func (d *decoder) asFixedMap(rv reflect.Value, l int) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			m[k] = uint16(v)
+			vv, err := decodingutil.Uint16FromUint64(v, valueKind)
+			if err != nil {
+				return false, err
+			}
+			m[k] = vv
 		}
 		rv.Set(reflect.ValueOf(m))
 		return true, nil
@@ -288,7 +317,11 @@ func (d *decoder) asFixedMap(rv reflect.Value, l int) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			m[k] = uint32(v)
+			vv, err := decodingutil.Uint32FromUint64(v, valueKind)
+			if err != nil {
+				return false, err
+			}
+			m[k] = vv
 		}
 		rv.Set(reflect.ValueOf(m))
 		return true, nil
@@ -320,7 +353,11 @@ func (d *decoder) asFixedMap(rv reflect.Value, l int) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			m[int(k)] = v
+			kk, err := decodingutil.IntFromInt64(k, keyKind)
+			if err != nil {
+				return false, err
+			}
+			m[kk] = v
 		}
 		rv.Set(reflect.ValueOf(m))
 		return true, nil
@@ -336,7 +373,11 @@ func (d *decoder) asFixedMap(rv reflect.Value, l int) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			m[int8(k)] = v
+			kk, err := decodingutil.Int8FromInt64(k, keyKind)
+			if err != nil {
+				return false, err
+			}
+			m[kk] = v
 		}
 		rv.Set(reflect.ValueOf(m))
 		return true, nil
@@ -352,7 +393,11 @@ func (d *decoder) asFixedMap(rv reflect.Value, l int) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			m[int16(k)] = v
+			kk, err := decodingutil.Int16FromInt64(k, keyKind)
+			if err != nil {
+				return false, err
+			}
+			m[kk] = v
 		}
 		rv.Set(reflect.ValueOf(m))
 		return true, nil
@@ -368,7 +413,11 @@ func (d *decoder) asFixedMap(rv reflect.Value, l int) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			m[int32(k)] = v
+			kk, err := decodingutil.Int32FromInt64(k, keyKind)
+			if err != nil {
+				return false, err
+			}
+			m[kk] = v
 		}
 		rv.Set(reflect.ValueOf(m))
 		return true, nil
@@ -400,7 +449,11 @@ func (d *decoder) asFixedMap(rv reflect.Value, l int) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			m[int(k)] = v
+			kk, err := decodingutil.IntFromInt64(k, keyKind)
+			if err != nil {
+				return false, err
+			}
+			m[kk] = v
 		}
 		rv.Set(reflect.ValueOf(m))
 		return true, nil
@@ -416,7 +469,11 @@ func (d *decoder) asFixedMap(rv reflect.Value, l int) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			m[int8(k)] = v
+			kk, err := decodingutil.Int8FromInt64(k, keyKind)
+			if err != nil {
+				return false, err
+			}
+			m[kk] = v
 		}
 		rv.Set(reflect.ValueOf(m))
 		return true, nil
@@ -432,7 +489,11 @@ func (d *decoder) asFixedMap(rv reflect.Value, l int) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			m[int16(k)] = v
+			kk, err := decodingutil.Int16FromInt64(k, keyKind)
+			if err != nil {
+				return false, err
+			}
+			m[kk] = v
 		}
 		rv.Set(reflect.ValueOf(m))
 		return true, nil
@@ -448,7 +509,11 @@ func (d *decoder) asFixedMap(rv reflect.Value, l int) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			m[int32(k)] = v
+			kk, err := decodingutil.Int32FromInt64(k, keyKind)
+			if err != nil {
+				return false, err
+			}
+			m[kk] = v
 		}
 		rv.Set(reflect.ValueOf(m))
 		return true, nil
@@ -480,7 +545,11 @@ func (d *decoder) asFixedMap(rv reflect.Value, l int) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			m[uint(k)] = v
+			kk, err := decodingutil.UintFromUint64(k, keyKind)
+			if err != nil {
+				return false, err
+			}
+			m[kk] = v
 		}
 		rv.Set(reflect.ValueOf(m))
 		return true, nil
@@ -496,7 +565,11 @@ func (d *decoder) asFixedMap(rv reflect.Value, l int) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			m[uint8(k)] = v
+			kk, err := decodingutil.Uint8FromUint64(k, keyKind)
+			if err != nil {
+				return false, err
+			}
+			m[kk] = v
 		}
 		rv.Set(reflect.ValueOf(m))
 		return true, nil
@@ -512,7 +585,11 @@ func (d *decoder) asFixedMap(rv reflect.Value, l int) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			m[uint16(k)] = v
+			kk, err := decodingutil.Uint16FromUint64(k, keyKind)
+			if err != nil {
+				return false, err
+			}
+			m[kk] = v
 		}
 		rv.Set(reflect.ValueOf(m))
 		return true, nil
@@ -528,7 +605,11 @@ func (d *decoder) asFixedMap(rv reflect.Value, l int) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			m[uint32(k)] = v
+			kk, err := decodingutil.Uint32FromUint64(k, keyKind)
+			if err != nil {
+				return false, err
+			}
+			m[kk] = v
 		}
 		rv.Set(reflect.ValueOf(m))
 		return true, nil
@@ -560,7 +641,11 @@ func (d *decoder) asFixedMap(rv reflect.Value, l int) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			m[uint(k)] = v
+			kk, err := decodingutil.UintFromUint64(k, keyKind)
+			if err != nil {
+				return false, err
+			}
+			m[kk] = v
 		}
 		rv.Set(reflect.ValueOf(m))
 		return true, nil
@@ -576,7 +661,11 @@ func (d *decoder) asFixedMap(rv reflect.Value, l int) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			m[uint8(k)] = v
+			kk, err := decodingutil.Uint8FromUint64(k, keyKind)
+			if err != nil {
+				return false, err
+			}
+			m[kk] = v
 		}
 		rv.Set(reflect.ValueOf(m))
 		return true, nil
@@ -592,7 +681,11 @@ func (d *decoder) asFixedMap(rv reflect.Value, l int) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			m[uint16(k)] = v
+			kk, err := decodingutil.Uint16FromUint64(k, keyKind)
+			if err != nil {
+				return false, err
+			}
+			m[kk] = v
 		}
 		rv.Set(reflect.ValueOf(m))
 		return true, nil
@@ -608,7 +701,11 @@ func (d *decoder) asFixedMap(rv reflect.Value, l int) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			m[uint32(k)] = v
+			kk, err := decodingutil.Uint32FromUint64(k, keyKind)
+			if err != nil {
+				return false, err
+			}
+			m[kk] = v
 		}
 		rv.Set(reflect.ValueOf(m))
 		return true, nil

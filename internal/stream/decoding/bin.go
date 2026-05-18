@@ -3,7 +3,6 @@ package decoding
 import (
 	"encoding/binary"
 	"reflect"
-	"unsafe"
 
 	"github.com/shamaton/msgpack/v3/def"
 )
@@ -48,7 +47,7 @@ func (d *decoder) asBinWithCode(code byte, k reflect.Kind) ([]byte, error) {
 
 func (d *decoder) asBinStringWithCode(code byte, k reflect.Kind) (string, error) {
 	bs, err := d.asBinWithCode(code, k)
-	return *(*string)(unsafe.Pointer(&bs)), err
+	return string(bs), err
 }
 
 func (d *decoder) copySizeN(n int) ([]byte, error) {

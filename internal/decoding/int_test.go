@@ -139,6 +139,18 @@ func Test_asInt(t *testing.T) {
 			MethodAs: method,
 		},
 		{
+			Name:     "Float32.nan",
+			Data:     []byte{def.Float32, 0x7f, 0xc0, 0x00, 0x00},
+			Error:    def.ErrValueOutOfRange,
+			MethodAs: method,
+		},
+		{
+			Name:     "Float32.inf",
+			Data:     []byte{def.Float32, 0x7f, 0x80, 0x00, 0x00},
+			Error:    def.ErrValueOutOfRange,
+			MethodAs: method,
+		},
+		{
 			Name:     "Float64.error",
 			Data:     []byte{def.Float64},
 			Error:    def.ErrTooShortBytes,
@@ -148,6 +160,12 @@ func Test_asInt(t *testing.T) {
 			Name:     "Float64.ok",
 			Data:     []byte{def.Float64, 63, 240, 0, 0, 0, 0, 0, 0},
 			Expected: int64(1),
+			MethodAs: method,
+		},
+		{
+			Name:     "Float64.outOfRange",
+			Data:     []byte{def.Float64, 0x43, 0xe0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+			Error:    def.ErrValueOutOfRange,
 			MethodAs: method,
 		},
 		{

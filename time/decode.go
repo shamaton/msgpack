@@ -20,6 +20,10 @@ type timeDecoder struct {
 
 var _ ext.Decoder = (*timeDecoder)(nil)
 
+func timeCodeFromByte(v byte) int8 {
+	return int8(v) // #nosec G115 -- MessagePack timestamp ext type is a signed one-byte value.
+}
+
 func (td *timeDecoder) Code() int8 {
 	return def.TimeStamp
 }
@@ -57,14 +61,14 @@ func (td *timeDecoder) IsType(offset int, d *[]byte) bool {
 	switch code {
 	case def.Fixext4:
 		t, _, ok := td.readSize1Safe(offset, d)
-		if !ok || int8(t) != td.Code() {
+		if !ok || timeCodeFromByte(t) != td.Code() {
 			return false
 		}
 		_, _, ok = td.readSize4Safe(offset+def.Byte1, d)
 		return ok
 	case def.Fixext8:
 		t, _, ok := td.readSize1Safe(offset, d)
-		if !ok || int8(t) != td.Code() {
+		if !ok || timeCodeFromByte(t) != td.Code() {
 			return false
 		}
 		_, _, ok = td.readSize8Safe(offset+def.Byte1, d)
@@ -75,7 +79,7 @@ func (td *timeDecoder) IsType(offset int, d *[]byte) bool {
 			return false
 		}
 		t, _, ok := td.readSize1Safe(offset, d)
-		if !ok || l != 12 || int8(t) != td.Code() {
+		if !ok || l != 12 || timeCodeFromByte(t) != td.Code() {
 			return false
 		}
 		_, _, ok = td.readSize4Safe(offset+def.Byte1, d)
@@ -152,7 +156,7 @@ func (td *timeDecoder) AsValue(offset int, k reflect.Kind, d *[]byte) (interface
 			return zero, 0, fmt.Errorf("in timestamp 96 formats, nanoseconds must not be larger than 999999999 : %d", nano)
 		}
 		sec := binary.BigEndian.Uint64(secbs)
-		v := time.Unix(int64(sec), int64(nano))
+		v := time.Unix(int64(sec), int64(nano)) // #nosec G115 -- timestamp96 seconds are encoded as signed two's-complement bytes.
 		if decodeAsLocal {
 			return v, offset, nil
 		}

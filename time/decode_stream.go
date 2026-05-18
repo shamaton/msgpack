@@ -66,7 +66,7 @@ func (td *timeStreamDecoder) ToValue(code byte, data []byte, k reflect.Kind) (in
 			return zero, fmt.Errorf("in timestamp 96 formats, nanoseconds must not be larger than 999999999 : %d", nano)
 		}
 		sec := binary.BigEndian.Uint64(data[4:12])
-		v := time.Unix(int64(sec), int64(nano))
+		v := time.Unix(int64(sec), int64(nano)) // #nosec G115 -- timestamp96 seconds are encoded as signed two's-complement bytes.
 		if decodeAsLocal {
 			return v, nil
 		}

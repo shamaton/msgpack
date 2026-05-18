@@ -40,6 +40,7 @@ func Test_asUintWithCode(t *testing.T) {
 		length   int
 		expected uint64
 		errSkip  bool
+		wantErr  bool
 	}{
 		{
 			name:     "Uint8",
@@ -48,10 +49,10 @@ func Test_asUintWithCode(t *testing.T) {
 			expected: math.MaxUint8,
 		},
 		{
-			name:     "Int8",
-			code:     def.Int8,
-			length:   1,
-			expected: math.MaxUint64,
+			name:    "Int8",
+			code:    def.Int8,
+			length:  1,
+			wantErr: true,
 		},
 		{
 			name:     "Uint16",
@@ -60,10 +61,10 @@ func Test_asUintWithCode(t *testing.T) {
 			expected: math.MaxUint16,
 		},
 		{
-			name:     "Int16",
-			code:     def.Int16,
-			length:   2,
-			expected: math.MaxUint64,
+			name:    "Int16",
+			code:    def.Int16,
+			length:  2,
+			wantErr: true,
 		},
 		{
 			name:     "Uint32",
@@ -72,10 +73,10 @@ func Test_asUintWithCode(t *testing.T) {
 			expected: math.MaxUint32,
 		},
 		{
-			name:     "Int32",
-			code:     def.Int32,
-			length:   4,
-			expected: math.MaxUint64,
+			name:    "Int32",
+			code:    def.Int32,
+			length:  4,
+			wantErr: true,
 		},
 		{
 			name:     "Uint64",
@@ -84,10 +85,10 @@ func Test_asUintWithCode(t *testing.T) {
 			expected: math.MaxUint64,
 		},
 		{
-			name:     "Int64",
-			code:     def.Int64,
-			length:   8,
-			expected: math.MaxUint64,
+			name:    "Int64",
+			code:    def.Int64,
+			length:  8,
+			wantErr: true,
 		},
 		{
 			name:     "Nil",
@@ -124,6 +125,10 @@ func Test_asUintWithCode(t *testing.T) {
 				}
 				defer common.PutBuffer(d.buf)
 				v, err := d.asUintWithCode(tc.code, reflect.String)
+				if tc.wantErr {
+					tu.IsError(t, err, def.ErrValueOutOfRange)
+					return
+				}
 				tu.NoError(t, err)
 				tu.Equal(t, v, tc.expected)
 

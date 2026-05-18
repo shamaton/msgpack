@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	"github.com/shamaton/msgpack/v3/def"
+	"github.com/shamaton/msgpack/v3/internal/common/decodingutil"
 )
 
 func (d *decoder) asUint(offset int, k reflect.Kind) (uint64, int, error) {
@@ -26,7 +27,11 @@ func (d *decoder) asUint(offset int, k reflect.Kind) (uint64, int, error) {
 		if err != nil {
 			return 0, 0, err
 		}
-		return uint64(int8(b)), offset, nil
+		v, err := decodingutil.Uint64FromInt64(decodingutil.Int64FromInt8Byte(b), k)
+		if err != nil {
+			return 0, 0, err
+		}
+		return v, offset, nil
 
 	case code == def.Uint8:
 		offset++
@@ -42,7 +47,11 @@ func (d *decoder) asUint(offset int, k reflect.Kind) (uint64, int, error) {
 		if err != nil {
 			return 0, 0, err
 		}
-		return uint64(int8(b)), offset, nil
+		v, err := decodingutil.Uint64FromInt64(decodingutil.Int64FromInt8Byte(b), k)
+		if err != nil {
+			return 0, 0, err
+		}
+		return v, offset, nil
 
 	case code == def.Uint16:
 		offset++
@@ -59,8 +68,11 @@ func (d *decoder) asUint(offset int, k reflect.Kind) (uint64, int, error) {
 		if err != nil {
 			return 0, 0, err
 		}
-		v := int16(binary.BigEndian.Uint16(bs))
-		return uint64(v), offset, nil
+		v, err := decodingutil.Uint64FromInt64(decodingutil.Int64FromInt16Bits(binary.BigEndian.Uint16(bs)), k)
+		if err != nil {
+			return 0, 0, err
+		}
+		return v, offset, nil
 
 	case code == def.Uint32:
 		offset++
@@ -77,8 +89,11 @@ func (d *decoder) asUint(offset int, k reflect.Kind) (uint64, int, error) {
 		if err != nil {
 			return 0, 0, err
 		}
-		v := int32(binary.BigEndian.Uint32(bs))
-		return uint64(v), offset, nil
+		v, err := decodingutil.Uint64FromInt64(decodingutil.Int64FromInt32Bits(binary.BigEndian.Uint32(bs)), k)
+		if err != nil {
+			return 0, 0, err
+		}
+		return v, offset, nil
 
 	case code == def.Uint64:
 		offset++
@@ -94,7 +109,11 @@ func (d *decoder) asUint(offset int, k reflect.Kind) (uint64, int, error) {
 		if err != nil {
 			return 0, 0, err
 		}
-		return binary.BigEndian.Uint64(bs), offset, nil
+		v, err := decodingutil.Uint64FromInt64(decodingutil.Int64FromInt64Bits(binary.BigEndian.Uint64(bs)), k)
+		if err != nil {
+			return 0, 0, err
+		}
+		return v, offset, nil
 
 	case code == def.Nil:
 		offset++

@@ -79,9 +79,16 @@ func (tc *AsXXXTestCase[T]) Run(t *testing.T) {
 
 	t.Run(tc.Name, func(t *testing.T) {
 		w := NewTestWriter()
+		buf := common.GetBuffer()
+		data := buf.Data
+		defer func() {
+			buf.Data = data
+			common.PutBuffer(buf)
+		}()
+
 		e := encoder{
 			w:       w,
-			buf:     common.GetBuffer(),
+			buf:     buf,
 			Common:  common.Common{},
 			asArray: tc.AsArray,
 		}
@@ -90,7 +97,9 @@ func (tc *AsXXXTestCase[T]) Run(t *testing.T) {
 			t.Fatal("buffer size must be greater than pre write size")
 		}
 
-		e.buf.Data = make([]byte, tc.BufferSize)
+		if tc.BufferSize > 0 {
+			e.buf.Data = make([]byte, tc.BufferSize)
+		}
 		if tc.PreWriteSize > 0 {
 			for i := 0; i < tc.PreWriteSize; i++ {
 				_ = e.buf.Write(e.w, dummyByte)
@@ -99,7 +108,6 @@ func (tc *AsXXXTestCase[T]) Run(t *testing.T) {
 
 		err := method(&e)
 		_ = e.buf.Flush(w)
-		common.PutBuffer(e.buf)
 
 		if tc.PreWriteSize > 0 {
 			tu.IsError(t, err, ErrTestWriter)

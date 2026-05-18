@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	"github.com/shamaton/msgpack/v3/def"
+	"github.com/shamaton/msgpack/v3/internal/common/decodingutil"
 )
 
 func (d *decoder) asInterface(offset int, k reflect.Kind) (interface{}, int, error) {
@@ -30,19 +31,31 @@ func (d *decoder) asInterface(offset int, k reflect.Kind) (interface{}, int, err
 		if err != nil {
 			return nil, 0, err
 		}
-		return uint8(v), offset, err
+		vv, err := decodingutil.Uint8FromUint64(v, k)
+		if err != nil {
+			return nil, 0, err
+		}
+		return vv, offset, nil
 	case code == def.Uint16:
 		v, offset, err := d.asUint(offset, k)
 		if err != nil {
 			return nil, 0, err
 		}
-		return uint16(v), offset, err
+		vv, err := decodingutil.Uint16FromUint64(v, k)
+		if err != nil {
+			return nil, 0, err
+		}
+		return vv, offset, nil
 	case code == def.Uint32:
 		v, offset, err := d.asUint(offset, k)
 		if err != nil {
 			return nil, 0, err
 		}
-		return uint32(v), offset, err
+		vv, err := decodingutil.Uint32FromUint64(v, k)
+		if err != nil {
+			return nil, 0, err
+		}
+		return vv, offset, nil
 	case code == def.Uint64:
 		v, offset, err := d.asUint(offset, k)
 		if err != nil {
@@ -55,19 +68,31 @@ func (d *decoder) asInterface(offset int, k reflect.Kind) (interface{}, int, err
 		if err != nil {
 			return nil, 0, err
 		}
-		return int8(v), offset, err
+		vv, err := decodingutil.Int8FromInt64(v, k)
+		if err != nil {
+			return nil, 0, err
+		}
+		return vv, offset, nil
 	case code == def.Int16:
 		v, offset, err := d.asInt(offset, k)
 		if err != nil {
 			return nil, 0, err
 		}
-		return int16(v), offset, err
+		vv, err := decodingutil.Int16FromInt64(v, k)
+		if err != nil {
+			return nil, 0, err
+		}
+		return vv, offset, nil
 	case code == def.Int32:
 		v, offset, err := d.asInt(offset, k)
 		if err != nil {
 			return nil, 0, err
 		}
-		return int32(v), offset, err
+		vv, err := decodingutil.Int32FromInt64(v, k)
+		if err != nil {
+			return nil, 0, err
+		}
+		return vv, offset, nil
 	case code == def.Int64:
 		v, offset, err := d.asInt(offset, k)
 		if err != nil {

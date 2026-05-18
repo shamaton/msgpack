@@ -19,6 +19,7 @@ var (
 	ErrCanNotDecode           = fmt.Errorf("%winvalid code", ErrMsgpack)
 	ErrCanNotSetSliceAsMapKey = fmt.Errorf("%wcan not set slice as map key", ErrMsgpack)
 	ErrCanNotSetMapAsMapKey   = fmt.Errorf("%wcan not set map as map key", ErrMsgpack)
+	ErrValueOutOfRange        = fmt.Errorf("%wvalue out of range", ErrMsgpack)
 
 	// encoding errors
 
