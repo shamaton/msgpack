@@ -5,6 +5,7 @@ import (
 
 	"github.com/shamaton/msgpack/v3/def"
 	"github.com/shamaton/msgpack/v3/ext"
+	"github.com/shamaton/msgpack/v3/internal/common/decodingutil"
 	"github.com/shamaton/msgpack/v3/time"
 )
 
@@ -61,7 +62,7 @@ func (d *decoder) readIfExtType(code byte) (innerType int8, data []byte, err err
 		if err != nil {
 			return 0, nil, err
 		}
-		return int8(typ), []byte{v}, nil
+		return decodingutil.Int8FromByte(typ), []byte{v}, nil
 
 	case def.Fixext2:
 		typ, err := d.readSize1()
@@ -72,7 +73,7 @@ func (d *decoder) readIfExtType(code byte) (innerType int8, data []byte, err err
 		if err != nil {
 			return 0, nil, err
 		}
-		return int8(typ), data, nil
+		return decodingutil.Int8FromByte(typ), data, nil
 
 	case def.Fixext4:
 		typ, err := d.readSize1()
@@ -83,7 +84,7 @@ func (d *decoder) readIfExtType(code byte) (innerType int8, data []byte, err err
 		if err != nil {
 			return 0, nil, err
 		}
-		return int8(typ), data, nil
+		return decodingutil.Int8FromByte(typ), data, nil
 
 	case def.Fixext8:
 		typ, err := d.readSize1()
@@ -94,7 +95,7 @@ func (d *decoder) readIfExtType(code byte) (innerType int8, data []byte, err err
 		if err != nil {
 			return 0, nil, err
 		}
-		return int8(typ), data, nil
+		return decodingutil.Int8FromByte(typ), data, nil
 
 	case def.Fixext16:
 		typ, err := d.readSize1()
@@ -105,7 +106,7 @@ func (d *decoder) readIfExtType(code byte) (innerType int8, data []byte, err err
 		if err != nil {
 			return 0, nil, err
 		}
-		return int8(typ), data, nil
+		return decodingutil.Int8FromByte(typ), data, nil
 
 	case def.Ext8:
 		bs, err := d.readSize1()
@@ -122,7 +123,7 @@ func (d *decoder) readIfExtType(code byte) (innerType int8, data []byte, err err
 		if err != nil {
 			return 0, nil, err
 		}
-		return int8(typ), data, nil
+		return decodingutil.Int8FromByte(typ), data, nil
 
 	case def.Ext16:
 		bs, err := d.readSize2()
@@ -139,7 +140,7 @@ func (d *decoder) readIfExtType(code byte) (innerType int8, data []byte, err err
 		if err != nil {
 			return 0, nil, err
 		}
-		return int8(typ), data, nil
+		return decodingutil.Int8FromByte(typ), data, nil
 
 	case def.Ext32:
 		bs, err := d.readSize4()
@@ -156,7 +157,7 @@ func (d *decoder) readIfExtType(code byte) (innerType int8, data []byte, err err
 		if err != nil {
 			return 0, nil, err
 		}
-		return int8(typ), data, nil
+		return decodingutil.Int8FromByte(typ), data, nil
 	}
 
 	return 0, nil, nil

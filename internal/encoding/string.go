@@ -2,15 +2,12 @@ package encoding
 
 import (
 	"math"
-	"unsafe"
 
 	"github.com/shamaton/msgpack/v3/def"
 )
 
 func (e *encoder) calcString(v string) int {
-	// NOTE : unsafe
-	strBytes := *(*[]byte)(unsafe.Pointer(&v))
-	l := len(strBytes)
+	l := len(v)
 	if l < 32 {
 		return def.Byte1 + l
 	} else if l <= math.MaxUint8 {
@@ -23,9 +20,7 @@ func (e *encoder) calcString(v string) int {
 }
 
 func (e *encoder) writeString(str string, offset int) int {
-	// NOTE : unsafe
-	strBytes := *(*[]byte)(unsafe.Pointer(&str))
-	l := len(strBytes)
+	l := len(str)
 	if l < 32 {
 		offset = e.setByte1Int(def.FixStr+l, offset)
 	} else if l <= math.MaxUint8 {

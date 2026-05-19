@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	"github.com/shamaton/msgpack/v3/def"
+	"github.com/shamaton/msgpack/v3/internal/common/decodingutil"
 )
 
 func (d *decoder) asInterface(k reflect.Kind) (interface{}, error) {
@@ -32,19 +33,19 @@ func (d *decoder) asInterfaceWithCode(code byte, k reflect.Kind) (interface{}, e
 		if err != nil {
 			return nil, err
 		}
-		return uint8(v), err
+		return decodingutil.Uint8FromUint64(v, k)
 	case code == def.Uint16:
 		v, err := d.asUintWithCode(code, k)
 		if err != nil {
 			return nil, err
 		}
-		return uint16(v), err
+		return decodingutil.Uint16FromUint64(v, k)
 	case code == def.Uint32:
 		v, err := d.asUintWithCode(code, k)
 		if err != nil {
 			return nil, err
 		}
-		return uint32(v), err
+		return decodingutil.Uint32FromUint64(v, k)
 	case code == def.Uint64:
 		v, err := d.asUintWithCode(code, k)
 		if err != nil {
@@ -57,19 +58,19 @@ func (d *decoder) asInterfaceWithCode(code byte, k reflect.Kind) (interface{}, e
 		if err != nil {
 			return nil, err
 		}
-		return int8(v), err
+		return decodingutil.Int8FromInt64(v, k)
 	case code == def.Int16:
 		v, err := d.asIntWithCode(code, k)
 		if err != nil {
 			return nil, err
 		}
-		return int16(v), err
+		return decodingutil.Int16FromInt64(v, k)
 	case code == def.Int32:
 		v, err := d.asIntWithCode(code, k)
 		if err != nil {
 			return nil, err
 		}
-		return int32(v), err
+		return decodingutil.Int32FromInt64(v, k)
 	case code == def.Int64:
 		v, err := d.asIntWithCode(code, k)
 		if err != nil {

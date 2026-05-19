@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	"github.com/shamaton/msgpack/v3/def"
+	"github.com/shamaton/msgpack/v3/internal/common/decodingutil"
 )
 
 var (
@@ -64,7 +65,11 @@ func (d *decoder) asFixedSlice(rv reflect.Value, l int) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			sli[i] = int(v)
+			vv, err := decodingutil.IntFromInt64(v, k)
+			if err != nil {
+				return false, err
+			}
+			sli[i] = vv
 		}
 		rv.Set(reflect.ValueOf(sli))
 		return true, nil
@@ -76,7 +81,11 @@ func (d *decoder) asFixedSlice(rv reflect.Value, l int) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			sli[i] = uint(v)
+			vv, err := decodingutil.UintFromUint64(v, k)
+			if err != nil {
+				return false, err
+			}
+			sli[i] = vv
 		}
 		rv.Set(reflect.ValueOf(sli))
 		return true, nil
@@ -136,7 +145,11 @@ func (d *decoder) asFixedSlice(rv reflect.Value, l int) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			sli[i] = int8(v)
+			vv, err := decodingutil.Int8FromInt64(v, k)
+			if err != nil {
+				return false, err
+			}
+			sli[i] = vv
 		}
 		rv.Set(reflect.ValueOf(sli))
 		return true, nil
@@ -148,7 +161,11 @@ func (d *decoder) asFixedSlice(rv reflect.Value, l int) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			sli[i] = int16(v)
+			vv, err := decodingutil.Int16FromInt64(v, k)
+			if err != nil {
+				return false, err
+			}
+			sli[i] = vv
 		}
 		rv.Set(reflect.ValueOf(sli))
 		return true, nil
@@ -160,7 +177,11 @@ func (d *decoder) asFixedSlice(rv reflect.Value, l int) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			sli[i] = int32(v)
+			vv, err := decodingutil.Int32FromInt64(v, k)
+			if err != nil {
+				return false, err
+			}
+			sli[i] = vv
 		}
 		rv.Set(reflect.ValueOf(sli))
 		return true, nil
@@ -184,7 +205,11 @@ func (d *decoder) asFixedSlice(rv reflect.Value, l int) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			sli[i] = uint8(v)
+			vv, err := decodingutil.Uint8FromUint64(v, k)
+			if err != nil {
+				return false, err
+			}
+			sli[i] = vv
 		}
 		rv.Set(reflect.ValueOf(sli))
 		return true, nil
@@ -196,7 +221,11 @@ func (d *decoder) asFixedSlice(rv reflect.Value, l int) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			sli[i] = uint16(v)
+			vv, err := decodingutil.Uint16FromUint64(v, k)
+			if err != nil {
+				return false, err
+			}
+			sli[i] = vv
 		}
 		rv.Set(reflect.ValueOf(sli))
 		return true, nil
@@ -208,7 +237,11 @@ func (d *decoder) asFixedSlice(rv reflect.Value, l int) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			sli[i] = uint32(v)
+			vv, err := decodingutil.Uint32FromUint64(v, k)
+			if err != nil {
+				return false, err
+			}
+			sli[i] = vv
 		}
 		rv.Set(reflect.ValueOf(sli))
 		return true, nil

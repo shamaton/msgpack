@@ -79,7 +79,7 @@ func TestInt(t *testing.T) {
 			c: func(d []byte) bool {
 				return def.NegativeFixintMin <= int8(d[0]) && int8(d[0]) <= def.NegativeFixintMax
 			},
-			e: "value different",
+			e: "value out of range",
 		}
 		encdec(t, arg)
 	}
@@ -90,7 +90,7 @@ func TestInt(t *testing.T) {
 			c: func(d []byte) bool {
 				return d[0] == def.Int64
 			},
-			e: "value different",
+			e: "value out of range",
 		}
 		encdec(t, arg)
 	}
