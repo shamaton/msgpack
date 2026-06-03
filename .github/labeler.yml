@@ -1,0 +1,23 @@
+"type: feature":
+  - head-branch:
+      - "(^|.*/)(feat|feature)[/_-]"
+
+"type: bug":
+  - head-branch:
+      - "(^|.*/)(bug|bugfix|fix|hotfix)[/_-]"
+
+"type: docs":
+  - head-branch:
+      - "(^|.*/)(doc|docs)[/_-]"
+
+"type: performance":
+  - head-branch:
+      - "(^|.*/)(perf|performance)[/_-]"
+
+"type: compatibility":
+  - head-branch:
+      - "(^|.*/)(compat|compatibility)[/_-]"
+
+"type: maintenance":
+  - head-branch:
+      - "(^|.*/)(chore|ci|deps|maintenance|refactor|test|tooling)[/_-]"
