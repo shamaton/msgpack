@@ -20,4 +20,4 @@
 
 "type: maintenance":
   - head-branch:
-      - "(^|.*/)(chore|ci|deps|maintenance|refactor|test|tooling)[/_-]"
+      - "(^|.*/)(chore|ci|deps|maintenance|refactor|test|tooling|dependabot)[/_-]"
