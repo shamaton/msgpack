@@ -14,12 +14,12 @@ To keep the old behavior, use `SetDecodedTimeAsLocal()`.
 
 ## Features
 
-* Supported types : primitive / array / slice / struct / map / interface{} and time.Time
-* Renaming fields via `msgpack:"field_name"`
-* Omitting fields via `msgpack:"-"`
-* Omitting empty fields via `msgpack:"field_name,omitempty"`
-* Supports extend encoder / decoder [(example)](./msgpack_example_test.go)
-* Can also Encoding / Decoding struct as array
+- Supported types : primitive / array / slice / struct / map / interface{} and time.Time
+- Renaming fields via `msgpack:"field_name"`
+- Omitting fields via `msgpack:"-"`
+- Omitting empty fields via `msgpack:"field_name,omitempty"`
+- Supports extend encoder / decoder [(example)](./msgpack_example_test.go)
+- Can also Encoding / Decoding struct as array
 
 ## Installation
 
@@ -80,20 +80,20 @@ func handle(w http.ResponseWriter, r *http.Request) {
 
 ### What is changing?
 
-* **Before (v2.x):** Decoded `time.Time` defaults to `Local`.
-* **After (v3.0.0):** Decoded `time.Time` defaults to **UTC**.
+- **Before (v2.x):** Decoded `time.Time` defaults to `Local`.
+- **After (v3.0.0):** Decoded `time.Time` defaults to **UTC**.
 
 MessagePack’s Timestamp encodes an **instant** (epoch seconds + nanoseconds) and does **not** carry timezone info. Your data’s point in time is the same; only `time.Time.Location()` differs.
 
 ### Why?
 
-* Eliminate environment-dependent behavior, such as different hosts showing different local zones.
-* Make “UTC by default” the safe, predictable baseline for logs, APIs, and distributed apps.
+- Eliminate environment-dependent behavior, such as different hosts showing different local zones.
+- Make “UTC by default” the safe, predictable baseline for logs, APIs, and distributed apps.
 
 ### Who is affected?
 
-* Apps that **display local time** without explicitly converting from UTC.
-* If your code already normalizes to UTC or explicitly sets a location, you’re likely unaffected.
+- Apps that **display local time** without explicitly converting from UTC.
+- If your code already normalizes to UTC or explicitly sets a location, you’re likely unaffected.
 
 ### Keep the old behavior (Local)
 
@@ -119,12 +119,15 @@ You can opt into UTC today on v2.x:
 msgpack.SetDecodedTimeAsUTC()
 ```
 
-## Benchmark
+## Benchmarks
 
-This result made from [shamaton/msgpack_bench](https://github.com/shamaton/msgpack_bench)
+These results are recorded by [msgpack_bench](https://github.com/shamaton/msgpack_bench).
+Our package results show in `Shamaton`. Prefix `ShamatonGen` shows another our messagepack serialization library. See also: [msgpackgen](https://github.com/shamaton/msgpackgen).
 
-![msgpack_bench](https://github.com/user-attachments/assets/ed5bc4c5-a149-4083-98b8-ee6820c00eae)
+![Benchmark Encode](https://raw.githubusercontent.com/shamaton/msgpack_bench/refs/heads/main/docs/benchmarks/compare-encode.svg)
+
+![Benchmark Decode](https://raw.githubusercontent.com/shamaton/msgpack_bench/refs/heads/main/docs/benchmarks/compare-decode.svg)
 
 ## License
 
-This library is under the MIT License.
+This library is under the MIT License. See the [LICENSE](./LICENSE) file for details.
