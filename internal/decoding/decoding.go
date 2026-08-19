@@ -42,6 +42,24 @@ func Decode(data []byte, v interface{}, asArray bool) error {
 
 func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
 	k := rv.Kind()
+
+	// ext types: honor a registered ext decoder for any kind, not just structs
+	// (mirrors setStruct). Falls through to the kind switch when nothing matches.
+	if isExt, _, extErr := d.extEndOffset(offset); extErr == nil && isExt {
+		for i := range extCoders {
+			if extCoders[i].IsType(offset, &d.data) {
+				v, o, err := extCoders[i].AsValue(offset, k, &d.data)
+				if err != nil {
+					return 0, err
+				}
+				if rv.Type() == reflect.TypeOf(v) {
+					rv.Set(reflect.ValueOf(v))
+					return o, nil
+				}
+			}
+		}
+	}
+
 	switch k {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		v, o, err := d.asInt(offset, k)

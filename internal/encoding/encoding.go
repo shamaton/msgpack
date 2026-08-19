@@ -63,6 +63,16 @@ func Encode(v interface{}, asArray bool) (b []byte, err error) {
 //}
 
 func (e *encoder) calcSize(rv reflect.Value) (int, error) {
+	// ext types: honor a registered ext encoder for any kind, not just structs
+	// (mirrors calcStruct). Falls through to the kind switch when nothing matches.
+	if rv.IsValid() {
+		for i := range extCoders {
+			if extCoders[i].Type() == rv.Type() {
+				return extCoders[i].CalcByteSize(rv)
+			}
+		}
+	}
+
 	switch rv.Kind() {
 	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
 		v := rv.Uint()
@@ -253,6 +263,16 @@ func (e *encoder) calcLength(l int) (int, error) {
 }
 
 func (e *encoder) create(rv reflect.Value, offset int) int {
+	// ext types: honor a registered ext encoder for any kind, not just structs
+	// (mirrors writeStruct). Falls through to the kind switch when nothing matches.
+	if rv.IsValid() {
+		for i := range extCoders {
+			if extCoders[i].Type() == rv.Type() {
+				return extCoders[i].WriteToBytes(rv, offset, &e.d)
+			}
+		}
+	}
+
 	switch rv.Kind() {
 	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
 		v := rv.Uint()
