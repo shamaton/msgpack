@@ -38,7 +38,7 @@ func Test_calcByteSlice(t *testing.T) {
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			e := encoder{}
+			e := encoder{extRegistry: currentExtEncoderRegistry.Load()}
 			result, err := e.calcByteSlice(tc.value)
 			tu.IsError(t, err, tc.error)
 			tu.Equal(t, result, tc.result)

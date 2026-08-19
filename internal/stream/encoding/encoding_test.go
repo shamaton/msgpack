@@ -87,10 +87,11 @@ func (tc *AsXXXTestCase[T]) Run(t *testing.T) {
 		}()
 
 		e := encoder{
-			w:       w,
-			buf:     buf,
-			Common:  common.Common{},
-			asArray: tc.AsArray,
+			w:           w,
+			buf:         buf,
+			Common:      common.Common{},
+			asArray:     tc.AsArray,
+			extRegistry: currentExtEncoderRegistry.Load(),
 		}
 
 		if tc.BufferSize < tc.PreWriteSize {
