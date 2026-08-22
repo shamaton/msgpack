@@ -1,5 +1,7 @@
 package decoding
 
+import "io"
+
 func (d *decoder) readSize1() (byte, error) {
 	if _, err := d.r.Read(d.buf.B1); err != nil {
 		return 0, err
@@ -36,15 +38,28 @@ func (d *decoder) readSize16() ([]byte, error) {
 }
 
 func (d *decoder) readSizeN(n int) ([]byte, error) {
-	var b []byte
 	if n <= len(d.buf.Data) {
-		b = d.buf.Data[:n]
-	} else {
-		d.buf.Data = append(d.buf.Data, make([]byte, n-len(d.buf.Data))...)
-		b = d.buf.Data
+		b := d.buf.Data[:n]
+		if _, err := io.ReadFull(d.r, b); err != nil {
+			return emptyBytes, err
+		}
+		return b, nil
 	}
-	if _, err := d.r.Read(b); err != nil {
-		return emptyBytes, err
+	return d.readSizeNGrowing(n)
+}
+
+func (d *decoder) readSizeNGrowing(n int) ([]byte, error) {
+	b := make([]byte, 0, initialCap(n))
+	chunk := make([]byte, min(readChunkSize, n))
+	for len(b) < n {
+		c := chunk
+		if remaining := n - len(b); remaining < len(c) {
+			c = c[:remaining]
+		}
+		if _, err := io.ReadFull(d.r, c); err != nil {
+			return emptyBytes, err
+		}
+		b = append(b, c...)
 	}
 	return b, nil
 }

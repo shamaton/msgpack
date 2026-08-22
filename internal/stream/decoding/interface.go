@@ -111,13 +111,13 @@ func (d *decoder) asInterfaceWithCode(code byte, k reflect.Kind) (interface{}, e
 			return nil, err
 		}
 
-		v := make([]interface{}, l)
+		v := make([]interface{}, 0, initialCap(l))
 		for i := 0; i < l; i++ {
 			vv, err := d.asInterface(k)
 			if err != nil {
 				return nil, err
 			}
-			v[i] = vv
+			v = append(v, vv)
 		}
 		return v, nil
 
@@ -127,7 +127,7 @@ func (d *decoder) asInterfaceWithCode(code byte, k reflect.Kind) (interface{}, e
 			return nil, err
 		}
 
-		v := make(map[interface{}]interface{}, l)
+		v := make(map[interface{}]interface{}, initialCap(l))
 		for i := 0; i < l; i++ {
 			keyCode, err := d.readSize1()
 			if err != nil {

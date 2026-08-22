@@ -51,11 +51,14 @@ func (d *decoder) asBinStringWithCode(code byte, k reflect.Kind) (string, error)
 }
 
 func (d *decoder) copySizeN(n int) ([]byte, error) {
-	bs, err := d.readSizeN(n)
-	if err != nil {
-		return emptyBytes, err
+	if n <= len(d.buf.Data) {
+		bs, err := d.readSizeN(n)
+		if err != nil {
+			return emptyBytes, err
+		}
+		v := make([]byte, n)
+		copy(v, bs)
+		return v, nil
 	}
-	v := make([]byte, n)
-	copy(v, bs)
-	return v, nil
+	return d.readSizeN(n)
 }
