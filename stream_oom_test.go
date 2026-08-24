@@ -29,6 +29,17 @@ func TestStreamDecoderBoundedAllocation(t *testing.T) {
 		{"Str32 into string", []byte{0xdb, 0xff, 0xff, 0xff, 0xff}, new(string)},
 		{"Bin32 into bytes", []byte{0xc6, 0xff, 0xff, 0xff, 0xff}, new([]byte)},
 		{"Map32 into map", []byte{0xdf, 0xff, 0xff, 0xff, 0xff}, new(map[string]int)},
+
+		// typed map without a fixed fast path: exercises the generic
+		// reflect.MakeMapWithSize allocation in decoding.go
+		{"Map32 into typed map (generic)", []byte{0xdf, 0xff, 0xff, 0xff, 0xff}, new(map[int]int)},
+		{"Map32 into map[string]interface{}", []byte{0xdf, 0xff, 0xff, 0xff, 0xff}, new(map[string]interface{})},
+		// structs are decoded from a map header by default
+		{"Map32 into struct", []byte{0xdf, 0xff, 0xff, 0xff, 0xff}, new(streamOomTarget)},
+		// fixed-size arrays reject declared counts larger than the array
+		{"Array32 into fixed-size array", []byte{0xdd, 0xff, 0xff, 0xff, 0xff}, new([16]int)},
+		// element types without a fast path go through reflect.MakeSlice
+		{"Array32 into nested slice", []byte{0xdd, 0xff, 0xff, 0xff, 0xff}, new([][]int)},
 	}
 
 	for _, tc := range tests {
@@ -48,6 +59,12 @@ func TestStreamDecoderBoundedAllocation(t *testing.T) {
 			}
 		})
 	}
+}
+
+// streamOomTarget is decoded from a map header (default struct format).
+type streamOomTarget struct {
+	A int
+	B string
 }
 
 func TestUnmarshalReadLargeValidPayload(t *testing.T) {
