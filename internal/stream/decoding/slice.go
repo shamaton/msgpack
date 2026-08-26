@@ -48,7 +48,7 @@ func (d *decoder) sliceLength(code byte, k reflect.Kind) (int, error) {
 		if err != nil {
 			return 0, err
 		}
-		return int(binary.BigEndian.Uint32(bs)), nil
+		return lengthFromUint32(binary.BigEndian.Uint32(bs))
 	}
 	return 0, d.errorTemplate(code, k)
 }
@@ -59,7 +59,7 @@ func (d *decoder) asFixedSlice(rv reflect.Value, l int) (bool, error) {
 
 	switch t {
 	case typeIntSlice:
-		sli := make([]int, 0, initialCap(l))
+		sli := make([]int, 0, initialSliceCap(l, t.Elem()))
 		for i := 0; i < l; i++ {
 			v, err := d.asInt(k)
 			if err != nil {
@@ -75,7 +75,7 @@ func (d *decoder) asFixedSlice(rv reflect.Value, l int) (bool, error) {
 		return true, nil
 
 	case typeUintSlice:
-		sli := make([]uint, 0, initialCap(l))
+		sli := make([]uint, 0, initialSliceCap(l, t.Elem()))
 		for i := 0; i < l; i++ {
 			v, err := d.asUint(k)
 			if err != nil {
@@ -91,7 +91,7 @@ func (d *decoder) asFixedSlice(rv reflect.Value, l int) (bool, error) {
 		return true, nil
 
 	case typeStringSlice:
-		sli := make([]string, 0, initialCap(l))
+		sli := make([]string, 0, initialSliceCap(l, t.Elem()))
 		for i := 0; i < l; i++ {
 			v, err := d.asString(k)
 			if err != nil {
@@ -103,7 +103,7 @@ func (d *decoder) asFixedSlice(rv reflect.Value, l int) (bool, error) {
 		return true, nil
 
 	case typeBoolSlice:
-		sli := make([]bool, 0, initialCap(l))
+		sli := make([]bool, 0, initialSliceCap(l, t.Elem()))
 		for i := 0; i < l; i++ {
 			v, err := d.asBool(k)
 			if err != nil {
@@ -115,7 +115,7 @@ func (d *decoder) asFixedSlice(rv reflect.Value, l int) (bool, error) {
 		return true, nil
 
 	case typeFloat32Slice:
-		sli := make([]float32, 0, initialCap(l))
+		sli := make([]float32, 0, initialSliceCap(l, t.Elem()))
 		for i := 0; i < l; i++ {
 			v, err := d.asFloat32(k)
 			if err != nil {
@@ -127,7 +127,7 @@ func (d *decoder) asFixedSlice(rv reflect.Value, l int) (bool, error) {
 		return true, nil
 
 	case typeFloat64Slice:
-		sli := make([]float64, 0, initialCap(l))
+		sli := make([]float64, 0, initialSliceCap(l, t.Elem()))
 		for i := 0; i < l; i++ {
 			v, err := d.asFloat64(k)
 			if err != nil {
@@ -139,7 +139,7 @@ func (d *decoder) asFixedSlice(rv reflect.Value, l int) (bool, error) {
 		return true, nil
 
 	case typeInt8Slice:
-		sli := make([]int8, 0, initialCap(l))
+		sli := make([]int8, 0, initialSliceCap(l, t.Elem()))
 		for i := 0; i < l; i++ {
 			v, err := d.asInt(k)
 			if err != nil {
@@ -155,7 +155,7 @@ func (d *decoder) asFixedSlice(rv reflect.Value, l int) (bool, error) {
 		return true, nil
 
 	case typeInt16Slice:
-		sli := make([]int16, 0, initialCap(l))
+		sli := make([]int16, 0, initialSliceCap(l, t.Elem()))
 		for i := 0; i < l; i++ {
 			v, err := d.asInt(k)
 			if err != nil {
@@ -171,7 +171,7 @@ func (d *decoder) asFixedSlice(rv reflect.Value, l int) (bool, error) {
 		return true, nil
 
 	case typeInt32Slice:
-		sli := make([]int32, 0, initialCap(l))
+		sli := make([]int32, 0, initialSliceCap(l, t.Elem()))
 		for i := 0; i < l; i++ {
 			v, err := d.asInt(k)
 			if err != nil {
@@ -187,7 +187,7 @@ func (d *decoder) asFixedSlice(rv reflect.Value, l int) (bool, error) {
 		return true, nil
 
 	case typeInt64Slice:
-		sli := make([]int64, 0, initialCap(l))
+		sli := make([]int64, 0, initialSliceCap(l, t.Elem()))
 		for i := 0; i < l; i++ {
 			v, err := d.asInt(k)
 			if err != nil {
@@ -199,7 +199,7 @@ func (d *decoder) asFixedSlice(rv reflect.Value, l int) (bool, error) {
 		return true, nil
 
 	case typeUint8Slice:
-		sli := make([]uint8, 0, initialCap(l))
+		sli := make([]uint8, 0, initialSliceCap(l, t.Elem()))
 		for i := 0; i < l; i++ {
 			v, err := d.asUint(k)
 			if err != nil {
@@ -215,7 +215,7 @@ func (d *decoder) asFixedSlice(rv reflect.Value, l int) (bool, error) {
 		return true, nil
 
 	case typeUint16Slice:
-		sli := make([]uint16, 0, initialCap(l))
+		sli := make([]uint16, 0, initialSliceCap(l, t.Elem()))
 		for i := 0; i < l; i++ {
 			v, err := d.asUint(k)
 			if err != nil {
@@ -231,7 +231,7 @@ func (d *decoder) asFixedSlice(rv reflect.Value, l int) (bool, error) {
 		return true, nil
 
 	case typeUint32Slice:
-		sli := make([]uint32, 0, initialCap(l))
+		sli := make([]uint32, 0, initialSliceCap(l, t.Elem()))
 		for i := 0; i < l; i++ {
 			v, err := d.asUint(k)
 			if err != nil {
@@ -247,7 +247,7 @@ func (d *decoder) asFixedSlice(rv reflect.Value, l int) (bool, error) {
 		return true, nil
 
 	case typeUint64Slice:
-		sli := make([]uint64, 0, initialCap(l))
+		sli := make([]uint64, 0, initialSliceCap(l, t.Elem()))
 		for i := 0; i < l; i++ {
 			v, err := d.asUint(k)
 			if err != nil {

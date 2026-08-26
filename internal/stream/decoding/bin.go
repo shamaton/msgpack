@@ -39,7 +39,11 @@ func (d *decoder) asBinWithCode(code byte, k reflect.Kind) ([]byte, error) {
 			return emptyBytes, err
 		}
 		// avoid common buffer reference
-		return d.copySizeN(int(binary.BigEndian.Uint32(bs)))
+		l, err := lengthFromUint32(binary.BigEndian.Uint32(bs))
+		if err != nil {
+			return emptyBytes, err
+		}
+		return d.copySizeN(l)
 	}
 
 	return emptyBytes, d.errorTemplate(code, k)

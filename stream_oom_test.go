@@ -2,6 +2,7 @@ package msgpack_test
 
 import (
 	"bytes"
+	"io"
 	"math"
 	"runtime"
 	"testing"
@@ -109,5 +110,64 @@ func TestUnmarshalReadShortReader(t *testing.T) {
 	var got []byte
 	if err := msgpack.UnmarshalRead(bytes.NewReader(data[:10]), &got); err == nil {
 		t.Fatal("expected error when reader ends before declared length")
+	}
+}
+
+// oneByteReader wraps a reader and returns at most 1 byte per Read call,
+// exercising the short-read completion loop in readSize*.
+type oneByteReader struct{ r io.Reader }
+
+func (o oneByteReader) Read(p []byte) (int, error) {
+	if len(p) > 1 {
+		p = p[:1]
+	}
+	return o.r.Read(p)
+}
+
+// TestUnmarshalReadOneByteReader verifies that a valid Bin32 payload
+// decodes correctly when the reader delivers data one byte at a time.
+// This is the regression test for the short-read correctness issue
+// identified in the review: io.Reader.Read may return fewer bytes than
+// requested without an error.
+func TestUnmarshalReadOneByteReader(t *testing.T) {
+	// Build a valid Bin32 payload (256 bytes of 0xab)
+	payload := bytes.Repeat([]byte{0xab}, 256)
+	data := append([]byte{0xc6, 0x00, 0x00, 0x01, 0x00}, payload...) // bin32, len=256
+
+	var got []byte
+	if err := msgpack.UnmarshalRead(oneByteReader{bytes.NewReader(data)}, &got); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, payload) {
+		t.Fatalf("decoded %d bytes, want %d", len(got), len(payload))
+	}
+}
+
+// TestUnmarshalReadUnrepresentable32BitLengths verifies that 32-bit lengths
+// which are not representable as a non-negative int on 32-bit platforms
+// (>= 0x80000000) always return an error and never panic or silently succeed.
+// On 64-bit hosts these are valid but oversized; on 386 they would become
+// negative after the uint32->int conversion and cause wrong results.
+func TestUnmarshalReadUnrepresentable32BitLengths(t *testing.T) {
+	tests := []struct {
+		name string
+		data []byte
+		v    interface{}
+	}{
+		{"Array32 0xffffffff -> interface", []byte{0xdd, 0xff, 0xff, 0xff, 0xff}, new(interface{})},
+		{"Map32 0xffffffff -> map[string]int", []byte{0xdf, 0xff, 0xff, 0xff, 0xff}, new(map[string]int)},
+		{"Map32 0xffffffff -> struct", []byte{0xdf, 0xff, 0xff, 0xff, 0xff}, new(streamOomTarget)},
+		{"Str32 0xffffffff -> string", []byte{0xdb, 0xff, 0xff, 0xff, 0xff}, new(string)},
+		{"Bin32 0xffffffff -> []byte", []byte{0xc6, 0xff, 0xff, 0xff, 0xff}, new([]byte)},
+		{"Ext32 0xffffffff -> interface", []byte{0xc9, 0xff, 0xff, 0xff, 0xff, 0x00}, new(interface{})},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := msgpack.UnmarshalRead(bytes.NewReader(tc.data), tc.v)
+			if err == nil {
+				t.Fatal("expected error for unrepresentable or oversized length")
+			}
+		})
 	}
 }

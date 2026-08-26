@@ -154,7 +154,7 @@ func (d *decoder) decodeWithCode(code byte, rv reflect.Value) error {
 		}
 
 		// create slice dynamically
-		tmpSlice := reflect.MakeSlice(rv.Type(), 0, initialCap(l))
+		tmpSlice := reflect.MakeSlice(rv.Type(), 0, initialSliceCap(l, rv.Type().Elem()))
 		for i := 0; i < l; i++ {
 			tmpSlice = reflect.Append(tmpSlice, reflect.Zero(rv.Type().Elem()))
 			v := tmpSlice.Index(i)
@@ -269,7 +269,7 @@ func (d *decoder) decodeWithCode(code byte, rv reflect.Value) error {
 		key := rv.Type().Key()
 		value := rv.Type().Elem()
 		if rv.IsNil() {
-			rv.Set(reflect.MakeMapWithSize(rv.Type(), initialCap(l)))
+			rv.Set(reflect.MakeMapWithSize(rv.Type(), initialMapCap(l)))
 		}
 		for i := 0; i < l; i++ {
 			k := reflect.New(key).Elem()
