@@ -269,7 +269,7 @@ func (d *decoder) decodeWithCode(code byte, rv reflect.Value) error {
 		key := rv.Type().Key()
 		value := rv.Type().Elem()
 		if rv.IsNil() {
-			rv.Set(reflect.MakeMapWithSize(rv.Type(), initialMapCap(l)))
+			rv.Set(reflect.MakeMapWithSize(rv.Type(), initialMapCapForType(l, key, value)))
 		}
 		for i := 0; i < l; i++ {
 			k := reflect.New(key).Elem()

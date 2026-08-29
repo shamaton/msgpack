@@ -17,10 +17,6 @@ const (
 	// maxPreallocMapSize bounds the entry hint used to pre-size a map
 	// from an attacker-declared pair count before any pair is decoded.
 	maxPreallocMapSize = 8192
-
-	// readChunkSize is the chunk size used to read a declared byte length
-	// incrementally from the reader.
-	readChunkSize = 32 * 1024
 )
 
 // errDeclaredLengthTooLarge is returned when a declared 32-bit length cannot
@@ -79,4 +75,27 @@ func initialMapCap(l int) int {
 		return l
 	}
 	return maxPreallocMapSize
+}
+
+// initialMapCapForType is initialMapCap for maps created dynamically via
+// reflection, where the key/value types are only known at decode time and
+// can be arbitrarily large structs. It additionally bounds the hint by a
+// byte budget derived from the key/value sizes so a declared pair count
+// can't force a multi-megabyte allocation before any pair has been decoded.
+func initialMapCapForType(l int, key, value reflect.Type) int {
+	if l < 1 {
+		return 0
+	}
+	entrySize := key.Size() + value.Size()
+	if entrySize < 1 {
+		entrySize = 1
+	}
+	budget := maxPreallocBytes / int(entrySize)
+	if budget < 1 {
+		budget = 1
+	}
+	if l < budget {
+		return initialMapCap(l)
+	}
+	return initialMapCap(budget)
 }
