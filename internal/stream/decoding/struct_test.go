@@ -670,7 +670,7 @@ func Test_jumpOffset(t *testing.T) {
 		},
 		{
 			Name:           "Ext8.ok",
-			Data:           []byte{def.Ext8, 1, 0},
+			Data:           []byte{def.Ext8, 1, 0, 0},
 			ReadCount:      3,
 			MethodAsCustom: method,
 		},
@@ -690,7 +690,7 @@ func Test_jumpOffset(t *testing.T) {
 		},
 		{
 			Name:           "Ext16.ok",
-			Data:           []byte{def.Ext16, 0, 1, 0},
+			Data:           []byte{def.Ext16, 0, 1, 0, 0},
 			ReadCount:      3,
 			MethodAsCustom: method,
 		},
@@ -710,7 +710,7 @@ func Test_jumpOffset(t *testing.T) {
 		},
 		{
 			Name:           "Ext32.ok",
-			Data:           []byte{def.Ext32, 0, 0, 0, 1, 0},
+			Data:           []byte{def.Ext32, 0, 0, 0, 1, 0, 0},
 			ReadCount:      3,
 			MethodAsCustom: method,
 		},
