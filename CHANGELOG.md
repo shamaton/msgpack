@@ -1,5 +1,17 @@
 # Changelog
 
+## [v3.2.1](https://github.com/shamaton/msgpack/compare/v3.2.0...v3.2.1) - 2026-08-30
+
+- Bump securego/gosec from 849570622f56a251c015c0e2417aebafc0216e17 to 45b083a0cb42119d61b1e0e364d8c62c68f6f5cd by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/104
+- Bump actions/setup-go from 6.5.0 to 7.0.0 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/100
+- Bump Songmu/tagpr from 1.20.0 to 1.20.1 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/101
+- Bump actions/labeler from 6.2.0 to 7.0.0 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/102
+- Bump actions/checkout from 7.0.0 to 7.0.1 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/103
+- Bump securego/gosec from 45b083a0cb42119d61b1e0e364d8c62c68f6f5cd to 5e72efc19d97e11549b3427b83fab3257a8c9894 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/107
+- Add security policy by @shamaton in https://github.com/shamaton/msgpack/pull/111
+- Bump securego/gosec from 5e72efc19d97e11549b3427b83fab3257a8c9894 to 57f161386e11e13e4c8a37255bc1a6502993d079 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/113
+- Bump Songmu/tagpr from 1.20.1 to 1.20.2 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/114
+
 ## [v3.2.0](https://github.com/shamaton/msgpack/compare/v3.1.2...v3.2.0) - 2026-07-14
 
 - Potential fix for code scanning alert no. 1: Workflow does not contain permissions by @shamaton in https://github.com/shamaton/msgpack/pull/75
