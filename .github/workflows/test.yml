@@ -13,7 +13,10 @@ jobs:
         working-directory: ${{ env.WORKSPACE }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        # macos-15 is used instead of macos-latest. On macOS 26, dyld refuses to
+        # run a binary without an LC_UUID load command, which the Go linker emits
+        # only since Go 1.24.
+        os: [ubuntu-latest, macos-15, windows-latest]
         go: ["1.22", "1.23", "1.24"]
     name: ${{ matrix.os }} @ Go ${{ matrix.go }}
     runs-on: ${{ matrix.os }}
