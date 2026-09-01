@@ -2,6 +2,7 @@ package decoding
 
 import (
 	"encoding/binary"
+	"reflect"
 
 	"github.com/shamaton/msgpack/v3/def"
 	"github.com/shamaton/msgpack/v3/ext"
@@ -48,6 +49,51 @@ func updateExtCoders() {
 		extCoders[i] = extCoderMap[k]
 		i++
 	}
+}
+
+// tryExtDecode attempts to decode the value at offset using a registered ext
+// decoder whose Go type matches the destination rv, mirroring the dispatch
+// setStruct already performed for struct destinations only. extEndOffset both
+// recognizes the ext wire codes and validates that the full ext frame (header
+// and payload) is present, so truncated input is rejected with
+// def.ErrTooShortBytes before any custom decoder callback runs; non-ext bytes
+// fall out of extEndOffset's switch immediately, so this costs a single
+// bounds-checked byte read for the common non-ext case. Returns ok=false
+// (with offset==0) when no registered decoder claims the bytes, so callers
+// fall back to the normal kind-based decoding (which will surface a clear
+// type-mismatch error).
+func (d *decoder) tryExtDecode(rv reflect.Value, offset int, k reflect.Kind) (int, bool, error) {
+	if len(extCoders) == 0 {
+		return 0, false, nil
+	}
+	// The only registered decoder is the built-in time.Decoder, which targets
+	// a struct destination; skip the check entirely for other kinds. Use
+	// rv.Kind() rather than the passed-in k: callers such as the slice-of-
+	// struct fast path pass the container's kind, not the element's.
+	if len(extCoders) == 1 && rv.Kind() != reflect.Struct {
+		return 0, false, nil
+	}
+	isExt, _, err := d.extEndOffset(offset)
+	if err != nil {
+		return 0, false, err
+	}
+	if !isExt {
+		return 0, false, nil
+	}
+	for i := range extCoders {
+		if !extCoders[i].IsType(offset, &d.data) {
+			continue
+		}
+		v, o, err := extCoders[i].AsValue(offset, k, &d.data)
+		if err != nil {
+			return 0, false, err
+		}
+		if rv.Type() == reflect.TypeOf(v) {
+			rv.Set(reflect.ValueOf(v))
+			return o, true, nil
+		}
+	}
+	return 0, false, nil
 }
 
 func (d *decoder) extEndOffset(offset int) (bool, int, error) {
