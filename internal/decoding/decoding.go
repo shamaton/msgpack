@@ -42,6 +42,16 @@ func Decode(data []byte, v interface{}, asArray bool) error {
 
 func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
 	k := rv.Kind()
+
+	// ext types: honor a registered ext decoder for any destination kind, not
+	// just structs (mirrors setStruct). Falls through to the kind switch when
+	// nothing matches, e.g. because no ext coder claims the bytes.
+	if o, ok, err := d.tryExtDecode(rv, offset, k); err != nil {
+		return 0, err
+	} else if ok {
+		return o, nil
+	}
+
 	switch k {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		v, o, err := d.asInt(offset, k)
