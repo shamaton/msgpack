@@ -10,7 +10,7 @@ import (
 	"github.com/shamaton/msgpack/v3/internal/encoding"
 	streamdecoding "github.com/shamaton/msgpack/v3/internal/stream/decoding"
 	streamencoding "github.com/shamaton/msgpack/v3/internal/stream/encoding"
-	"github.com/shamaton/msgpack/v3/time"
+	"github.com/shamaton/msgpack/v3/internal/time"
 )
 
 // StructAsArray is encoding option.

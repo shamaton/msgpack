@@ -6,7 +6,7 @@ import (
 
 	"github.com/shamaton/msgpack/v3/ext"
 	tu "github.com/shamaton/msgpack/v3/internal/common/testutil"
-	"github.com/shamaton/msgpack/v3/time"
+	"github.com/shamaton/msgpack/v3/internal/time"
 )
 
 func Test_AddExtEncoder(t *testing.T) {
