@@ -2,6 +2,7 @@ package decoding
 
 import (
 	"encoding/binary"
+	"reflect"
 
 	"github.com/shamaton/msgpack/v3/def"
 	"github.com/shamaton/msgpack/v3/ext"
@@ -13,6 +14,50 @@ var (
 	extCoderMap = map[int8]ext.StreamDecoder{time.StreamDecoder.Code(): time.StreamDecoder}
 	extCoders   = []ext.StreamDecoder{time.StreamDecoder}
 )
+
+// tryExtDecode attempts to decode the value using a registered ext decoder
+// whose Go type matches the destination rv, mirroring the dispatch setStruct
+// already performed for struct destinations only. readIfExtType both
+// recognizes the ext wire codes and reads the full frame (header and
+// payload) from the reader, so truncated input surfaces as a read error
+// before any custom decoder callback runs; non-ext codes make it return with
+// data == nil and no error, at the cost of a single already-read code byte.
+// Returns ok=false when no registered decoder claims the bytes, so callers
+// fall back to the normal kind-based decoding (which will surface a clear
+// type-mismatch error).
+func (d *decoder) tryExtDecode(code byte, rv reflect.Value, k reflect.Kind) (bool, error) {
+	if len(extCoders) == 0 {
+		return false, nil
+	}
+	// The only registered decoder is the built-in time.StreamDecoder, which
+	// targets a struct destination; skip the ext read entirely for other
+	// kinds. Use rv.Kind() rather than the passed-in k: callers such as the
+	// slice-of-struct fast path pass the container's kind, not the element's.
+	if len(extCoders) == 1 && rv.Kind() != reflect.Struct {
+		return false, nil
+	}
+	innerType, data, err := d.readIfExtType(code)
+	if err != nil {
+		return false, err
+	}
+	if data == nil {
+		return false, nil
+	}
+	for i := range extCoders {
+		if !extCoders[i].IsType(code, innerType, len(data)) {
+			continue
+		}
+		v, err := extCoders[i].ToValue(code, data, k)
+		if err != nil {
+			return false, err
+		}
+		if rv.Type() == reflect.TypeOf(v) {
+			rv.Set(reflect.ValueOf(v))
+			return true, nil
+		}
+	}
+	return false, nil
+}
 
 // AddExtDecoder adds decoders for extension types.
 func AddExtDecoder(f ext.StreamDecoder) {

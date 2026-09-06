@@ -62,12 +62,7 @@ func shouldOmitByParent(rv reflect.Value, omitPaths [][]int) bool {
 	return false
 }
 
-func (e *encoder) getStructCalc(typ reflect.Type) structCalcFunc {
-	for j := range extCoders {
-		if extCoders[j].Type() == typ {
-			return extCoders[j].CalcByteSize
-		}
-	}
+func (e *encoder) getStructCalc(_ reflect.Type) structCalcFunc {
 	if e.asArray {
 		return e.calcStructArray
 	}
@@ -79,12 +74,6 @@ func (e *encoder) calcStruct(rv reflect.Value) (int, error) {
 	//	size := e.calcTime(tm)
 	//	return size, nil
 	//}
-
-	for i := range extCoders {
-		if extCoders[i].Type() == rv.Type() {
-			return extCoders[i].CalcByteSize(rv)
-		}
-	}
 
 	if e.asArray {
 		return e.calcStructArray(rv)
@@ -130,30 +119,55 @@ func (e *encoder) calcStructArray(rv reflect.Value) (int, error) {
 	} else {
 		c = cache.(*structCache)
 	}
+	noCustom := e.extRegistry.customCount == 0
 
 	// calculate size based on path type
 	var numFields int
 	if c.hasEmbedded {
 		numFields = len(c.indexes)
-		for i := 0; i < numFields; i++ {
-			fieldValue, ok := getFieldByPath(rv, c.indexes[i])
-			if shouldOmitByParent(rv, c.omitPaths[i]) || !ok {
-				fieldValue = reflect.Value{}
+		if noCustom {
+			for i := 0; i < numFields; i++ {
+				fieldValue, ok := getFieldByPath(rv, c.indexes[i])
+				if shouldOmitByParent(rv, c.omitPaths[i]) || !ok {
+					fieldValue = reflect.Value{}
+				}
+				size, err := e.calcSizeBuiltIn(fieldValue)
+				if err != nil {
+					return 0, err
+				}
+				ret += size
 			}
-			size, err := e.calcSize(fieldValue)
-			if err != nil {
-				return 0, err
+		} else {
+			for i := 0; i < numFields; i++ {
+				fieldValue, ok := getFieldByPath(rv, c.indexes[i])
+				if shouldOmitByParent(rv, c.omitPaths[i]) || !ok {
+					fieldValue = reflect.Value{}
+				}
+				size, err := e.calcSize(fieldValue)
+				if err != nil {
+					return 0, err
+				}
+				ret += size
 			}
-			ret += size
 		}
 	} else {
 		numFields = len(c.simpleIndexes)
-		for i := 0; i < numFields; i++ {
-			size, err := e.calcSize(rv.Field(c.simpleIndexes[i]))
-			if err != nil {
-				return 0, err
+		if noCustom {
+			for i := 0; i < numFields; i++ {
+				size, err := e.calcSizeBuiltIn(rv.Field(c.simpleIndexes[i]))
+				if err != nil {
+					return 0, err
+				}
+				ret += size
 			}
-			ret += size
+		} else {
+			for i := 0; i < numFields; i++ {
+				size, err := e.calcSize(rv.Field(c.simpleIndexes[i]))
+				if err != nil {
+					return 0, err
+				}
+				ret += size
+			}
 		}
 	}
 
@@ -204,32 +218,63 @@ func (e *encoder) calcStructMap(rv reflect.Value) (int, error) {
 	} else {
 		c = cache.(*structCache)
 	}
+	noCustom := e.extRegistry.customCount == 0
 
 	l := 0
 	if c.hasEmbedded {
-		for i := 0; i < len(c.indexes); i++ {
-			fieldValue, ok := getFieldByPath(rv, c.indexes[i])
-			if shouldOmitByParent(rv, c.omitPaths[i]) || !ok {
-				continue
+		if noCustom {
+			for i := 0; i < len(c.indexes); i++ {
+				fieldValue, ok := getFieldByPath(rv, c.indexes[i])
+				if shouldOmitByParent(rv, c.omitPaths[i]) || !ok {
+					continue
+				}
+				size, err := e.calcSizeWithOmitEmptyBuiltIn(fieldValue, c.names[i], c.omits[i])
+				if err != nil {
+					return 0, err
+				}
+				ret += size
+				if size > 0 {
+					l++
+				}
 			}
-			size, err := e.calcSizeWithOmitEmpty(fieldValue, c.names[i], c.omits[i])
-			if err != nil {
-				return 0, err
-			}
-			ret += size
-			if size > 0 {
-				l++
+		} else {
+			for i := 0; i < len(c.indexes); i++ {
+				fieldValue, ok := getFieldByPath(rv, c.indexes[i])
+				if shouldOmitByParent(rv, c.omitPaths[i]) || !ok {
+					continue
+				}
+				size, err := e.calcSizeWithOmitEmpty(fieldValue, c.names[i], c.omits[i])
+				if err != nil {
+					return 0, err
+				}
+				ret += size
+				if size > 0 {
+					l++
+				}
 			}
 		}
 	} else {
-		for i := 0; i < len(c.simpleIndexes); i++ {
-			size, err := e.calcSizeWithOmitEmpty(rv.Field(c.simpleIndexes[i]), c.names[i], c.omits[i])
-			if err != nil {
-				return 0, err
+		if noCustom {
+			for i := 0; i < len(c.simpleIndexes); i++ {
+				size, err := e.calcSizeWithOmitEmptyBuiltIn(rv.Field(c.simpleIndexes[i]), c.names[i], c.omits[i])
+				if err != nil {
+					return 0, err
+				}
+				ret += size
+				if size > 0 {
+					l++
+				}
 			}
-			ret += size
-			if size > 0 {
-				l++
+		} else {
+			for i := 0; i < len(c.simpleIndexes); i++ {
+				size, err := e.calcSizeWithOmitEmpty(rv.Field(c.simpleIndexes[i]), c.names[i], c.omits[i])
+				if err != nil {
+					return 0, err
+				}
+				ret += size
+				if size > 0 {
+					l++
+				}
 			}
 		}
 	}
@@ -257,15 +302,21 @@ func (e *encoder) calcSizeWithOmitEmpty(rv reflect.Value, name string, omit bool
 	return keySize + valueSize, nil
 }
 
-func (e *encoder) getStructWriter(typ reflect.Type) structWriteFunc {
-	for i := range extCoders {
-		if extCoders[i].Type() == typ {
-			return func(rv reflect.Value, offset int) int {
-				return extCoders[i].WriteToBytes(rv, offset, &e.d)
-			}
+func (e *encoder) calcSizeWithOmitEmptyBuiltIn(rv reflect.Value, name string, omit bool) (int, error) {
+	keySize := 0
+	valueSize := 0
+	if !omit || !rv.IsZero() {
+		keySize = e.calcString(name)
+		vSize, err := e.calcSizeBuiltIn(rv)
+		if err != nil {
+			return 0, err
 		}
+		valueSize = vSize
 	}
+	return keySize + valueSize, nil
+}
 
+func (e *encoder) getStructWriter(_ reflect.Type) structWriteFunc {
 	if e.asArray {
 		return e.writeStructArray
 	}
@@ -278,12 +329,6 @@ func (e *encoder) writeStruct(rv reflect.Value, offset int) int {
 			return e.writeTime(tm, offset)
 		}
 	*/
-
-	for i := range extCoders {
-		if extCoders[i].Type() == rv.Type() {
-			return extCoders[i].WriteToBytes(rv, offset, &e.d)
-		}
-	}
 
 	if e.asArray {
 		return e.writeStructArray(rv, offset)
@@ -312,6 +357,7 @@ func (e *encoder) writeStructArray(rv reflect.Value, offset int) int {
 		offset = e.setByte1Int(def.Array32, offset)
 		offset = e.setByte4Int(num, offset)
 	}
+	noCustom := e.extRegistry.customCount == 0
 
 	if c.hasEmbedded {
 		for i := 0; i < num; i++ {
@@ -319,11 +365,21 @@ func (e *encoder) writeStructArray(rv reflect.Value, offset int) int {
 			if shouldOmitByParent(rv, c.omitPaths[i]) || !ok {
 				fieldValue = reflect.Value{}
 			}
-			offset = e.create(fieldValue, offset)
+			if noCustom {
+				offset = e.createBuiltIn(fieldValue, offset)
+			} else {
+				offset = e.create(fieldValue, offset)
+			}
 		}
 	} else {
-		for i := 0; i < num; i++ {
-			offset = e.create(rv.Field(c.simpleIndexes[i]), offset)
+		if noCustom {
+			for i := 0; i < num; i++ {
+				offset = e.createBuiltIn(rv.Field(c.simpleIndexes[i]), offset)
+			}
+		} else {
+			for i := 0; i < num; i++ {
+				offset = e.create(rv.Field(c.simpleIndexes[i]), offset)
+			}
 		}
 	}
 	return offset
@@ -364,6 +420,7 @@ func (e *encoder) writeStructMap(rv reflect.Value, offset int) int {
 		offset = e.setByte1Int(def.Map32, offset)
 		offset = e.setByte4Int(l, offset)
 	}
+	noCustom := e.extRegistry.customCount == 0
 
 	if c.hasEmbedded {
 		num := len(c.indexes)
@@ -374,16 +431,30 @@ func (e *encoder) writeStructMap(rv reflect.Value, offset int) int {
 			}
 			if c.noOmit || !c.omits[i] || !fieldValue.IsZero() {
 				offset = e.writeString(c.names[i], offset)
-				offset = e.create(fieldValue, offset)
+				if noCustom {
+					offset = e.createBuiltIn(fieldValue, offset)
+				} else {
+					offset = e.create(fieldValue, offset)
+				}
 			}
 		}
 	} else {
 		num := len(c.simpleIndexes)
-		for i := 0; i < num; i++ {
-			fieldValue := rv.Field(c.simpleIndexes[i])
-			if c.noOmit || !c.omits[i] || !fieldValue.IsZero() {
-				offset = e.writeString(c.names[i], offset)
-				offset = e.create(fieldValue, offset)
+		if noCustom {
+			for i := 0; i < num; i++ {
+				fieldValue := rv.Field(c.simpleIndexes[i])
+				if c.noOmit || !c.omits[i] || !fieldValue.IsZero() {
+					offset = e.writeString(c.names[i], offset)
+					offset = e.createBuiltIn(fieldValue, offset)
+				}
+			}
+		} else {
+			for i := 0; i < num; i++ {
+				fieldValue := rv.Field(c.simpleIndexes[i])
+				if c.noOmit || !c.omits[i] || !fieldValue.IsZero() {
+					offset = e.writeString(c.names[i], offset)
+					offset = e.create(fieldValue, offset)
+				}
 			}
 		}
 	}

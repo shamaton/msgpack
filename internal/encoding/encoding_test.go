@@ -35,7 +35,7 @@ func Test_encode(t *testing.T) {
 		for _, tc := range tcs {
 			rv := reflect.ValueOf(tc.value)
 			t.Run(rv.Type().String(), func(t *testing.T) {
-				e := encoder{}
+				e := encoder{extRegistry: currentExtEncoderRegistry.Load()}
 				size, err := e.calcSize(rv)
 				tu.IsError(t, err, tc.error)
 				if err != nil {
@@ -224,7 +224,7 @@ func Test_encode(t *testing.T) {
 }
 
 func Test_calcLength(t *testing.T) {
-	e := encoder{}
+	e := encoder{extRegistry: currentExtEncoderRegistry.Load()}
 
 	testcases := []struct {
 		name   string

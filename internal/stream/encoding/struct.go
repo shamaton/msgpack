@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/shamaton/msgpack/v3/def"
-	"github.com/shamaton/msgpack/v3/ext"
 	"github.com/shamaton/msgpack/v3/internal/common"
 )
 
@@ -60,16 +59,7 @@ func shouldOmitByParent(rv reflect.Value, omitPaths [][]int) bool {
 	return false
 }
 
-func (e *encoder) getStructWriter(typ reflect.Type) structWriteFunc {
-	for i := range extCoders {
-		if extCoders[i].Type() == typ {
-			return func(rv reflect.Value) error {
-				w := ext.CreateStreamWriter(e.w, e.buf)
-				return extCoders[i].Write(w, rv)
-			}
-		}
-	}
-
+func (e *encoder) getStructWriter(_ reflect.Type) structWriteFunc {
 	if e.asArray {
 		return e.writeStructArray
 	}
@@ -77,13 +67,6 @@ func (e *encoder) getStructWriter(typ reflect.Type) structWriteFunc {
 }
 
 func (e *encoder) writeStruct(rv reflect.Value) error {
-	for i := range extCoders {
-		if extCoders[i].Type() == rv.Type() {
-			w := ext.CreateStreamWriter(e.w, e.buf)
-			return extCoders[i].Write(w, rv)
-		}
-	}
-
 	if e.asArray {
 		return e.writeStructArray(rv)
 	}
@@ -120,6 +103,7 @@ func (e *encoder) writeStructArray(rv reflect.Value) error {
 			return err
 		}
 	}
+	noCustom := e.extRegistry.customCount == 0
 
 	if c.hasEmbedded {
 		for i := 0; i < num; i++ {
@@ -127,13 +111,25 @@ func (e *encoder) writeStructArray(rv reflect.Value) error {
 			if shouldOmitByParent(rv, c.omitPaths[i]) || !ok {
 				fieldValue = reflect.Value{}
 			}
-			if err := e.create(fieldValue); err != nil {
+			var err error
+			if noCustom {
+				err = e.createBuiltIn(fieldValue)
+			} else {
+				err = e.create(fieldValue)
+			}
+			if err != nil {
 				return err
 			}
 		}
 	} else {
 		for i := 0; i < num; i++ {
-			if err := e.create(rv.Field(c.simpleIndexes[i])); err != nil {
+			var err error
+			if noCustom {
+				err = e.createBuiltIn(rv.Field(c.simpleIndexes[i]))
+			} else {
+				err = e.create(rv.Field(c.simpleIndexes[i]))
+			}
+			if err != nil {
 				return err
 			}
 		}
@@ -185,6 +181,7 @@ func (e *encoder) writeStructMap(rv reflect.Value) error {
 			return err
 		}
 	}
+	noCustom := e.extRegistry.customCount == 0
 
 	if c.hasEmbedded {
 		num := len(c.indexes)
@@ -197,7 +194,13 @@ func (e *encoder) writeStructMap(rv reflect.Value) error {
 				if err := e.writeString(c.names[i]); err != nil {
 					return err
 				}
-				if err := e.create(fieldValue); err != nil {
+				var err error
+				if noCustom {
+					err = e.createBuiltIn(fieldValue)
+				} else {
+					err = e.create(fieldValue)
+				}
+				if err != nil {
 					return err
 				}
 			}
@@ -210,7 +213,13 @@ func (e *encoder) writeStructMap(rv reflect.Value) error {
 				if err := e.writeString(c.names[i]); err != nil {
 					return err
 				}
-				if err := e.create(fieldValue); err != nil {
+				var err error
+				if noCustom {
+					err = e.createBuiltIn(fieldValue)
+				} else {
+					err = e.create(fieldValue)
+				}
+				if err != nil {
 					return err
 				}
 			}

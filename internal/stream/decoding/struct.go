@@ -60,27 +60,10 @@ func getFieldByPath(rv reflect.Value, path []int, allowAlloc bool) (reflect.Valu
 }
 
 func (d *decoder) setStruct(code byte, rv reflect.Value, k reflect.Kind) error {
-	if len(extCoders) > 0 {
-		innerType, data, err := d.readIfExtType(code)
-		if err != nil {
-			return err
-		}
-		if data != nil {
-			for i := range extCoders {
-				if extCoders[i].IsType(code, innerType, len(data)) {
-					v, err := extCoders[i].ToValue(code, data, k)
-					if err != nil {
-						return err
-					}
-
-					// Validate that the receptacle is of the right value type.
-					if rv.Type() == reflect.TypeOf(v) {
-						rv.Set(reflect.ValueOf(v))
-						return nil
-					}
-				}
-			}
-		}
+	if ok, err := d.tryExtDecode(code, rv, k); err != nil {
+		return err
+	} else if ok {
+		return nil
 	}
 
 	if d.asArray {

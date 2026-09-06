@@ -70,25 +70,10 @@ func (d *decoder) setStruct(rv reflect.Value, offset int, k reflect.Kind) (int, 
 		}
 	*/
 
-	isExt, _, err := d.extEndOffset(offset)
-	if err != nil {
+	if o, ok, err := d.tryExtDecode(rv, offset, k); err != nil {
 		return 0, err
-	}
-	if isExt {
-		for i := range extCoders {
-			if extCoders[i].IsType(offset, &d.data) {
-				v, offset, err := extCoders[i].AsValue(offset, k, &d.data)
-				if err != nil {
-					return 0, err
-				}
-
-				// Validate that the receptacle is of the right value type.
-				if rv.Type() == reflect.TypeOf(v) {
-					rv.Set(reflect.ValueOf(v))
-					return offset, nil
-				}
-			}
-		}
+	} else if ok {
+		return o, nil
 	}
 
 	if d.asArray {

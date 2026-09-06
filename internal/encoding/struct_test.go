@@ -16,14 +16,14 @@ func Test_calcStructArray(t *testing.T) {
 
 	t.Run("non-cache", func(t *testing.T) {
 		value := b{B: make([]byte, math.MaxUint32+1)}
-		e := encoder{}
+		e := encoder{extRegistry: currentExtEncoderRegistry.Load()}
 		rv := reflect.ValueOf(value)
 		_, err := e.calcStructArray(rv)
 		tu.IsError(t, err, def.ErrUnsupportedType)
 	})
 	t.Run("cache", func(t *testing.T) {
 		value := b{B: make([]byte, 1)}
-		e := encoder{}
+		e := encoder{extRegistry: currentExtEncoderRegistry.Load()}
 		rv := reflect.ValueOf(value)
 		_, err := e.calcStructArray(rv)
 		tu.NoError(t, err)
@@ -64,7 +64,7 @@ func Test_calcStructArray(t *testing.T) {
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			e := encoder{}
+			e := encoder{extRegistry: currentExtEncoderRegistry.Load()}
 			v, _, bs := tu.CreateStruct(tc.value)
 			rv := reflect.ValueOf(v).Elem()
 			result, err := e.calcStructArray(rv)
@@ -81,14 +81,14 @@ func Test_calcStructMap(t *testing.T) {
 
 	t.Run("non-cache", func(t *testing.T) {
 		value := b{B: make([]byte, math.MaxUint32+1)}
-		e := encoder{}
+		e := encoder{extRegistry: currentExtEncoderRegistry.Load()}
 		rv := reflect.ValueOf(value)
 		_, err := e.calcStructMap(rv)
 		tu.IsError(t, err, def.ErrUnsupportedType)
 	})
 	t.Run("cache", func(t *testing.T) {
 		value := b{B: make([]byte, 1)}
-		e := encoder{}
+		e := encoder{extRegistry: currentExtEncoderRegistry.Load()}
 		rv := reflect.ValueOf(value)
 		_, err := e.calcStructMap(rv)
 		tu.NoError(t, err)
@@ -129,7 +129,7 @@ func Test_calcStructMap(t *testing.T) {
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			e := encoder{}
+			e := encoder{extRegistry: currentExtEncoderRegistry.Load()}
 			v, bs, _ := tu.CreateStruct(tc.value)
 			rv := reflect.ValueOf(v).Elem()
 			result, err := e.calcStructMap(rv)
@@ -163,7 +163,7 @@ func Test_writeStructArray(t *testing.T) {
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			e := encoder{}
+			e := encoder{extRegistry: currentExtEncoderRegistry.Load()}
 			v, _, _ := tu.CreateStruct(tc.value)
 			rv := reflect.ValueOf(v).Elem()
 			size, err := e.calcStructArray(rv)
@@ -201,7 +201,7 @@ func Test_writeStructMap(t *testing.T) {
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			e := encoder{}
+			e := encoder{extRegistry: currentExtEncoderRegistry.Load()}
 			v, _, _ := tu.CreateStruct(tc.value)
 			rv := reflect.ValueOf(v).Elem()
 			size, err := e.calcStructMap(rv)
@@ -216,7 +216,7 @@ func Test_writeStructMap(t *testing.T) {
 }
 
 func Test_calcSizeWithOmitEmpty(t *testing.T) {
-	e := encoder{}
+	e := encoder{extRegistry: currentExtEncoderRegistry.Load()}
 	var v any
 	v = func() {}
 	_, err := e.calcSizeWithOmitEmpty(reflect.ValueOf(v), "a", false)
@@ -249,7 +249,7 @@ func Test_structCache(t *testing.T) {
 		Str  string
 	}
 
-	e := encoder{}
+	e := encoder{extRegistry: currentExtEncoderRegistry.Load()}
 	testcases := []struct {
 		v         any
 		omitCount int

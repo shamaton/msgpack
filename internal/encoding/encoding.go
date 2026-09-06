@@ -6,12 +6,14 @@ import (
 	"reflect"
 
 	"github.com/shamaton/msgpack/v3/def"
+	"github.com/shamaton/msgpack/v3/ext"
 	"github.com/shamaton/msgpack/v3/internal/common"
 )
 
 type encoder struct {
-	d       []byte
-	asArray bool
+	d           []byte
+	asArray     bool
+	extRegistry *extEncoderRegistry
 	common.Common
 	mk map[uintptr][]reflect.Value
 	mv map[uintptr][]reflect.Value
@@ -19,7 +21,10 @@ type encoder struct {
 
 // Encode returns the MessagePack-encoded byte array of v.
 func Encode(v interface{}, asArray bool) (b []byte, err error) {
-	e := encoder{asArray: asArray}
+	e := encoder{
+		asArray:     asArray,
+		extRegistry: currentExtEncoderRegistry.Load(),
+	}
 	/*
 		defer func() {
 			e := recover()
@@ -31,19 +36,24 @@ func Encode(v interface{}, asArray bool) (b []byte, err error) {
 	*/
 
 	rv := reflect.ValueOf(v)
-	if rv.Kind() == reflect.Ptr {
-		rv = rv.Elem()
-		if rv.Kind() == reflect.Ptr {
-			rv = rv.Elem()
-		}
+	noCustom := e.extRegistry.customCount == 0
+	var size int
+	if noCustom {
+		size, err = e.calcSizeBuiltIn(rv)
+	} else {
+		size, err = e.calcSize(rv)
 	}
-	size, err := e.calcSize(rv)
 	if err != nil {
 		return nil, err
 	}
 
 	e.d = make([]byte, size)
-	last := e.create(rv, 0)
+	var last int
+	if noCustom {
+		last = e.createBuiltIn(rv, 0)
+	} else {
+		last = e.create(rv, 0)
+	}
 	if size != last {
 		return nil, fmt.Errorf("%w size=%d, lastIdx=%d", def.ErrNotMatchLastIndex, size, last)
 	}
@@ -63,7 +73,22 @@ func Encode(v interface{}, asArray bool) (b []byte, err error) {
 //}
 
 func (e *encoder) calcSize(rv reflect.Value) (int, error) {
-	switch rv.Kind() {
+	kind := rv.Kind()
+	if kind == reflect.Invalid {
+		return def.Byte1, nil
+	}
+	if encoder, ok := e.extEncoderForValue(kind, rv); ok {
+		return encoder.CalcByteSize(rv)
+	}
+	return e.calcSizeByKind(rv, kind)
+}
+
+func (e *encoder) calcSizeDefault(rv reflect.Value) (int, error) {
+	return e.calcSizeByKind(rv, rv.Kind())
+}
+
+func (e *encoder) calcSizeByKind(rv reflect.Value, kind reflect.Kind) (int, error) {
+	switch kind {
 	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
 		v := rv.Uint()
 		return e.calcUint(v), nil
@@ -94,8 +119,15 @@ func (e *encoder) calcSize(rv reflect.Value) (int, error) {
 		if rv.IsNil() {
 			return def.Byte1, nil
 		}
+		var elementType reflect.Type
+		var elementEncoder ext.Encoder
+		var elementHasExt bool
+		if e.extRegistry.customCount != 0 {
+			elementType = rv.Type().Elem()
+			elementEncoder, elementHasExt = e.extEncoderForType(elementType)
+		}
 		// bin format
-		if e.isByteSlice(rv) {
+		if !elementHasExt && e.isByteSlice(rv) {
 			size, err := e.calcByteSlice(rv.Len())
 			if err != nil {
 				return 0, err
@@ -103,17 +135,14 @@ func (e *encoder) calcSize(rv reflect.Value) (int, error) {
 			return size, nil
 		}
 
-		if size, find := e.calcFixedSlice(rv); find {
-			return size, nil
+		if !elementHasExt {
+			if size, find := e.calcFixedSlice(rv); find {
+				return size, nil
+			}
 		}
-
-		// func
-		elem := rv.Type().Elem()
-		var f structCalcFunc
-		if elem.Kind() == reflect.Struct {
-			f = e.getStructCalc(elem)
-		} else {
-			f = e.calcSize
+		if elementType == nil {
+			elementType = rv.Type().Elem()
+			elementEncoder, elementHasExt = e.extEncoderForType(elementType)
 		}
 
 		l := rv.Len()
@@ -122,9 +151,25 @@ func (e *encoder) calcSize(rv reflect.Value) (int, error) {
 			return 0, err
 		}
 
-		// objects size
+		if elementHasExt {
+			for i := 0; i < l; i++ {
+				s, err := elementEncoder.CalcByteSize(rv.Index(i))
+				if err != nil {
+					return 0, err
+				}
+				size += s
+			}
+			return size, nil
+		}
+
+		calcElement := e.calcSizeDefault
+		if e.extRegistry.customCount == 0 {
+			calcElement = e.calcSizeBuiltIn
+		} else if elementType.Kind() == reflect.Struct {
+			calcElement = e.getStructCalc(elementType)
+		}
 		for i := 0; i < l; i++ {
-			s, err := f(rv.Index(i))
+			s, err := calcElement(rv.Index(i))
 			if err != nil {
 				return 0, err
 			}
@@ -133,22 +178,24 @@ func (e *encoder) calcSize(rv reflect.Value) (int, error) {
 		return size, nil
 
 	case reflect.Array:
+		var elementType reflect.Type
+		var elementEncoder ext.Encoder
+		var elementHasExt bool
+		if e.extRegistry.customCount != 0 {
+			elementType = rv.Type().Elem()
+			elementEncoder, elementHasExt = e.extEncoderForType(elementType)
+		}
 		// bin format
-		if e.isByteSlice(rv) {
+		if !elementHasExt && e.isByteSlice(rv) {
 			size, err := e.calcByteSlice(rv.Len())
 			if err != nil {
 				return 0, err
 			}
 			return size, nil
 		}
-
-		// func
-		elem := rv.Type().Elem()
-		var f structCalcFunc
-		if elem.Kind() == reflect.Struct {
-			f = e.getStructCalc(elem)
-		} else {
-			f = e.calcSize
+		if elementType == nil {
+			elementType = rv.Type().Elem()
+			elementEncoder, elementHasExt = e.extEncoderForType(elementType)
 		}
 
 		l := rv.Len()
@@ -157,9 +204,25 @@ func (e *encoder) calcSize(rv reflect.Value) (int, error) {
 			return 0, err
 		}
 
-		// objects size
+		if elementHasExt {
+			for i := 0; i < l; i++ {
+				s, err := elementEncoder.CalcByteSize(rv.Index(i))
+				if err != nil {
+					return 0, err
+				}
+				size += s
+			}
+			return size, nil
+		}
+
+		calcElement := e.calcSizeDefault
+		if e.extRegistry.customCount == 0 {
+			calcElement = e.calcSizeBuiltIn
+		} else if elementType.Kind() == reflect.Struct {
+			calcElement = e.getStructCalc(elementType)
+		}
 		for i := 0; i < l; i++ {
-			s, err := f(rv.Index(i))
+			s, err := calcElement(rv.Index(i))
 			if err != nil {
 				return 0, err
 			}
@@ -172,8 +235,20 @@ func (e *encoder) calcSize(rv reflect.Value) (int, error) {
 			return def.Byte1, nil
 		}
 
-		if size, find := e.calcFixedMap(rv); find {
-			return size, nil
+		var keyEncoder, valueEncoder ext.Encoder
+		var keyHasExt, valueHasExt bool
+		if e.extRegistry.customCount != 0 {
+			keyEncoder, keyHasExt = e.extEncoderForType(rv.Type().Key())
+			valueEncoder, valueHasExt = e.extEncoderForType(rv.Type().Elem())
+		}
+		if !keyHasExt && !valueHasExt {
+			if size, find := e.calcFixedMap(rv); find {
+				return size, nil
+			}
+		}
+		if e.extRegistry.customCount == 0 {
+			keyEncoder, keyHasExt = e.extEncoderForType(rv.Type().Key())
+			valueEncoder, valueHasExt = e.extEncoderForType(rv.Type().Elem())
 		}
 
 		if e.mk == nil {
@@ -191,12 +266,26 @@ func (e *encoder) calcSize(rv reflect.Value) (int, error) {
 		mv := make([]reflect.Value, len(keys))
 		i := 0
 		for _, k := range keys {
-			keySize, err := e.calcSize(k)
+			var keySize int
+			if keyHasExt {
+				keySize, err = keyEncoder.CalcByteSize(k)
+			} else if e.extRegistry.customCount == 0 {
+				keySize, err = e.calcSizeBuiltIn(k)
+			} else {
+				keySize, err = e.calcSizeDefault(k)
+			}
 			if err != nil {
 				return 0, err
 			}
 			value := rv.MapIndex(k)
-			valueSize, err := e.calcSize(value)
+			var valueSize int
+			if valueHasExt {
+				valueSize, err = valueEncoder.CalcByteSize(value)
+			} else if e.extRegistry.customCount == 0 {
+				valueSize, err = e.calcSizeBuiltIn(value)
+			} else {
+				valueSize, err = e.calcSizeDefault(value)
+			}
 			if err != nil {
 				return 0, err
 			}
@@ -218,25 +307,29 @@ func (e *encoder) calcSize(rv reflect.Value) (int, error) {
 		if rv.IsNil() {
 			return def.Byte1, nil
 		}
-		size, err := e.calcSize(rv.Elem())
+		calcElement := e.calcSize
+		if e.extRegistry.customCount == 0 {
+			calcElement = e.calcSizeBuiltIn
+		}
+		size, err := calcElement(rv.Elem())
 		if err != nil {
 			return 0, err
 		}
 		return size, nil
 
 	case reflect.Interface:
-		size, err := e.calcSize(rv.Elem())
+		calcElement := e.calcSize
+		if e.extRegistry.customCount == 0 {
+			calcElement = e.calcSizeBuiltIn
+		}
+		size, err := calcElement(rv.Elem())
 		if err != nil {
 			return 0, err
 		}
 		return size, nil
 
-	case reflect.Invalid:
-		// do nothing (return nil)
-		return def.Byte1, nil
-
 	default:
-		return 0, fmt.Errorf("%v is %w type", rv.Kind(), def.ErrUnsupportedType)
+		return 0, fmt.Errorf("%v is %w type", kind, def.ErrUnsupportedType)
 	}
 }
 
@@ -253,7 +346,29 @@ func (e *encoder) calcLength(l int) (int, error) {
 }
 
 func (e *encoder) create(rv reflect.Value, offset int) int {
-	switch rv.Kind() {
+	kind := rv.Kind()
+	if kind == reflect.Invalid {
+		return e.writeNil(offset)
+	}
+	if encoder, ok := e.extEncoderForValue(kind, rv); ok {
+		return e.writeExt(encoder, rv, offset)
+	}
+	return e.createByKind(rv, kind, offset)
+}
+
+func (e *encoder) createDefault(rv reflect.Value, offset int) int {
+	return e.createByKind(rv, rv.Kind(), offset)
+}
+
+func (e *encoder) writeExt(encoder ext.Encoder, rv reflect.Value, offset int) int {
+	data := e.d
+	offset = encoder.WriteToBytes(rv, offset, &data)
+	e.d = data
+	return offset
+}
+
+func (e *encoder) createByKind(rv reflect.Value, kind reflect.Kind, offset int) int {
+	switch kind {
 	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
 		v := rv.Uint()
 		offset = e.writeUint(v, offset)
@@ -284,38 +399,63 @@ func (e *encoder) create(rv reflect.Value, offset int) int {
 		if rv.IsNil() {
 			return e.writeNil(offset)
 		}
+		var elementType reflect.Type
+		var elementEncoder ext.Encoder
+		var elementHasExt bool
+		if e.extRegistry.customCount != 0 {
+			elementType = rv.Type().Elem()
+			elementEncoder, elementHasExt = e.extEncoderForType(elementType)
+		}
 
 		// bin format
-		if e.isByteSlice(rv) {
+		if !elementHasExt && e.isByteSlice(rv) {
 			offset = e.writeByteSliceLength(rv.Len(), offset)
 			offset = e.setBytes(rv.Bytes(), offset)
 			return offset
 		}
 
-		if offset, find := e.writeFixedSlice(rv, offset); find {
-			return offset
+		if !elementHasExt {
+			if offset, find := e.writeFixedSlice(rv, offset); find {
+				return offset
+			}
 		}
-
-		// func
-		elem := rv.Type().Elem()
-		var f structWriteFunc
-		if elem.Kind() == reflect.Struct {
-			f = e.getStructWriter(elem)
-		} else {
-			f = e.create
+		if elementType == nil {
+			elementType = rv.Type().Elem()
+			elementEncoder, elementHasExt = e.extEncoderForType(elementType)
 		}
 
 		// objects
 		l := rv.Len()
 		offset = e.writeSliceLength(l, offset)
+		if elementHasExt {
+			data := e.d
+			for i := 0; i < l; i++ {
+				offset = elementEncoder.WriteToBytes(rv.Index(i), offset, &data)
+			}
+			e.d = data
+			return offset
+		}
+		writeElement := e.createDefault
+		if e.extRegistry.customCount == 0 {
+			writeElement = e.createBuiltIn
+		} else if elementType.Kind() == reflect.Struct {
+			writeElement = e.getStructWriter(elementType)
+		}
 		for i := 0; i < l; i++ {
-			offset = f(rv.Index(i), offset)
+			offset = writeElement(rv.Index(i), offset)
 		}
 
 	case reflect.Array:
 		l := rv.Len()
+		var elementType reflect.Type
+		var elementEncoder ext.Encoder
+		var elementHasExt bool
+		if e.extRegistry.customCount != 0 {
+			elementType = rv.Type().Elem()
+			elementEncoder, elementHasExt = e.extEncoderForType(elementType)
+		}
 		// bin format
-		if e.isByteSlice(rv) {
+		if !elementHasExt && e.isByteSlice(rv) {
 			offset = e.writeByteSliceLength(l, offset)
 			// objects
 			for i := 0; i < l; i++ {
@@ -323,22 +463,30 @@ func (e *encoder) create(rv reflect.Value, offset int) int {
 			}
 			return offset
 		}
+		if elementType == nil {
+			elementType = rv.Type().Elem()
+			elementEncoder, elementHasExt = e.extEncoderForType(elementType)
+		}
 
 		// format
 		offset = e.writeSliceLength(l, offset)
 
-		// func
-		elem := rv.Type().Elem()
-		var f structWriteFunc
-		if elem.Kind() == reflect.Struct {
-			f = e.getStructWriter(elem)
-		} else {
-			f = e.create
+		if elementHasExt {
+			data := e.d
+			for i := 0; i < l; i++ {
+				offset = elementEncoder.WriteToBytes(rv.Index(i), offset, &data)
+			}
+			e.d = data
+			return offset
 		}
-
-		// objects
+		writeElement := e.createDefault
+		if e.extRegistry.customCount == 0 {
+			writeElement = e.createBuiltIn
+		} else if elementType.Kind() == reflect.Struct {
+			writeElement = e.getStructWriter(elementType)
+		}
 		for i := 0; i < l; i++ {
-			offset = f(rv.Index(i), offset)
+			offset = writeElement(rv.Index(i), offset)
 		}
 
 	case reflect.Map:
@@ -349,16 +497,48 @@ func (e *encoder) create(rv reflect.Value, offset int) int {
 		l := rv.Len()
 		offset = e.writeMapLength(l, offset)
 
-		if offset, find := e.writeFixedMap(rv, offset); find {
-			return offset
+		var keyEncoder, valueEncoder ext.Encoder
+		var keyHasExt, valueHasExt bool
+		if e.extRegistry.customCount != 0 {
+			keyEncoder, keyHasExt = e.extEncoderForType(rv.Type().Key())
+			valueEncoder, valueHasExt = e.extEncoderForType(rv.Type().Elem())
+		}
+		if !keyHasExt && !valueHasExt {
+			if offset, find := e.writeFixedMap(rv, offset); find {
+				return offset
+			}
+		}
+		if e.extRegistry.customCount == 0 {
+			keyEncoder, keyHasExt = e.extEncoderForType(rv.Type().Key())
+			valueEncoder, valueHasExt = e.extEncoderForType(rv.Type().Elem())
 		}
 
 		// key-value
 		p := rv.Pointer()
+		data := e.d
 		for i := range e.mk[p] {
-			offset = e.create(e.mk[p][i], offset)
-			offset = e.create(e.mv[p][i], offset)
+			if keyHasExt {
+				offset = keyEncoder.WriteToBytes(e.mk[p][i], offset, &data)
+				e.d = data
+			} else if e.extRegistry.customCount == 0 {
+				offset = e.createBuiltIn(e.mk[p][i], offset)
+				data = e.d
+			} else {
+				offset = e.createDefault(e.mk[p][i], offset)
+				data = e.d
+			}
+			if valueHasExt {
+				offset = valueEncoder.WriteToBytes(e.mv[p][i], offset, &data)
+				e.d = data
+			} else if e.extRegistry.customCount == 0 {
+				offset = e.createBuiltIn(e.mv[p][i], offset)
+				data = e.d
+			} else {
+				offset = e.createDefault(e.mv[p][i], offset)
+				data = e.d
+			}
 		}
+		e.d = data
 
 	case reflect.Struct:
 		offset = e.writeStruct(rv, offset)
@@ -368,13 +548,18 @@ func (e *encoder) create(rv reflect.Value, offset int) int {
 			return e.writeNil(offset)
 		}
 
-		offset = e.create(rv.Elem(), offset)
+		if e.extRegistry.customCount == 0 {
+			offset = e.createBuiltIn(rv.Elem(), offset)
+		} else {
+			offset = e.create(rv.Elem(), offset)
+		}
 
 	case reflect.Interface:
-		offset = e.create(rv.Elem(), offset)
-
-	case reflect.Invalid:
-		return e.writeNil(offset)
+		if e.extRegistry.customCount == 0 {
+			offset = e.createBuiltIn(rv.Elem(), offset)
+		} else {
+			offset = e.create(rv.Elem(), offset)
+		}
 
 	}
 	return offset

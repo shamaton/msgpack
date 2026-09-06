@@ -16,6 +16,9 @@ func Test_writeStruct(t *testing.T) {
 	}
 
 	t.Run("Ext", func(t *testing.T) {
+		extMethod := func(e *encoder) func(reflect.Value) error {
+			return e.create
+		}
 		value := time.Time{}
 		testcases := AsXXXTestCases[time.Time]{
 			{
@@ -23,7 +26,7 @@ func Test_writeStruct(t *testing.T) {
 				Value:           value,
 				BufferSize:      1,
 				PreWriteSize:    1,
-				MethodForStruct: method,
+				MethodForStruct: extMethod,
 			},
 			{
 				Name:  "ok",
@@ -34,7 +37,7 @@ func Test_writeStruct(t *testing.T) {
 					0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xf1, 0x88, 0x6e, 0x09, 0x00,
 				},
 				BufferSize:      1,
-				MethodForStruct: method,
+				MethodForStruct: extMethod,
 			},
 		}
 		testcases.Run(t)

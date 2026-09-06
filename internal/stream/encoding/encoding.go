@@ -6,33 +6,35 @@ import (
 	"reflect"
 
 	"github.com/shamaton/msgpack/v3/def"
+	"github.com/shamaton/msgpack/v3/ext"
 	"github.com/shamaton/msgpack/v3/internal/common"
 )
 
 type encoder struct {
-	w       io.Writer
-	asArray bool
-	buf     *common.Buffer
+	w           io.Writer
+	asArray     bool
+	buf         *common.Buffer
+	extRegistry *extEncoderRegistry
 	common.Common
 }
 
 // Encode writes MessagePack-encoded byte array of v to writer.
 func Encode(w io.Writer, v any, asArray bool) error {
 	e := encoder{
-		w:       w,
-		buf:     common.GetBuffer(),
-		asArray: asArray,
+		w:           w,
+		buf:         common.GetBuffer(),
+		asArray:     asArray,
+		extRegistry: currentExtEncoderRegistry.Load(),
 	}
 
 	rv := reflect.ValueOf(v)
-	if rv.Kind() == reflect.Ptr {
-		rv = rv.Elem()
-		if rv.Kind() == reflect.Ptr {
-			rv = rv.Elem()
-		}
-	}
 
-	err := e.create(rv)
+	var err error
+	if e.extRegistry.customCount == 0 {
+		err = e.createBuiltIn(rv)
+	} else {
+		err = e.create(rv)
+	}
 	if err == nil {
 		err = e.buf.Flush(e.w)
 	}
@@ -41,7 +43,27 @@ func Encode(w io.Writer, v any, asArray bool) error {
 }
 
 func (e *encoder) create(rv reflect.Value) error {
-	switch rv.Kind() {
+	kind := rv.Kind()
+	if kind == reflect.Invalid {
+		return e.writeNil()
+	}
+	if encoder, ok := e.extEncoderForValue(kind, rv); ok {
+		return e.writeExt(encoder, rv)
+	}
+	return e.createByKind(rv, kind)
+}
+
+func (e *encoder) createDefault(rv reflect.Value) error {
+	return e.createByKind(rv, rv.Kind())
+}
+
+func (e *encoder) writeExt(encoder ext.StreamEncoder, rv reflect.Value) error {
+	w := ext.CreateStreamWriter(e.w, e.buf)
+	return encoder.Write(w, rv)
+}
+
+func (e *encoder) createByKind(rv reflect.Value, kind reflect.Kind) error {
+	switch kind {
 	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
 		v := rv.Uint()
 		return e.writeUint(v)
@@ -73,8 +95,19 @@ func (e *encoder) create(rv reflect.Value) error {
 			return e.writeNil()
 		}
 		l := rv.Len()
+		elementType := rv.Type().Elem()
+		elementKind := elementType.Kind()
+		var elementEncoder ext.StreamEncoder
+		var elementHasExt bool
+		if e.extRegistry.customCount == 0 {
+			if elementKind == reflect.Struct && elementType == builtInTimeType {
+				elementEncoder, elementHasExt = builtInTimeEncoder, true
+			}
+		} else {
+			elementEncoder, elementHasExt = e.extEncoderForType(elementType)
+		}
 		// bin format
-		if e.isByteSlice(rv) {
+		if !elementHasExt && e.isByteSlice(rv) {
 			if err := e.writeByteSliceLength(l); err != nil {
 				return err
 			}
@@ -86,32 +119,49 @@ func (e *encoder) create(rv reflect.Value) error {
 			return err
 		}
 
-		if find, err := e.writeFixedSlice(rv); err != nil {
-			return err
-		} else if find {
+		if !elementHasExt {
+			if find, err := e.writeFixedSlice(rv); err != nil {
+				return err
+			} else if find {
+				return nil
+			}
+		}
+
+		if elementHasExt {
+			for i := 0; i < l; i++ {
+				if err := e.writeExt(elementEncoder, rv.Index(i)); err != nil {
+					return err
+				}
+			}
 			return nil
 		}
-
-		// func
-		elem := rv.Type().Elem()
-		var f structWriteFunc
-		if elem.Kind() == reflect.Struct {
-			f = e.getStructWriter(elem)
-		} else {
-			f = e.create
+		writeElement := e.createDefault
+		if e.extRegistry.customCount == 0 {
+			writeElement = e.createBuiltIn
+		} else if elementKind == reflect.Struct {
+			writeElement = e.getStructWriter(elementType)
 		}
-
-		// objects
 		for i := 0; i < l; i++ {
-			if err := f(rv.Index(i)); err != nil {
+			if err := writeElement(rv.Index(i)); err != nil {
 				return err
 			}
 		}
 
 	case reflect.Array:
 		l := rv.Len()
+		elementType := rv.Type().Elem()
+		elementKind := elementType.Kind()
+		var elementEncoder ext.StreamEncoder
+		var elementHasExt bool
+		if e.extRegistry.customCount == 0 {
+			if elementKind == reflect.Struct && elementType == builtInTimeType {
+				elementEncoder, elementHasExt = builtInTimeEncoder, true
+			}
+		} else {
+			elementEncoder, elementHasExt = e.extEncoderForType(elementType)
+		}
 		// bin format
-		if e.isByteSlice(rv) {
+		if !elementHasExt && e.isByteSlice(rv) {
 			if err := e.writeByteSliceLength(l); err != nil {
 				return err
 			}
@@ -129,18 +179,22 @@ func (e *encoder) create(rv reflect.Value) error {
 			return err
 		}
 
-		// func
-		elem := rv.Type().Elem()
-		var f structWriteFunc
-		if elem.Kind() == reflect.Struct {
-			f = e.getStructWriter(elem)
-		} else {
-			f = e.create
+		if elementHasExt {
+			for i := 0; i < l; i++ {
+				if err := e.writeExt(elementEncoder, rv.Index(i)); err != nil {
+					return err
+				}
+			}
+			return nil
 		}
-
-		// objects
+		writeElement := e.createDefault
+		if e.extRegistry.customCount == 0 {
+			writeElement = e.createBuiltIn
+		} else if elementKind == reflect.Struct {
+			writeElement = e.getStructWriter(elementType)
+		}
 		for i := 0; i < l; i++ {
-			if err := f(rv.Index(i)); err != nil {
+			if err := writeElement(rv.Index(i)); err != nil {
 				return err
 			}
 		}
@@ -155,19 +209,52 @@ func (e *encoder) create(rv reflect.Value) error {
 			return err
 		}
 
-		if find, err := e.writeFixedMap(rv); err != nil {
-			return err
-		} else if find {
-			return nil
+		keyType, valueType := rv.Type().Key(), rv.Type().Elem()
+		var keyEncoder, valueEncoder ext.StreamEncoder
+		var keyHasExt, valueHasExt bool
+		if e.extRegistry.customCount == 0 {
+			if keyType.Kind() == reflect.Struct && keyType == builtInTimeType {
+				keyEncoder, keyHasExt = builtInTimeEncoder, true
+			}
+			if valueType.Kind() == reflect.Struct && valueType == builtInTimeType {
+				valueEncoder, valueHasExt = builtInTimeEncoder, true
+			}
+		} else {
+			keyEncoder, keyHasExt = e.extEncoderForType(keyType)
+			valueEncoder, valueHasExt = e.extEncoderForType(valueType)
+		}
+		if !keyHasExt && !valueHasExt {
+			if find, err := e.writeFixedMap(rv); err != nil {
+				return err
+			} else if find {
+				return nil
+			}
 		}
 
 		// key-value
 		keys := rv.MapKeys()
 		for _, k := range keys {
-			if err := e.create(k); err != nil {
+			if keyHasExt {
+				if err := e.writeExt(keyEncoder, k); err != nil {
+					return err
+				}
+			} else if e.extRegistry.customCount == 0 {
+				if err := e.createBuiltIn(k); err != nil {
+					return err
+				}
+			} else if err := e.createDefault(k); err != nil {
 				return err
 			}
-			if err := e.create(rv.MapIndex(k)); err != nil {
+			value := rv.MapIndex(k)
+			if valueHasExt {
+				if err := e.writeExt(valueEncoder, value); err != nil {
+					return err
+				}
+			} else if e.extRegistry.customCount == 0 {
+				if err := e.createBuiltIn(value); err != nil {
+					return err
+				}
+			} else if err := e.createDefault(value); err != nil {
 				return err
 			}
 		}
@@ -180,15 +267,19 @@ func (e *encoder) create(rv reflect.Value) error {
 			return e.writeNil()
 		}
 
+		if e.extRegistry.customCount == 0 {
+			return e.createBuiltIn(rv.Elem())
+		}
 		return e.create(rv.Elem())
 
 	case reflect.Interface:
+		if e.extRegistry.customCount == 0 {
+			return e.createBuiltIn(rv.Elem())
+		}
 		return e.create(rv.Elem())
 
-	case reflect.Invalid:
-		return e.writeNil()
 	default:
-		return fmt.Errorf("%v is %w type", rv.Kind(), def.ErrUnsupportedType)
+		return fmt.Errorf("%v is %w type", kind, def.ErrUnsupportedType)
 	}
 	return nil
 }

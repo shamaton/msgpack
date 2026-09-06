@@ -72,7 +72,7 @@ func Test_FixedSlice(t *testing.T) {
 	for _, tc := range testcases {
 		rv := reflect.ValueOf(tc.value)
 		t.Run(rv.Type().String(), func(t *testing.T) {
-			e := encoder{}
+			e := encoder{extRegistry: currentExtEncoderRegistry.Load()}
 			size, b := e.calcFixedSlice(rv)
 			tu.Equal(t, b, true)
 			tu.Equal(t, size, tc.size)
