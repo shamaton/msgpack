@@ -1,5 +1,11 @@
 # Changelog
 
+## [v3.2.2](https://github.com/shamaton/msgpack/compare/v3.2.1...v3.2.2) - 2026-09-06
+
+- fix: honor registered ext coders for named non-struct types across encode/decode and stream APIs (#55) by @shamaton in https://github.com/shamaton/msgpack/pull/117
+- build(deps): bump Songmu/tagpr from 1.20.2 to 1.20.3 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/118
+- build(deps): bump securego/gosec from 57f161386e11e13e4c8a37255bc1a6502993d079 to 598d6146b91b2370c6f11f7d3cb256119d8cbfc4 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/119
+
 ## [v3.2.1](https://github.com/shamaton/msgpack/compare/v3.2.0...v3.2.1) - 2026-08-30
 
 - Bump securego/gosec from 849570622f56a251c015c0e2417aebafc0216e17 to 45b083a0cb42119d61b1e0e364d8c62c68f6f5cd by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/104
