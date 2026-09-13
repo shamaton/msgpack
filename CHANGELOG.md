@@ -1,5 +1,10 @@
 # Changelog
 
+## [v3.2.3](https://github.com/shamaton/msgpack/compare/v3.2.2...v3.2.3) - 2026-09-13
+
+- fix: Move internal-only time package under internal (#62) by @shamaton in https://github.com/shamaton/msgpack/pull/121
+- build(deps): bump securego/gosec from 598d6146b91b2370c6f11f7d3cb256119d8cbfc4 to 8075fd2e520d33330afe168f26fc7a91f57f2cbc by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/122
+
 ## [v3.2.2](https://github.com/shamaton/msgpack/compare/v3.2.1...v3.2.2) - 2026-09-06
 
 - fix: honor registered ext coders for named non-struct types across encode/decode and stream APIs (#55) by @shamaton in https://github.com/shamaton/msgpack/pull/117
