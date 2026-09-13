@@ -19,7 +19,7 @@ import (
 	"github.com/shamaton/msgpack/v3/def"
 	"github.com/shamaton/msgpack/v3/ext"
 	tu "github.com/shamaton/msgpack/v3/internal/common/testutil"
-	extTime "github.com/shamaton/msgpack/v3/time"
+	extTime "github.com/shamaton/msgpack/v3/internal/time"
 )
 
 var now time.Time

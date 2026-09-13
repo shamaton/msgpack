@@ -7,7 +7,7 @@ import (
 	"github.com/shamaton/msgpack/v3/def"
 	"github.com/shamaton/msgpack/v3/internal/common"
 	tu "github.com/shamaton/msgpack/v3/internal/common/testutil"
-	"github.com/shamaton/msgpack/v3/time"
+	"github.com/shamaton/msgpack/v3/internal/time"
 )
 
 func Test_AddExtDecoder(t *testing.T) {

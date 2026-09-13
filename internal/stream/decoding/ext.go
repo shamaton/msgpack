@@ -7,7 +7,7 @@ import (
 	"github.com/shamaton/msgpack/v3/def"
 	"github.com/shamaton/msgpack/v3/ext"
 	"github.com/shamaton/msgpack/v3/internal/common/decodingutil"
-	"github.com/shamaton/msgpack/v3/time"
+	"github.com/shamaton/msgpack/v3/internal/time"
 )
 
 var (

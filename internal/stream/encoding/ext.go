@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 
 	"github.com/shamaton/msgpack/v3/ext"
-	"github.com/shamaton/msgpack/v3/time"
+	"github.com/shamaton/msgpack/v3/internal/time"
 )
 
 type extEncoderRegistry struct {
