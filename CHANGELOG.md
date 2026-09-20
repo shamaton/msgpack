@@ -1,5 +1,10 @@
 # Changelog
 
+## [v3.2.4](https://github.com/shamaton/msgpack/compare/v3.2.3...v3.2.4) - 2026-09-20
+
+- build(deps): bump securego/gosec from 8075fd2e520d33330afe168f26fc7a91f57f2cbc to 681347199262bc33b9b5119ae2b448dec5718240 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/126
+- build(deps): bump codecov/codecov-action from 7.0.0 to 7.1.1 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/125
+
 ## [v3.2.3](https://github.com/shamaton/msgpack/compare/v3.2.2...v3.2.3) - 2026-09-13
 
 - fix: Move internal-only time package under internal (#62) by @shamaton in https://github.com/shamaton/msgpack/pull/121
