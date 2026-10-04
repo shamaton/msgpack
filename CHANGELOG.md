@@ -1,5 +1,13 @@
 # Changelog
 
+## [v3.2.4](https://github.com/shamaton/msgpack/compare/v3.2.3...v3.2.4) - 2026-10-04
+
+- build(deps): bump securego/gosec from 8075fd2e520d33330afe168f26fc7a91f57f2cbc to 681347199262bc33b9b5119ae2b448dec5718240 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/126
+- build(deps): bump codecov/codecov-action from 7.0.0 to 7.1.1 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/125
+- build(deps): bump reviewdog/action-golangci-lint from 2.10.0 to 2.10.1 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/132
+- build(deps): bump securego/gosec from 681347199262bc33b9b5119ae2b448dec5718240 to 65c2c082857febe898116edeb1fcddea0193634a by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/131
+- build(deps): bump Songmu/tagpr from 1.20.3 to 1.21.1 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/130
+
 ## [v3.2.3](https://github.com/shamaton/msgpack/compare/v3.2.2...v3.2.3) - 2026-09-13
 
 - fix: Move internal-only time package under internal (#62) by @shamaton in https://github.com/shamaton/msgpack/pull/121
