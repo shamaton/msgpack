@@ -13,7 +13,7 @@ func Test_AddExtEncoder(t *testing.T) {
 	t.Run("ignore", func(t *testing.T) {
 		AddExtEncoder(time.StreamEncoder)
 		coders := currentExtEncoderRegistry.Load().byKind[reflect.Struct]
-		tu.Equal(t, len(coders), 1)
+		tu.Equal(t, len(coders), 2)
 		tu.Equal(t, coders[time.StreamEncoder.Type()], ext.StreamEncoder(time.StreamEncoder))
 	})
 }
@@ -22,7 +22,7 @@ func Test_RemoveExtEncoder(t *testing.T) {
 	t.Run("ignore", func(t *testing.T) {
 		RemoveExtEncoder(time.StreamEncoder)
 		coders := currentExtEncoderRegistry.Load().byKind[reflect.Struct]
-		tu.Equal(t, len(coders), 1)
+		tu.Equal(t, len(coders), 2)
 		tu.Equal(t, coders[time.StreamEncoder.Type()], ext.StreamEncoder(time.StreamEncoder))
 	})
 }

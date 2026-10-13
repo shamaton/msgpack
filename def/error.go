@@ -12,14 +12,15 @@ var (
 
 	// decoding errors
 
-	ErrNoData                 = fmt.Errorf("%wno data", ErrMsgpack)
-	ErrHasLeftOver            = fmt.Errorf("%wdata has left over", ErrMsgpack)
-	ErrReceiverNotPointer     = fmt.Errorf("%wreceiver not pointer", ErrMsgpack)
-	ErrNotMatchArrayElement   = fmt.Errorf("%wnot match array element", ErrMsgpack)
-	ErrCanNotDecode           = fmt.Errorf("%winvalid code", ErrMsgpack)
-	ErrCanNotSetSliceAsMapKey = fmt.Errorf("%wcan not set slice as map key", ErrMsgpack)
-	ErrCanNotSetMapAsMapKey   = fmt.Errorf("%wcan not set map as map key", ErrMsgpack)
-	ErrValueOutOfRange        = fmt.Errorf("%wvalue out of range", ErrMsgpack)
+	ErrNoData                        = fmt.Errorf("%wno data", ErrMsgpack)
+	ErrHasLeftOver                   = fmt.Errorf("%wdata has left over", ErrMsgpack)
+	ErrReceiverNotPointer            = fmt.Errorf("%wreceiver not pointer", ErrMsgpack)
+	ErrNotMatchArrayElement          = fmt.Errorf("%wnot match array element", ErrMsgpack)
+	ErrCanNotDecode                  = fmt.Errorf("%winvalid code", ErrMsgpack)
+	ErrCanNotSetSliceAsMapKey        = fmt.Errorf("%wcan not set slice as map key", ErrMsgpack)
+	ErrCanNotSetMapAsMapKey          = fmt.Errorf("%wcan not set map as map key", ErrMsgpack)
+	ErrCanNotSetUncomparableAsMapKey = fmt.Errorf("%wcan not set uncomparable value as map key", ErrMsgpack)
+	ErrValueOutOfRange               = fmt.Errorf("%wvalue out of range", ErrMsgpack)
 
 	// encoding errors
 

@@ -1,12 +1,14 @@
 package decoding
 
 import (
+	"bytes"
 	"encoding/binary"
 	"reflect"
 
 	"github.com/shamaton/msgpack/v3/def"
 	"github.com/shamaton/msgpack/v3/ext"
 	"github.com/shamaton/msgpack/v3/internal/common/decodingutil"
+	"github.com/shamaton/msgpack/v3/internal/rawext"
 	"github.com/shamaton/msgpack/v3/internal/time"
 )
 
@@ -55,6 +57,15 @@ func (d *decoder) tryExtDecode(code byte, rv reflect.Value, k reflect.Kind) (boo
 			rv.Set(reflect.ValueOf(v))
 			return true, nil
 		}
+	}
+	// ext.Raw is not dispatched through the registered-decoder loop above
+	// (it accepts any ext type, not a single fixed code), so it is matched
+	// directly against the destination's Go type here instead. data aliases
+	// a reused read buffer, so it must be copied before being retained
+	// beyond this call.
+	if rv.Type() == rawext.TypeOf {
+		rv.Set(reflect.ValueOf(ext.Raw{Type: innerType, Data: bytes.Clone(data)}))
+		return true, nil
 	}
 	return false, nil
 }

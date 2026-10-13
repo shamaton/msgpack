@@ -100,8 +100,8 @@ func (e *encoder) createByKind(rv reflect.Value, kind reflect.Kind) error {
 		var elementEncoder ext.StreamEncoder
 		var elementHasExt bool
 		if e.extRegistry.customCount == 0 {
-			if elementKind == reflect.Struct && elementType == builtInTimeType {
-				elementEncoder, elementHasExt = builtInTimeEncoder, true
+			if elementKind == reflect.Struct {
+				elementEncoder, elementHasExt = builtInStreamExtEncoder(elementType)
 			}
 		} else {
 			elementEncoder, elementHasExt = e.extEncoderForType(elementType)
@@ -154,8 +154,8 @@ func (e *encoder) createByKind(rv reflect.Value, kind reflect.Kind) error {
 		var elementEncoder ext.StreamEncoder
 		var elementHasExt bool
 		if e.extRegistry.customCount == 0 {
-			if elementKind == reflect.Struct && elementType == builtInTimeType {
-				elementEncoder, elementHasExt = builtInTimeEncoder, true
+			if elementKind == reflect.Struct {
+				elementEncoder, elementHasExt = builtInStreamExtEncoder(elementType)
 			}
 		} else {
 			elementEncoder, elementHasExt = e.extEncoderForType(elementType)
@@ -213,11 +213,11 @@ func (e *encoder) createByKind(rv reflect.Value, kind reflect.Kind) error {
 		var keyEncoder, valueEncoder ext.StreamEncoder
 		var keyHasExt, valueHasExt bool
 		if e.extRegistry.customCount == 0 {
-			if keyType.Kind() == reflect.Struct && keyType == builtInTimeType {
-				keyEncoder, keyHasExt = builtInTimeEncoder, true
+			if keyType.Kind() == reflect.Struct {
+				keyEncoder, keyHasExt = builtInStreamExtEncoder(keyType)
 			}
-			if valueType.Kind() == reflect.Struct && valueType == builtInTimeType {
-				valueEncoder, valueHasExt = builtInTimeEncoder, true
+			if valueType.Kind() == reflect.Struct {
+				valueEncoder, valueHasExt = builtInStreamExtEncoder(valueType)
 			}
 		} else {
 			keyEncoder, keyHasExt = e.extEncoderForType(keyType)
