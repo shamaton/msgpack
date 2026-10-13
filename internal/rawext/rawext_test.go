@@ -13,7 +13,7 @@ func Test_headerSize(t *testing.T) {
 	testcases := []struct {
 		n           int
 		wantCode    byte
-		wantLenSize int
+		wantLenSize uint64
 	}{
 		{n: 1, wantCode: def.Fixext1, wantLenSize: 0},
 		{n: 2, wantCode: def.Fixext2, wantLenSize: 0},
@@ -60,6 +60,18 @@ func Test_validateLength(t *testing.T) {
 	}
 }
 
+// Test_validateLength_negative exercises the n < 0 guard directly. n can
+// never actually be negative via the normal len(r.Data) call path, but the
+// guard exists to make the uint64(n) conversion provably non-negative for
+// static analysis (gosec G115); this test ensures that branch is reachable
+// rather than being untested dead code.
+func Test_validateLength_negative(t *testing.T) {
+	err := validateLength(-1)
+	if err != def.ErrUnsupportedLength {
+		t.Fatalf("expected %v, got %v", def.ErrUnsupportedLength, err)
+	}
+}
+
 func Test_byteSize_emptyPayload(t *testing.T) {
 	r := ext.Raw{Type: 1, Data: make([]byte, 0)}
 	if _, err := byteSize(r); err != nil {
@@ -99,5 +111,16 @@ func Test_totalSize_boundsAndOverflow(t *testing.T) {
 	}
 	if _, err := totalSize(n + 1); err != def.ErrUnsupportedLength {
 		t.Fatalf("expected %v for n=%d, got %v", def.ErrUnsupportedLength, n+1, err)
+	}
+}
+
+// Test_totalSize_negative exercises totalSize's own n < 0 guard directly. n
+// can never actually be negative via the normal len(r.Data) call path, but
+// the guard exists to make the uint64(n) conversion provably non-negative
+// for static analysis (gosec G115); this test ensures that branch is
+// reachable rather than being untested dead code.
+func Test_totalSize_negative(t *testing.T) {
+	if _, err := totalSize(-1); err != def.ErrUnsupportedLength {
+		t.Fatalf("expected %v, got %v", def.ErrUnsupportedLength, err)
 	}
 }
