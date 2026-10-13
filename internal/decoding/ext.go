@@ -167,10 +167,14 @@ func (d *decoder) readExtTypeAndData(code byte, offset int) (int8, []byte, int, 
 // length that cannot possibly fit (because it exceeds the remaining buffer)
 // is rejected with def.ErrTooShortBytes before any arithmetic on it as int.
 func (d *decoder) safeExtPayloadLen(offset int, size uint32) (int, error) {
-	var remaining uint64
-	if offset <= len(d.data) {
-		remaining = uint64(len(d.data) - offset)
+	// offset is bounds-checked here (rather than subtracting first and
+	// converting the int result to uint64) so the uint64(len(d.data)) and
+	// uint64(offset) conversions below are provably non-negative, and the
+	// subsequent subtraction can never underflow.
+	if offset < 0 || offset > len(d.data) {
+		return 0, def.ErrTooShortBytes
 	}
+	remaining := uint64(len(d.data)) - uint64(offset)
 	if uint64(size) > remaining {
 		return 0, def.ErrTooShortBytes
 	}
