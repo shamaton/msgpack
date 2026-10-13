@@ -29,7 +29,11 @@ const maxDataLen uint64 = math.MaxUint32
 // clear error instead of silently truncating the length header and writing
 // a malformed, oversized ext frame.
 func validateLength(n int) error {
-	if uint64(n) > maxDataLen {
+	// n is always len(r.Data) in practice (never negative), but the check is
+	// explicit here so the uint64(n) conversion below is provably
+	// non-negative for static analysis (gosec G115), independent of the
+	// caller.
+	if n < 0 || uint64(n) > maxDataLen {
 		return def.ErrUnsupportedLength
 	}
 	return nil
@@ -78,7 +82,20 @@ func totalSize(n int) (int, error) {
 	if err := validateLength(n); err != nil {
 		return 0, err
 	}
+	if n < 0 {
+		// unreachable: validateLength already rejects n < 0. This guard is
+		// kept so the uint64(n) conversion below is provably non-negative
+		// for static analysis (gosec G115), without relying on dataflow
+		// across the validateLength call.
+		return 0, def.ErrUnsupportedLength
+	}
 	_, lengthBytes := headerSize(n)
+	if lengthBytes < 0 {
+		// unreachable: headerSize only ever returns 0, 1, 2, or 4. This
+		// guard makes the uint64(lengthBytes) conversion below provably
+		// non-negative for static analysis (gosec G115).
+		return 0, def.ErrUnsupportedLength
+	}
 	total := uint64(def.Byte1) + uint64(lengthBytes) + uint64(def.Byte1) + uint64(n)
 	if total > uint64(math.MaxInt) {
 		return 0, def.ErrUnsupportedLength
