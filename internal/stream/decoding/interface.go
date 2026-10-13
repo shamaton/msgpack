@@ -1,10 +1,12 @@
 package decoding
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 
 	"github.com/shamaton/msgpack/v3/def"
+	"github.com/shamaton/msgpack/v3/ext"
 	"github.com/shamaton/msgpack/v3/internal/common/decodingutil"
 )
 
@@ -145,6 +147,11 @@ func (d *decoder) asInterfaceWithCode(code byte, k reflect.Kind) (interface{}, e
 			if err != nil {
 				return nil, err
 			}
+			if key != nil {
+				if !reflect.ValueOf(key).Comparable() {
+					return nil, fmt.Errorf("%w. type: %T", def.ErrCanNotSetUncomparableAsMapKey, key)
+				}
+			}
 			value, err := d.asInterface(k)
 			if err != nil {
 				return nil, err
@@ -167,6 +174,14 @@ func (d *decoder) asInterfaceWithCode(code byte, k reflect.Kind) (interface{}, e
 			}
 			return v, nil
 		}
+	}
+	// No registered Decoder claims these bytes. If they are a well-formed
+	// ext frame, fall back to ext.Raw instead of failing, so unregistered
+	// ext payloads can still be decoded into interface{}. extData aliases a
+	// reused read buffer, so it must be copied before being retained beyond
+	// this call.
+	if extData != nil {
+		return ext.Raw{Type: extInnerType, Data: bytes.Clone(extData)}, nil
 	}
 	return nil, d.errorTemplate(code, k)
 }

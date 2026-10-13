@@ -293,6 +293,14 @@ func (d *decoder) decodeWithCode(code byte, rv reflect.Value) error {
 				return err
 			}
 
+			// A dynamic (interface{}) key kind can hold a non-comparable
+			// concrete value (e.g. an unregistered ext.Raw), which would
+			// otherwise panic inside SetMapIndex.
+			if key.Kind() == reflect.Interface {
+				if ev := k.Elem(); ev.IsValid() && !ev.Comparable() {
+					return fmt.Errorf("%w. type: %s", def.ErrCanNotSetUncomparableAsMapKey, ev.Type())
+				}
+			}
 			rv.SetMapIndex(k, v)
 		}
 

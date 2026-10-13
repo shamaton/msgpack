@@ -162,6 +162,12 @@ func Test_asInterfaceWithCode(t *testing.T) {
 			Error:    ErrTestExtDecoder,
 			MethodAs: method,
 		},
+		{
+			Name:     "Unregistered.fallback.to.Raw",
+			Data:     []byte{def.Fixext1, 4, 0},
+			Expected: ext.Raw{Type: 4, Data: []byte{0}},
+			MethodAs: method,
+		},
 	}
 
 	for _, tc := range testcases {

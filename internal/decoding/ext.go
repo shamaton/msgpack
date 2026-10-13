@@ -6,6 +6,8 @@ import (
 
 	"github.com/shamaton/msgpack/v3/def"
 	"github.com/shamaton/msgpack/v3/ext"
+	"github.com/shamaton/msgpack/v3/internal/common/decodingutil"
+	"github.com/shamaton/msgpack/v3/internal/rawext"
 	"github.com/shamaton/msgpack/v3/internal/time"
 )
 
@@ -53,15 +55,14 @@ func updateExtCoders() {
 
 // tryExtDecode attempts to decode the value at offset using a registered ext
 // decoder whose Go type matches the destination rv, mirroring the dispatch
-// setStruct already performed for struct destinations only. extEndOffset both
-// recognizes the ext wire codes and validates that the full ext frame (header
-// and payload) is present, so truncated input is rejected with
+// setStruct already performed for struct destinations only. readExtTypeAndData
+// both recognizes the ext wire codes and validates that the full ext frame
+// (header and payload) is present, so truncated input is rejected with
 // def.ErrTooShortBytes before any custom decoder callback runs; non-ext bytes
-// fall out of extEndOffset's switch immediately, so this costs a single
-// bounds-checked byte read for the common non-ext case. Returns ok=false
-// (with offset==0) when no registered decoder claims the bytes, so callers
-// fall back to the normal kind-based decoding (which will surface a clear
-// type-mismatch error).
+// fall out of its switch immediately, so this costs a single bounds-checked
+// byte read for the common non-ext case. Returns ok=false (with offset==0)
+// when no registered decoder claims the bytes, so callers fall back to the
+// normal kind-based decoding (which will surface a clear type-mismatch error).
 func (d *decoder) tryExtDecode(rv reflect.Value, offset int, k reflect.Kind) (int, bool, error) {
 	if len(extCoders) == 0 {
 		return 0, false, nil
@@ -73,11 +74,15 @@ func (d *decoder) tryExtDecode(rv reflect.Value, offset int, k reflect.Kind) (in
 	if len(extCoders) == 1 && rv.Kind() != reflect.Struct {
 		return 0, false, nil
 	}
-	isExt, _, err := d.extEndOffset(offset)
+	code, dataOffset, err := d.readSize1(offset)
 	if err != nil {
 		return 0, false, err
 	}
-	if !isExt {
+	extType, extData, extOffset, err := d.readExtTypeAndData(code, dataOffset)
+	if err != nil {
+		return 0, false, err
+	}
+	if extData == nil {
 		return 0, false, nil
 	}
 	for i := range extCoders {
@@ -93,15 +98,83 @@ func (d *decoder) tryExtDecode(rv reflect.Value, offset int, k reflect.Kind) (in
 			return o, true, nil
 		}
 	}
+	// ext.Raw is not dispatched through the registered-decoder loop above
+	// (it accepts any ext type, not a single fixed code), so it is matched
+	// directly against the destination's Go type here instead.
+	if rv.Type() == rawext.TypeOf {
+		rv.Set(reflect.ValueOf(ext.Raw{Type: extType, Data: extData}))
+		return extOffset, true, nil
+	}
 	return 0, false, nil
 }
 
-func (d *decoder) extEndOffset(offset int) (bool, int, error) {
-	code, offset, err := d.readSize1(offset)
-	if err != nil {
-		return false, 0, err
+// readExtTypeAndData parses the ext frame at offset (after the format byte)
+// and returns the ext type byte and a view of the payload bytes (aliasing
+// d.data, consistent with asBin), along with the offset just past the frame.
+// If code is not an ext format byte, data is nil and no error is returned, so
+// callers can distinguish "not ext" from "ext but truncated".
+func (d *decoder) readExtTypeAndData(code byte, offset int) (int8, []byte, int, error) {
+	readPayload := func(offset, n int) (int8, []byte, int, error) {
+		bs, offset, err := d.readSizeN(offset, def.Byte1+n)
+		if err != nil {
+			return 0, nil, 0, err
+		}
+		return decodingutil.Int8FromByte(bs[0]), bs[def.Byte1:], offset, nil
 	}
-	return d.extEndOffsetWithCode(code, offset)
+	switch code {
+	case def.Fixext1:
+		return readPayload(offset, def.Byte1)
+	case def.Fixext2:
+		return readPayload(offset, def.Byte2)
+	case def.Fixext4:
+		return readPayload(offset, def.Byte4)
+	case def.Fixext8:
+		return readPayload(offset, def.Byte8)
+	case def.Fixext16:
+		return readPayload(offset, def.Byte16)
+	case def.Ext8:
+		size, offset, err := d.readSize1(offset)
+		if err != nil {
+			return 0, nil, 0, err
+		}
+		return readPayload(offset, int(size))
+	case def.Ext16:
+		sizeBytes, offset, err := d.readSize2(offset)
+		if err != nil {
+			return 0, nil, 0, err
+		}
+		return readPayload(offset, int(binary.BigEndian.Uint16(sizeBytes)))
+	case def.Ext32:
+		sizeBytes, offset, err := d.readSize4(offset)
+		if err != nil {
+			return 0, nil, 0, err
+		}
+		n, err := d.safeExtPayloadLen(offset, binary.BigEndian.Uint32(sizeBytes))
+		if err != nil {
+			return 0, nil, 0, err
+		}
+		return readPayload(offset, n)
+	default:
+		return 0, nil, 0, nil
+	}
+}
+
+// safeExtPayloadLen validates a wire-declared ext32 payload length (up to
+// math.MaxUint32) against the bytes actually remaining in d.data before it is
+// converted to int. Doing the comparison in uint64 avoids the int-sized
+// overflow/negative-length bug that a direct int(uint32Value) conversion
+// would hit on 32-bit platforms, where int is only 32 bits wide: a declared
+// length that cannot possibly fit (because it exceeds the remaining buffer)
+// is rejected with def.ErrTooShortBytes before any arithmetic on it as int.
+func (d *decoder) safeExtPayloadLen(offset int, size uint32) (int, error) {
+	var remaining uint64
+	if offset <= len(d.data) {
+		remaining = uint64(len(d.data) - offset)
+	}
+	if uint64(size) > remaining {
+		return 0, def.ErrTooShortBytes
+	}
+	return int(size), nil
 }
 
 func (d *decoder) extEndOffsetWithCode(code byte, offset int) (bool, int, error) {
