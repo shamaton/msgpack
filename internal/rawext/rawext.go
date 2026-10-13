@@ -41,8 +41,14 @@ func validateLength(n int) error {
 
 // headerSize returns the ext format byte and the number of bytes used to
 // encode the explicit length (0 for the fixext forms, 1/2/4 for ext8/16/32).
+// lengthBytes is returned as uint64 (even though the values are tiny) so
+// that call sites folding it into a uint64 byte-count total never need to
+// convert a variable int to uint64 for this value: it is produced here
+// directly from constant literals, which keeps that arithmetic provably
+// non-negative for static analysis (gosec G115) without needing a runtime
+// guard.
 // The caller must have already validated n via validateLength.
-func headerSize(n int) (code byte, lengthBytes int) {
+func headerSize(n int) (code byte, lengthBytes uint64) {
 	switch n {
 	case 1:
 		return def.Fixext1, 0
@@ -79,24 +85,22 @@ func byteSize(r ext.Raw) (int, error) {
 // core logic behind byteSize, factored out so boundary/overflow cases can
 // be exercised in tests without allocating huge slices.
 func totalSize(n int) (int, error) {
+	// n < 0 can never actually happen (n is always len(r.Data) at every
+	// call site), but this check is what makes the uint64(n) conversion
+	// below provably non-negative to static analysis (gosec G115). It is
+	// deliberately not delegated to validateLength's equivalent check:
+	// calling validateLength first would make this exact branch
+	// unreachable (and therefore untestable) on every call, since
+	// validateLength would already have returned for any n < 0 before
+	// totalSize ever reached this line.
+	if n < 0 {
+		return 0, def.ErrUnsupportedLength
+	}
 	if err := validateLength(n); err != nil {
 		return 0, err
 	}
-	if n < 0 {
-		// unreachable: validateLength already rejects n < 0. This guard is
-		// kept so the uint64(n) conversion below is provably non-negative
-		// for static analysis (gosec G115), without relying on dataflow
-		// across the validateLength call.
-		return 0, def.ErrUnsupportedLength
-	}
 	_, lengthBytes := headerSize(n)
-	if lengthBytes < 0 {
-		// unreachable: headerSize only ever returns 0, 1, 2, or 4. This
-		// guard makes the uint64(lengthBytes) conversion below provably
-		// non-negative for static analysis (gosec G115).
-		return 0, def.ErrUnsupportedLength
-	}
-	total := uint64(def.Byte1) + uint64(lengthBytes) + uint64(def.Byte1) + uint64(n)
+	total := uint64(def.Byte1) + lengthBytes + uint64(def.Byte1) + uint64(n)
 	if total > uint64(math.MaxInt) {
 		return 0, def.ErrUnsupportedLength
 	}
