@@ -209,7 +209,7 @@ func (*unhashableExtEncoder) WriteToBytes(_ reflect.Value, offset int, _ *[]byte
 	return offset
 }
 
-type unhashableExtValue struct{ s []int }
+type unhashableExtValue struct{}
 
 type unhashableExtDecoder struct{ ext.DecoderCommon }
 
