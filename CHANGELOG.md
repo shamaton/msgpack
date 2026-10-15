@@ -1,5 +1,19 @@
 # Changelog
 
+## [v3.2.4](https://github.com/shamaton/msgpack/compare/v3.2.3...v3.2.4) - 2026-10-15
+
+- build(deps): bump securego/gosec from 8075fd2e520d33330afe168f26fc7a91f57f2cbc to 681347199262bc33b9b5119ae2b448dec5718240 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/126
+- build(deps): bump codecov/codecov-action from 7.0.0 to 7.1.1 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/125
+- build(deps): bump reviewdog/action-golangci-lint from 2.10.0 to 2.10.1 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/132
+- build(deps): bump securego/gosec from 681347199262bc33b9b5119ae2b448dec5718240 to 65c2c082857febe898116edeb1fcddea0193634a by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/131
+- build(deps): bump Songmu/tagpr from 1.20.3 to 1.21.1 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/130
+- build(deps): bump actions/download-artifact from 8.0.1 to 8.0.2 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/133
+- build(deps): bump securego/gosec from 65c2c082857febe898116edeb1fcddea0193634a to 7b1b5cebe007d62fb58eacb90fc571112939ec30 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/134
+- build(deps): bump Songmu/tagpr from 1.21.1 to 1.21.2 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/135
+- build(deps): bump reviewdog/action-golangci-lint from 2.10.1 to 2.10.2 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/136
+- fix: prevent decoder crashes on unhashable map keys and deep nesting by @shamaton in https://github.com/shamaton/msgpack/pull/139
+- build(deps): bump actions/upload-artifact from 7.0.1 to 7.0.2 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/137
+
 ## [v3.2.3](https://github.com/shamaton/msgpack/compare/v3.2.2...v3.2.3) - 2026-09-13
 
 - fix: Move internal-only time package under internal (#62) by @shamaton in https://github.com/shamaton/msgpack/pull/121
