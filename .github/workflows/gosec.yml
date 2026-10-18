@@ -26,7 +26,7 @@ jobs:
           persist-credentials: false
 
       - name: Run Gosec Security Scanner
-        uses: securego/gosec@7b1b5cebe007d62fb58eacb90fc571112939ec30 # master, gosec 2.26.1
+        uses: securego/gosec@707f2271f66579a18e1da25794b1e8012247274b # master, gosec 2.26.1
         with:
           args: "-no-fail -fmt sarif -out results.sarif ./..."
 
