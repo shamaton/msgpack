@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/shamaton/msgpack/v2/def"
+	"github.com/shamaton/msgpack/v2/internal/common/decodingutil"
 )
 
 type structCacheTypeMap struct {
@@ -328,7 +329,7 @@ func (d *decoder) jumpOffset() error {
 			return err
 		}
 		if l >= math.MaxInt { // Byte1 + l must not overflow
-			return errDeclaredLengthTooLarge
+			return decodingutil.ErrDeclaredLengthTooLarge
 		}
 		_, err = d.readSizeN(def.Byte1 + l)
 		return err
