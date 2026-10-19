@@ -6,6 +6,7 @@ import (
 
 	"github.com/shamaton/msgpack/v3/def"
 	"github.com/shamaton/msgpack/v3/ext"
+	"github.com/shamaton/msgpack/v3/internal/common/decodingutil"
 	"github.com/shamaton/msgpack/v3/internal/time"
 )
 
@@ -140,7 +141,12 @@ func (d *decoder) extEndOffsetWithCode(code byte, offset int) (bool, int, error)
 		if err != nil {
 			return true, 0, err
 		}
-		_, offset, err = d.readSizeN(offset, def.Byte1+int(binary.BigEndian.Uint32(sizeBytes)))
+		l, err := decodingutil.LengthFromUint32(binary.BigEndian.Uint32(sizeBytes))
+		if err != nil {
+			return true, 0, err
+		}
+		// readSizeN rejects a negative n if Byte1+l overflows
+		_, offset, err = d.readSizeN(offset, def.Byte1+l)
 		return true, offset, err
 	default:
 		return false, 0, nil

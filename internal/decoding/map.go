@@ -79,7 +79,11 @@ func (d *decoder) mapLength(offset int, k reflect.Kind) (int, int, error) {
 		if err != nil {
 			return 0, 0, err
 		}
-		return int(binary.BigEndian.Uint32(bs)), offset, nil
+		l, err := decodingutil.LengthFromUint32(binary.BigEndian.Uint32(bs))
+		if err != nil {
+			return 0, 0, err
+		}
+		return l, offset, nil
 	}
 
 	return 0, 0, d.errorTemplate(code, k)
@@ -87,7 +91,8 @@ func (d *decoder) mapLength(offset int, k reflect.Kind) (int, int, error) {
 
 func (d *decoder) hasRequiredLeastMapSize(offset, length int) error {
 	// minimum check (byte length)
-	if len(d.data[offset:]) < length*2 {
+	// same as len < length*2, but without overflow on 32-bit platforms
+	if length > len(d.data[offset:])/2 {
 		return def.ErrLackDataLengthToMap
 	}
 	return nil
