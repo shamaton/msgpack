@@ -1,5 +1,10 @@
 # Changelog
 
+## [v3.2.5](https://github.com/shamaton/msgpack/compare/v3.2.4...v3.2.5) - 2026-10-20
+
+- build(deps): bump securego/gosec from 7b1b5cebe007d62fb58eacb90fc571112939ec30 to 707f2271f66579a18e1da25794b1e8012247274b by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/142
+- fix: validate 32-bit declared lengths in the buffer decoder by @shamaton in https://github.com/shamaton/msgpack/pull/143
+
 ## [v3.2.4](https://github.com/shamaton/msgpack/compare/v3.2.3...v3.2.4) - 2026-10-15
 
 - build(deps): bump securego/gosec from 8075fd2e520d33330afe168f26fc7a91f57f2cbc to 681347199262bc33b9b5119ae2b448dec5718240 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/126
