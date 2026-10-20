@@ -1,11 +1,26 @@
 package decodingutil
 
 import (
+	"errors"
 	"fmt"
+	"math"
 	"reflect"
 
 	"github.com/shamaton/msgpack/v2/def"
 )
+
+// ErrDeclaredLengthTooLarge is returned when a declared 32-bit length cannot
+// be represented as a non-negative int (32-bit platforms).
+var ErrDeclaredLengthTooLarge = errors.New("declared length is too large")
+
+// LengthFromUint32 converts a MessagePack-declared 32-bit length to int,
+// rejecting values that are not representable as a non-negative int.
+func LengthFromUint32(u uint32) (int, error) {
+	if int64(u) > int64(math.MaxInt) {
+		return 0, fmt.Errorf("%w: %d", ErrDeclaredLengthTooLarge, u)
+	}
+	return int(u), nil // #nosec G115 -- checked above
+}
 
 // MaxDepth limits the nesting of arrays, maps and structs while decoding.
 // Without it, deeply nested input exhausts the goroutine stack and the runtime
