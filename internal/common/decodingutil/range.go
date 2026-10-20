@@ -1,12 +1,26 @@
 package decodingutil
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"reflect"
 
 	"github.com/shamaton/msgpack/v3/def"
 )
+
+// ErrDeclaredLengthTooLarge is returned when a declared 32-bit length cannot
+// be represented as a non-negative int (32-bit platforms).
+var ErrDeclaredLengthTooLarge = errors.New("declared length is too large")
+
+// LengthFromUint32 converts a MessagePack-declared 32-bit length to int,
+// rejecting values that are not representable as a non-negative int.
+func LengthFromUint32(u uint32) (int, error) {
+	if int64(u) > int64(math.MaxInt) {
+		return 0, fmt.Errorf("%w: %d", ErrDeclaredLengthTooLarge, u)
+	}
+	return int(u), nil // #nosec G115 -- checked above
+}
 
 func RangeError(value interface{}, k reflect.Kind) error {
 	return fmt.Errorf("%w %v decoding as %v", def.ErrValueOutOfRange, value, k)

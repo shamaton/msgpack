@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/shamaton/msgpack/v3/def"
+	"github.com/shamaton/msgpack/v3/internal/common/decodingutil"
 )
 
 type structCacheTypeMap struct {
@@ -348,8 +349,14 @@ func (d *decoder) jumpOffset(offset int) (int, error) {
 		if err != nil {
 			return 0, err
 		}
-		o += int(binary.BigEndian.Uint32(bs))
-		offset = o
+		l, err := decodingutil.LengthFromUint32(binary.BigEndian.Uint32(bs))
+		if err != nil {
+			return 0, err
+		}
+		if len(d.data)-o < l {
+			return 0, def.ErrTooShortBytes
+		}
+		offset = o + l
 
 	case d.isFixSlice(code):
 		l := int(code - def.FixArray)
@@ -377,7 +384,10 @@ func (d *decoder) jumpOffset(offset int) (int, error) {
 		if err != nil {
 			return 0, err
 		}
-		l := int(binary.BigEndian.Uint32(bs))
+		l, err := decodingutil.LengthFromUint32(binary.BigEndian.Uint32(bs))
+		if err != nil {
+			return 0, err
+		}
 		for i := 0; i < l; i++ {
 			o, err = d.jumpOffset(o)
 			if err != nil {
@@ -412,11 +422,17 @@ func (d *decoder) jumpOffset(offset int) (int, error) {
 		if err != nil {
 			return 0, err
 		}
-		l := int(binary.BigEndian.Uint32(bs))
-		for i := 0; i < l*2; i++ {
-			o, err = d.jumpOffset(o)
-			if err != nil {
-				return 0, err
+		l, err := decodingutil.LengthFromUint32(binary.BigEndian.Uint32(bs))
+		if err != nil {
+			return 0, err
+		}
+		// skip key and value per entry; l*2 could overflow on 32-bit platforms
+		for i := 0; i < l; i++ {
+			for j := 0; j < 2; j++ {
+				o, err = d.jumpOffset(o)
+				if err != nil {
+					return 0, err
+				}
 			}
 		}
 		offset = o
