@@ -1,5 +1,10 @@
 # Changelog
 
+## [v3.2.6](https://github.com/shamaton/msgpack/compare/v3.2.5...v3.2.6) - 2026-10-25
+
+- fix(stream): avoid EOF when decoding ext into pointer/interface destinations by @shamaton in https://github.com/shamaton/msgpack/pull/148
+- build(deps): bump Songmu/tagpr from 1.21.2 to 1.21.3 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/147
+
 ## [v3.2.5](https://github.com/shamaton/msgpack/compare/v3.2.4...v3.2.5) - 2026-10-20
 
 - build(deps): bump securego/gosec from 7b1b5cebe007d62fb58eacb90fc571112939ec30 to 707f2271f66579a18e1da25794b1e8012247274b by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/142
