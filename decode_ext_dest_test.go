@@ -3,6 +3,7 @@ package msgpack_test
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"reflect"
 	"testing"
@@ -59,8 +60,22 @@ func (*extDestStreamDecoder) IsType(code byte, innerType int8, _ int) bool {
 	return code == def.Fixext1 && innerType == extDestCode
 }
 func (*extDestStreamDecoder) ToValue(_ byte, data []byte, _ reflect.Kind) (interface{}, error) {
+	switch data[0] {
+	case extDestPayloadNil:
+		return nil, nil
+	case extDestPayloadPtr:
+		v := extDestValue(7)
+		return &v, nil
+	}
 	return extDestValue(int8(data[0])), nil
 }
+
+// Payloads that make extDestStreamDecoder return values other than
+// extDestValue, to exercise how they are stored.
+const (
+	extDestPayloadNil byte = 0xf0
+	extDestPayloadPtr byte = 0xf1
+)
 
 // Registering a custom stream ext decoder used to make the stream decoder read
 // an ext frame twice for pointer and interface destinations, failing with EOF.
@@ -156,13 +171,70 @@ func TestDecodeExtIntoPointerAndInterface(t *testing.T) {
 		}
 	})
 
-	t.Run("custom/mismatchedDestination", func(t *testing.T) {
-		for _, df := range decodeFuncs {
-			var v string
-			err := mustNotPanic(t, func() error { return df.fn(custom, &v) })
-			if err == nil || errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
-				t.Fatalf("%s: unexpected error: %v", df.name, err)
+	t.Run("custom/interfaceHoldingNilPointer", func(t *testing.T) {
+		var v interface{} = (*extDestValue)(nil)
+		if err := msgpack.UnmarshalRead(bytes.NewReader(custom), &v); err != nil {
+			t.Fatal(err)
+		}
+		if v != extDestValue(7) {
+			t.Fatalf("got %#v, want extDestValue(7)", v)
+		}
+	})
+
+	mismatched := map[string]func() interface{}{
+		"string":          func() interface{} { return new(string) },
+		"pointer":         func() interface{} { return new(*string) },
+		"nonEmptyIface":   func() interface{} { return new(fmt.Stringer) },
+		"pointerInStruct": func() interface{} { return new(struct{ V *string }) },
+	}
+	for name, newV := range mismatched {
+		t.Run("custom/mismatched/"+name, func(t *testing.T) {
+			data := custom
+			if name == "pointerInStruct" {
+				data = fixmap1("V", custom)
 			}
+			for _, df := range decodeFuncs {
+				// Non-empty interface destinations are not supported by the
+				// kind-based decoding of either decoder; only the stream ext
+				// path is checked here.
+				if name == "nonEmptyIface" && df.name != "UnmarshalRead" {
+					continue
+				}
+				err := mustNotPanic(t, func() error { return df.fn(data, newV()) })
+				if err == nil || errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+					t.Fatalf("%s: unexpected error: %v", df.name, err)
+				}
+			}
+		})
+	}
+
+	nilValue := []byte{def.Fixext1, byte(extDestCode), extDestPayloadNil}
+	t.Run("custom/nilValue/interface", func(t *testing.T) {
+		var v interface{}
+		if err := msgpack.UnmarshalRead(bytes.NewReader(nilValue), &v); err != nil {
+			t.Fatal(err)
+		}
+		if v != nil {
+			t.Fatalf("got %#v, want nil", v)
+		}
+	})
+	t.Run("custom/nilValue/value", func(t *testing.T) {
+		var v extDestValue
+		err := mustNotPanic(t, func() error { return msgpack.UnmarshalRead(bytes.NewReader(nilValue), &v) })
+		if err == nil || errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	// The pointer held by the interface is not addressable, so it can not be
+	// replaced by the decoded pointer.
+	t.Run("custom/pointerValue/interfaceHoldingPointer", func(t *testing.T) {
+		data := []byte{def.Fixext1, byte(extDestCode), extDestPayloadPtr}
+		var dst extDestValue
+		var v interface{} = &dst
+		err := mustNotPanic(t, func() error { return msgpack.UnmarshalRead(bytes.NewReader(data), &v) })
+		if err == nil || errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+			t.Fatalf("unexpected error: %v", err)
 		}
 	})
 }
