@@ -22,9 +22,10 @@ var (
 // payload) from the reader, so truncated input surfaces as a read error
 // before any custom decoder callback runs; non-ext codes make it return with
 // data == nil and no error, at the cost of a single already-read code byte.
-// Returns ok=false when no registered decoder claims the bytes, so callers
-// fall back to the normal kind-based decoding (which will surface a clear
-// type-mismatch error).
+// Returns ok=false only when the bytes are not an ext frame, so callers fall
+// back to the normal kind-based decoding. Once a frame has been read it can
+// not be re-read, so pointer and interface destinations are filled here
+// (see setExtValue) and an unclaimed frame is reported as an error.
 func (d *decoder) tryExtDecode(code byte, rv reflect.Value, k reflect.Kind) (bool, error) {
 	if len(extCoders) == 0 {
 		return false, nil
@@ -34,6 +35,10 @@ func (d *decoder) tryExtDecode(code byte, rv reflect.Value, k reflect.Kind) (boo
 	// kinds. Use rv.Kind() rather than the passed-in k: callers such as the
 	// slice-of-struct fast path pass the container's kind, not the element's.
 	if len(extCoders) == 1 && rv.Kind() != reflect.Struct {
+		return false, nil
+	}
+	// Complex numbers use their own ext frame decoded by the kind switch.
+	if isComplexDest(rv.Type()) {
 		return false, nil
 	}
 	innerType, data, err := d.readIfExtType(code)
@@ -51,12 +56,63 @@ func (d *decoder) tryExtDecode(code byte, rv reflect.Value, k reflect.Kind) (boo
 		if err != nil {
 			return false, err
 		}
-		if rv.Type() == reflect.TypeOf(v) {
-			rv.Set(reflect.ValueOf(v))
+		if setExtValue(rv, v) {
 			return true, nil
 		}
 	}
-	return false, nil
+	// The frame has already been consumed, so falling back to kind-based
+	// decoding would read past it.
+	return false, d.errorTemplate(code, k)
+}
+
+// setExtValue stores an ext-decoded value into rv, following the same rules
+// the buffer decoder reaches by re-decoding from the same offset: pointers
+// are allocated and filled, and interfaces receive the value as is (or fill
+// the pointer they already hold). It reports whether v was stored.
+func setExtValue(rv reflect.Value, v interface{}) bool {
+	if v == nil {
+		// Mirrors asInterfaceWithCode, which leaves the destination untouched.
+		return rv.Kind() == reflect.Interface
+	}
+	vv := reflect.ValueOf(v)
+	if vv.Type() == rv.Type() {
+		if !rv.CanSet() {
+			return false
+		}
+		rv.Set(vv)
+		return true
+	}
+	switch rv.Kind() {
+	case reflect.Ptr:
+		if rv.IsNil() {
+			if !rv.CanSet() {
+				return false
+			}
+			n := reflect.New(rv.Type().Elem())
+			if !setExtValue(n.Elem(), v) {
+				return false
+			}
+			rv.Set(n)
+			return true
+		}
+		return setExtValue(rv.Elem(), v)
+	case reflect.Interface:
+		if e := rv.Elem(); e.Kind() == reflect.Ptr && !e.IsNil() {
+			return setExtValue(e, v)
+		}
+		if rv.CanSet() && vv.Type().AssignableTo(rv.Type()) {
+			rv.Set(vv)
+			return true
+		}
+	}
+	return false
+}
+
+func isComplexDest(t reflect.Type) bool {
+	for t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	return t.Kind() == reflect.Complex64 || t.Kind() == reflect.Complex128
 }
 
 // AddExtDecoder adds decoders for extension types.

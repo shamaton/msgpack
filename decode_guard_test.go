@@ -259,14 +259,6 @@ func TestDecodeUnhashableExtMapKey(t *testing.T) {
 		for dn, newV := range dests {
 			t.Run(df.name+"/"+dn, func(t *testing.T) {
 				err := mustNotPanic(t, func() error { return df.fn(data, newV()) })
-				// The stream reflect path currently fails earlier with EOF when a
-				// custom ext targets an interface{} element (pre-existing issue).
-				if df.name == "UnmarshalRead" && dn == "mapIfaceIface" {
-					if err == nil {
-						t.Fatal("expected error")
-					}
-					return
-				}
 				if !errors.Is(err, def.ErrUnhashableMapKey) {
 					t.Fatalf("unexpected error: %v", err)
 				}
