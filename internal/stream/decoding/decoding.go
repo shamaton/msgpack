@@ -53,8 +53,8 @@ func (d *decoder) decodeWithCode(code byte, rv reflect.Value) error {
 	k := rv.Kind()
 
 	// ext types: honor a registered ext decoder for any destination kind, not
-	// just structs (mirrors setStruct). Falls through to the kind switch when
-	// nothing matches, e.g. because no ext coder claims the bytes.
+	// just structs (mirrors setStruct). Falls through to the kind switch only
+	// when the bytes are not an ext frame.
 	if ok, err := d.tryExtDecode(code, rv, k); err != nil {
 		return err
 	} else if ok {

@@ -2,6 +2,7 @@ package decoding
 
 import (
 	"io"
+	"reflect"
 	"testing"
 
 	"github.com/shamaton/msgpack/v3/def"
@@ -255,4 +256,11 @@ func Test_readIfExtType(t *testing.T) {
 			tu.Equal(t, r.Count(), tc.count)
 		})
 	}
+}
+
+func Test_setExtValueUnsettableNilPointer(t *testing.T) {
+	// Not reachable through the decoder, which only passes non-nil pointers
+	// taken out of interfaces; guard against reflect.Set panicking.
+	rv := reflect.ValueOf((*int)(nil))
+	tu.Equal(t, setExtValue(rv, 1), false)
 }
