@@ -345,8 +345,10 @@ func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
 		offset = o
 
 	case reflect.Interface:
-		if rv.Elem().Kind() == reflect.Ptr {
-			o, err := d.decode(rv.Elem(), offset)
+		// Decode into the pointer the interface already holds. A nil pointer
+		// can not be filled in place, so the interface is replaced instead.
+		if e := rv.Elem(); e.Kind() == reflect.Ptr && !e.IsNil() {
+			o, err := d.decode(e, offset)
 			if err != nil {
 				return 0, err
 			}
