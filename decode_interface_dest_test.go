@@ -2,9 +2,14 @@ package msgpack_test
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
+	"reflect"
 	"testing"
+	"time"
 
 	"github.com/shamaton/msgpack/v2"
+	"github.com/shamaton/msgpack/v2/def"
 )
 
 func mustMarshal(t *testing.T, v interface{}) []byte {
@@ -74,4 +79,56 @@ func TestDecodeIntoInterfaceHoldingPointer(t *testing.T) {
 			}
 		}
 	})
+}
+
+type ifaceErrorHolder struct{ E error }
+
+func TestDecodeIntoNonEmptyInterface(t *testing.T) {
+	one := mustMarshal(t, 1)
+
+	mismatched := []struct {
+		name string
+		data []byte
+		newV func() interface{}
+	}{
+		{"value", one, func() interface{} { return new(fmt.Stringer) }},
+		{"mapValue", mustMarshal(t, map[string]int{"a": 1}), func() interface{} { return new(map[string]fmt.Stringer) }},
+		{"sliceElem", mustMarshal(t, []int{1}), func() interface{} { return new([]error) }},
+		{"structField", mustMarshal(t, map[string]int{"E": 1}), func() interface{} { return new(ifaceErrorHolder) }},
+	}
+	for _, c := range mismatched {
+		t.Run("mismatched/"+c.name, func(t *testing.T) {
+			for _, df := range decodeFuncs {
+				err := mustNotPanic(t, func() error { return df.fn(c.data, c.newV()) })
+				if !errors.Is(err, def.ErrCanNotDecode) {
+					t.Fatalf("%s: unexpected error: %v", df.name, err)
+				}
+			}
+		})
+	}
+
+	matched := []struct {
+		name string
+		data []byte
+		newV func() interface{}
+	}{
+		{"implements", mustMarshal(t, time.Unix(1700000000, 0).UTC()), func() interface{} { return new(fmt.Stringer) }},
+		{"nil", mustMarshal(t, nil), func() interface{} { return new(fmt.Stringer) }},
+		{"nilStructField", mustMarshal(t, map[string]interface{}{"E": nil}), func() interface{} { return new(ifaceErrorHolder) }},
+	}
+	for _, c := range matched {
+		t.Run("matched/"+c.name, func(t *testing.T) {
+			want := c.newV()
+			if err := msgpack.Unmarshal(c.data, want); err != nil {
+				t.Fatalf("Unmarshal: %v", err)
+			}
+			got := c.newV()
+			if err := msgpack.UnmarshalRead(bytes.NewReader(c.data), got); err != nil {
+				t.Fatalf("UnmarshalRead: %v", err)
+			}
+			if !reflect.DeepEqual(got, want) {
+				t.Fatalf("UnmarshalRead = %#v, Unmarshal = %#v", got, want)
+			}
+		})
+	}
 }

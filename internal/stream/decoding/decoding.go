@@ -346,8 +346,12 @@ func (d *decoder) decodeWithCode(code byte, rv reflect.Value) error {
 			if err != nil {
 				return err
 			}
-			if v != nil {
-				rv.Set(reflect.ValueOf(v))
+			if rv.Type() == decodingutil.EmptyInterfaceType {
+				if v != nil {
+					rv.Set(reflect.ValueOf(v))
+				}
+			} else if err := decodingutil.SetInterface(rv, v); err != nil {
+				return err
 			}
 		}
 

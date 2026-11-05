@@ -358,8 +358,12 @@ func (d *decoder) decode(rv reflect.Value, offset int) (int, error) {
 			if err != nil {
 				return 0, err
 			}
-			if v != nil {
-				rv.Set(reflect.ValueOf(v))
+			if rv.Type() == decodingutil.EmptyInterfaceType {
+				if v != nil {
+					rv.Set(reflect.ValueOf(v))
+				}
+			} else if err := decodingutil.SetInterface(rv, v); err != nil {
+				return 0, err
 			}
 			offset = o
 		}
