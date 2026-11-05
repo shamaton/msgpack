@@ -351,8 +351,11 @@ func (d *decoder) decodeWithCode(code byte, rv reflect.Value) error {
 		}
 
 	case reflect.Interface:
-		if rv.Elem().Kind() == reflect.Ptr {
-			err := d.decode(rv.Elem())
+		// Decode into the pointer the interface already holds, reusing the
+		// code byte that has already been read. A nil pointer can not be
+		// filled in place, so the interface is replaced instead.
+		if e := rv.Elem(); e.Kind() == reflect.Ptr && !e.IsNil() {
+			err := d.decodeWithCode(code, e)
 			if err != nil {
 				return err
 			}
