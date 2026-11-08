@@ -1,0 +1,134 @@
+package msgpack_test
+
+import (
+	"bytes"
+	"errors"
+	"fmt"
+	"reflect"
+	"testing"
+	"time"
+
+	"github.com/shamaton/msgpack/v3"
+	"github.com/shamaton/msgpack/v3/def"
+)
+
+func mustMarshal(t *testing.T, v interface{}) []byte {
+	t.Helper()
+	b, err := msgpack.Marshal(v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return b
+}
+
+func TestDecodeIntoInterfaceHoldingPointer(t *testing.T) {
+	five := mustMarshal(t, 5)
+	nilData := mustMarshal(t, nil)
+
+	t.Run("nonNilPointer", func(t *testing.T) {
+		for _, df := range decodeFuncs {
+			var d int
+			var v interface{} = &d
+			if err := mustNotPanic(t, func() error { return df.fn(five, &v) }); err != nil {
+				t.Fatalf("%s: %v", df.name, err)
+			}
+			if d != 5 || v != &d {
+				t.Fatalf("%s: got d=%d v=%#v", df.name, d, v)
+			}
+		}
+	})
+
+	// The stream decoder used to read the byte after the value instead.
+	t.Run("nonNilPointer/trailingData", func(t *testing.T) {
+		var d int
+		var v interface{} = &d
+		data := append(append([]byte{}, five...), 0x07)
+		if err := msgpack.UnmarshalRead(bytes.NewReader(data), &v); err != nil {
+			t.Fatal(err)
+		}
+		if d != 5 {
+			t.Fatalf("got %d, want 5", d)
+		}
+	})
+
+	t.Run("nonNilPointer/nil", func(t *testing.T) {
+		for _, df := range decodeFuncs {
+			d := 3
+			var v interface{} = &d
+			if err := mustNotPanic(t, func() error { return df.fn(nilData, &v) }); err != nil {
+				t.Fatalf("%s: %v", df.name, err)
+			}
+			if d != 3 || v != &d {
+				t.Fatalf("%s: got d=%d v=%#v", df.name, d, v)
+			}
+		}
+	})
+
+	t.Run("nilPointer", func(t *testing.T) {
+		for _, df := range decodeFuncs {
+			var v interface{} = (*int)(nil)
+			if err := mustNotPanic(t, func() error { return df.fn(five, &v) }); err != nil {
+				t.Fatalf("%s: %v", df.name, err)
+			}
+			want := interface{}(nil)
+			if err := msgpack.Unmarshal(five, &want); err != nil {
+				t.Fatal(err)
+			}
+			if v != want {
+				t.Fatalf("%s: got %#v, want %#v", df.name, v, want)
+			}
+		}
+	})
+}
+
+type ifaceErrorHolder struct{ E error }
+
+func TestDecodeIntoNonEmptyInterface(t *testing.T) {
+	one := mustMarshal(t, 1)
+
+	mismatched := []struct {
+		name string
+		data []byte
+		newV func() interface{}
+	}{
+		{"value", one, func() interface{} { return new(fmt.Stringer) }},
+		{"mapValue", mustMarshal(t, map[string]int{"a": 1}), func() interface{} { return new(map[string]fmt.Stringer) }},
+		{"sliceElem", mustMarshal(t, []int{1}), func() interface{} { return new([]error) }},
+		{"structField", mustMarshal(t, map[string]int{"E": 1}), func() interface{} { return new(ifaceErrorHolder) }},
+	}
+	for _, c := range mismatched {
+		t.Run("mismatched/"+c.name, func(t *testing.T) {
+			for _, df := range decodeFuncs {
+				err := mustNotPanic(t, func() error { return df.fn(c.data, c.newV()) })
+				if !errors.Is(err, def.ErrCanNotDecode) {
+					t.Fatalf("%s: unexpected error: %v", df.name, err)
+				}
+			}
+		})
+	}
+
+	matched := []struct {
+		name string
+		data []byte
+		newV func() interface{}
+	}{
+		{"implements", mustMarshal(t, time.Unix(1700000000, 0).UTC()), func() interface{} { return new(fmt.Stringer) }},
+		{"nil", mustMarshal(t, nil), func() interface{} { return new(fmt.Stringer) }},
+		{"nilStructField", mustMarshal(t, map[string]interface{}{"E": nil}), func() interface{} { return new(ifaceErrorHolder) }},
+	}
+	for _, c := range matched {
+		t.Run("matched/"+c.name, func(t *testing.T) {
+			want := c.newV()
+			if err := msgpack.Unmarshal(c.data, want); err != nil {
+				t.Fatalf("Unmarshal: %v", err)
+			}
+			got := c.newV()
+			if err := msgpack.UnmarshalRead(bytes.NewReader(c.data), got); err != nil {
+				t.Fatalf("UnmarshalRead: %v", err)
+			}
+			if !reflect.DeepEqual(got, want) {
+				t.Fatalf("UnmarshalRead = %#v, Unmarshal = %#v", got, want)
+			}
+		})
+	}
+}
