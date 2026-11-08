@@ -1,5 +1,12 @@
 # Changelog
 
+## [v3.2.7](https://github.com/shamaton/msgpack/compare/v3.2.6...v3.2.7) - 2026-11-08
+
+- fix: handle interface destinations holding pointers or requiring methods by @shamaton in https://github.com/shamaton/msgpack/pull/152
+- build(deps): bump Songmu/tagpr from 1.21.3 to 1.22.0 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/154
+- build(deps): bump securego/gosec from 707f2271f66579a18e1da25794b1e8012247274b to 14c713478ed40c9bdfa56d35d9c2142b91608106 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/155
+- build(deps): bump github/codeql-action/upload-sarif from 7c1e4cf0b20d7c1872b26569c00ba908797a59bf to 0911ee96d2d6c8def97122c36c5cadd93829a4b4 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/156
+
 ## [v3.2.6](https://github.com/shamaton/msgpack/compare/v3.2.5...v3.2.6) - 2026-10-25
 
 - fix(stream): avoid EOF when decoding ext into pointer/interface destinations by @shamaton in https://github.com/shamaton/msgpack/pull/148
