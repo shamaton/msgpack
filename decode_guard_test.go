@@ -178,6 +178,61 @@ func TestDecodeMaxDepthStruct(t *testing.T) {
 	}
 }
 
+func TestDecodeMaxDepthSkippedValue(t *testing.T) {
+	const limit = 10000
+	type S struct{ A int }
+
+	asMap := func(nested []byte) []byte {
+		// fixmap(1){ "z": nested } where "z" is not a field of S
+		return append([]byte{0x81, 0xa1, 'z'}, nested...)
+	}
+	asArray := func(nested []byte) []byte {
+		// fixarray(2){ 1, nested } where the second element has no field in S
+		return append([]byte{0x92, 0x01}, nested...)
+	}
+	funcs := []struct {
+		decodeFunc
+		wrap func([]byte) []byte
+	}{
+		{decodeFunc{"UnmarshalAsMap", msgpack.UnmarshalAsMap}, asMap},
+		{decodeFunc{"UnmarshalReadAsMap", func(data []byte, v interface{}) error {
+			return msgpack.UnmarshalReadAsMap(bytes.NewReader(data), v)
+		}}, asMap},
+		{decodeFunc{"UnmarshalAsArray", msgpack.UnmarshalAsArray}, asArray},
+		{decodeFunc{"UnmarshalReadAsArray", func(data []byte, v interface{}) error {
+			return msgpack.UnmarshalReadAsArray(bytes.NewReader(data), v)
+		}}, asArray},
+	}
+
+	for _, f := range funcs {
+		t.Run(f.name+"/within limit", func(t *testing.T) {
+			// the struct itself counts as one level
+			for _, nested := range [][]byte{nestedArrays(limit - 1), nestedMaps(limit - 1)} {
+				var v S
+				if err := f.fn(f.wrap(nested), &v); err != nil {
+					t.Fatal(err)
+				}
+			}
+		})
+
+		inputs := map[string][]byte{
+			"arrays":     nestedArrays(limit),
+			"maps":       nestedMaps(limit),
+			"arraysHuge": nestedArrays(5_000_000),
+		}
+		for in, nested := range inputs {
+			data := f.wrap(nested)
+			t.Run(f.name+"/"+in, func(t *testing.T) {
+				var v S
+				err := mustNotPanic(t, func() error { return f.fn(data, &v) })
+				if !errors.Is(err, def.ErrExceededMaxDepth) {
+					t.Fatalf("unexpected error: %v", err)
+				}
+			})
+		}
+	}
+}
+
 func TestDecodeContainerMapKeyIntoReflectMap(t *testing.T) {
 	inputs := map[string][]byte{
 		// fixmap(1){ fixarray(0): nil }

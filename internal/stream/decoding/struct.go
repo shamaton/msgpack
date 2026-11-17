@@ -343,15 +343,22 @@ func (d *decoder) jumpOffset() error {
 		return err
 
 	case d.isFixSlice(code):
+		if err = d.enter(); err != nil {
+			return err
+		}
 		l := int(code - def.FixArray)
 		for i := 0; i < l; i++ {
 			if err = d.jumpOffset(); err != nil {
 				return err
 			}
 		}
+		d.depth--
 	case code == def.Array16:
 		bs, err := d.readSize2()
 		if err != nil {
+			return err
+		}
+		if err = d.enter(); err != nil {
 			return err
 		}
 		l := int(binary.BigEndian.Uint16(bs))
@@ -360,6 +367,7 @@ func (d *decoder) jumpOffset() error {
 				return err
 			}
 		}
+		d.depth--
 	case code == def.Array32:
 		bs, err := d.readSize4()
 		if err != nil {
@@ -369,22 +377,33 @@ func (d *decoder) jumpOffset() error {
 		if err != nil {
 			return err
 		}
+		if err = d.enter(); err != nil {
+			return err
+		}
 		for i := 0; i < l; i++ {
 			if err = d.jumpOffset(); err != nil {
 				return err
 			}
 		}
+		d.depth--
 
 	case d.isFixMap(code):
+		if err = d.enter(); err != nil {
+			return err
+		}
 		l := int(code - def.FixMap)
 		for i := 0; i < l*2; i++ {
 			if err = d.jumpOffset(); err != nil {
 				return err
 			}
 		}
+		d.depth--
 	case code == def.Map16:
 		bs, err := d.readSize2()
 		if err != nil {
+			return err
+		}
+		if err = d.enter(); err != nil {
 			return err
 		}
 		l := int(binary.BigEndian.Uint16(bs))
@@ -393,6 +412,7 @@ func (d *decoder) jumpOffset() error {
 				return err
 			}
 		}
+		d.depth--
 	case code == def.Map32:
 		bs, err := d.readSize4()
 		if err != nil {
@@ -400,6 +420,9 @@ func (d *decoder) jumpOffset() error {
 		}
 		l, err := lengthFromUint32(binary.BigEndian.Uint32(bs))
 		if err != nil {
+			return err
+		}
+		if err = d.enter(); err != nil {
 			return err
 		}
 		// skip key and value separately: multiplying the pair count would
@@ -412,6 +435,7 @@ func (d *decoder) jumpOffset() error {
 				return err
 			}
 		}
+		d.depth--
 
 	case code == def.Fixext1:
 		_, err = d.readSizeN(def.Byte1 + def.Byte1)
