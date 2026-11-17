@@ -1,5 +1,10 @@
 # Changelog
 
+## [v3.2.8](https://github.com/shamaton/msgpack/compare/v3.2.7...v3.2.8) - 2026-11-17
+
+- build(deps): bump securego/gosec from 14c713478ed40c9bdfa56d35d9c2142b91608106 to 244f1f6f4d1d0d14f89e79a73dab1219eabb5228 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/160
+- build(deps): bump github/codeql-action/upload-sarif from 0911ee96d2d6c8def97122c36c5cadd93829a4b4 to 3ea37a44b6e4e6847c46edae209410d258d548d1 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/161
+
 ## [v3.2.7](https://github.com/shamaton/msgpack/compare/v3.2.6...v3.2.7) - 2026-11-08
 
 - fix: handle interface destinations holding pointers or requiring methods by @shamaton in https://github.com/shamaton/msgpack/pull/152
