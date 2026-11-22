@@ -53,6 +53,6 @@ jobs:
           path: .
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@3ea37a44b6e4e6847c46edae209410d258d548d1 # v4
+        uses: github/codeql-action/upload-sarif@38112626f97ac1fd7acf3df7ebca51f4677c1b38 # v4
         with:
           sarif_file: results.sarif
