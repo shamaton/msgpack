@@ -202,11 +202,11 @@ func Test_asInterfaceWithCode(t *testing.T) {
 			MethodAsWithCode: method,
 		},
 		{
-			Name:             "Unexpected",
+			Name:             "Unregistered.fallback.to.Raw",
 			Code:             def.Fixext1,
 			Data:             []byte{4, 0},
 			ReadCount:        2,
-			Error:            def.ErrCanNotDecode,
+			Expected:         ext.Raw{Type: 4, Data: []byte{0}},
 			MethodAsWithCode: method,
 		},
 	}
