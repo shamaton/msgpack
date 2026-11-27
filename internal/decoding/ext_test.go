@@ -86,3 +86,27 @@ func TestExtValidationRejectsTruncatedBytesBeforeCustomDecoders(t *testing.T) {
 		})
 	}
 }
+
+// TestSafeExtPayloadLenNegativeOffsetGuard directly exercises
+// safeExtPayloadLen's offset < 0 branch. offset can never actually be
+// negative via the normal readSize4 call path, but the guard exists to make
+// the subsequent uint64 conversions provably non-negative for static
+// analysis (gosec G115); this test ensures that branch is reachable and
+// behaves as documented rather than being untested dead code.
+func TestSafeExtPayloadLenNegativeOffsetGuard(t *testing.T) {
+	d := decoder{data: []byte{1, 2, 3}}
+
+	n, err := d.safeExtPayloadLen(-1, 1)
+	tu.IsError(t, err, def.ErrTooShortBytes)
+	tu.Equal(t, n, 0)
+}
+
+// TestSafeExtPayloadLenOffsetPastEndGuard exercises the offset > len(d.data)
+// side of the same guard.
+func TestSafeExtPayloadLenOffsetPastEndGuard(t *testing.T) {
+	d := decoder{data: []byte{1, 2, 3}}
+
+	n, err := d.safeExtPayloadLen(4, 1)
+	tu.IsError(t, err, def.ErrTooShortBytes)
+	tu.Equal(t, n, 0)
+}

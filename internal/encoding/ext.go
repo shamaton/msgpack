@@ -7,6 +7,7 @@ import (
 
 	"github.com/shamaton/msgpack/v3/def"
 	"github.com/shamaton/msgpack/v3/ext"
+	"github.com/shamaton/msgpack/v3/internal/rawext"
 	"github.com/shamaton/msgpack/v3/internal/time"
 )
 
@@ -20,12 +21,28 @@ var (
 	extEncoderRegistryMu      sync.Mutex
 	currentExtEncoderRegistry atomic.Pointer[extEncoderRegistry]
 	builtInTimeType           = time.Encoder.Type()
+	builtInRawType            = rawext.Encoder.Type()
 )
+
+// builtInExtEncoder returns the built-in encoder (time.Time or ext.Raw) for
+// typ, if any. It centralizes the two built-in special cases so callers
+// don't need to repeat both checks.
+func builtInExtEncoder(typ reflect.Type) (ext.Encoder, bool) {
+	switch typ {
+	case builtInTimeType:
+		return time.Encoder, true
+	case builtInRawType:
+		return rawext.Encoder, true
+	default:
+		return nil, false
+	}
+}
 
 func init() {
 	registry := &extEncoderRegistry{}
 	registry.byKind[reflect.Struct] = map[reflect.Type]ext.Encoder{
 		builtInTimeType: time.Encoder,
+		builtInRawType:  rawext.Encoder,
 	}
 	currentExtEncoderRegistry.Store(registry)
 }
@@ -33,7 +50,7 @@ func init() {
 // AddExtEncoder adds an encoder for an exact type without replacing an existing encoder.
 func AddExtEncoder(encoder ext.Encoder) {
 	typ := encoder.Type()
-	if typ == builtInTimeType {
+	if typ == builtInTimeType || typ == builtInRawType {
 		return
 	}
 
@@ -57,7 +74,7 @@ func AddExtEncoder(encoder ext.Encoder) {
 // RemoveExtEncoder removes the encoder registered for the encoder's exact type.
 func RemoveExtEncoder(encoder ext.Encoder) {
 	typ := encoder.Type()
-	if typ == builtInTimeType {
+	if typ == builtInTimeType || typ == builtInRawType {
 		return
 	}
 
@@ -78,7 +95,9 @@ func RemoveExtEncoder(encoder ext.Encoder) {
 	} else {
 		next.byKind[kind] = cloneExtEncoderMap(currentKind, 0)
 		delete(next.byKind[kind], typ)
-		next.hasCustom[kind] = kind != reflect.Struct || len(next.byKind[kind]) > 1
+		// Struct always retains two built-ins (time.Time and ext.Raw), so
+		// more than two entries means a custom struct-kind encoder remains.
+		next.hasCustom[kind] = kind != reflect.Struct || len(next.byKind[kind]) > 2
 	}
 	next.customCount--
 	currentExtEncoderRegistry.Store(&next)
@@ -94,16 +113,13 @@ func cloneExtEncoderMap(source map[reflect.Type]ext.Encoder, extraCapacity int) 
 
 func (e *encoder) extEncoderForValue(kind reflect.Kind, value reflect.Value) (ext.Encoder, bool) {
 	if e.extRegistry.customCount == 0 {
-		if kind == reflect.Struct && value.Type() == builtInTimeType {
-			return time.Encoder, true
+		if kind == reflect.Struct {
+			return builtInExtEncoder(value.Type())
 		}
 		return nil, false
 	}
 	if kind == reflect.Struct && !e.extRegistry.hasCustom[reflect.Struct] {
-		if value.Type() == builtInTimeType {
-			return time.Encoder, true
-		}
-		return nil, false
+		return builtInExtEncoder(value.Type())
 	}
 	coders := e.extRegistry.byKind[kind]
 	if coders == nil {
@@ -116,16 +132,13 @@ func (e *encoder) extEncoderForValue(kind reflect.Kind, value reflect.Value) (ex
 func (e *encoder) extEncoderForType(typ reflect.Type) (ext.Encoder, bool) {
 	kind := typ.Kind()
 	if e.extRegistry.customCount == 0 {
-		if kind == reflect.Struct && typ == builtInTimeType {
-			return time.Encoder, true
+		if kind == reflect.Struct {
+			return builtInExtEncoder(typ)
 		}
 		return nil, false
 	}
 	if kind == reflect.Struct && !e.extRegistry.hasCustom[reflect.Struct] {
-		if typ == builtInTimeType {
-			return time.Encoder, true
-		}
-		return nil, false
+		return builtInExtEncoder(typ)
 	}
 	coders := e.extRegistry.byKind[kind]
 	if coders == nil {
@@ -159,6 +172,9 @@ func (e *encoder) calcSizeBuiltIn(rv reflect.Value) (int, error) {
 	case reflect.Struct:
 		if rv.Type() == builtInTimeType {
 			return time.Encoder.CalcByteSize(rv)
+		}
+		if rv.Type() == builtInRawType {
+			return rawext.Encoder.CalcByteSize(rv)
 		}
 		return e.calcStruct(rv)
 	case reflect.Ptr:
@@ -197,6 +213,9 @@ func (e *encoder) createBuiltIn(rv reflect.Value, offset int) int {
 	case reflect.Struct:
 		if rv.Type() == builtInTimeType {
 			return e.writeExt(time.Encoder, rv, offset)
+		}
+		if rv.Type() == builtInRawType {
+			return e.writeExt(rawext.Encoder, rv, offset)
 		}
 		return e.writeStruct(rv, offset)
 	case reflect.Ptr:

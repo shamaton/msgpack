@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	"github.com/shamaton/msgpack/v3/def"
+	"github.com/shamaton/msgpack/v3/ext"
 	"github.com/shamaton/msgpack/v3/internal/common/decodingutil"
 )
 
@@ -202,22 +203,29 @@ func (d *decoder) asInterface(offset int, k reflect.Kind) (interface{}, int, err
 	*/
 
 	// ext
-	isExt, _, err := d.extEndOffset(offset)
+	// Validate the full ext frame (and extract its type/payload) before
+	// dispatching to any registered Decoder, so truncated input is rejected
+	// up front rather than after a Decoder has already been invoked.
+	extType, extData, extOffset, err := d.readExtTypeAndData(code, offset+def.Byte1)
 	if err != nil {
 		return nil, 0, err
 	}
-	if isExt {
-		for i := range extCoders {
-			if extCoders[i].IsType(offset, &d.data) {
-				v, offset, err := extCoders[i].AsValue(offset, k, &d.data)
-				if err != nil {
-					return nil, 0, err
-				}
-				return v, offset, nil
+	if extData == nil {
+		return nil, 0, d.errorTemplate(code, k)
+	}
+	for i := range extCoders {
+		if extCoders[i].IsType(offset, &d.data) {
+			v, offset, err := extCoders[i].AsValue(offset, k, &d.data)
+			if err != nil {
+				return nil, 0, err
 			}
+			return v, offset, nil
 		}
 	}
-	return nil, 0, d.errorTemplate(code, k)
+	// No registered Decoder claims these bytes; fall back to ext.Raw instead
+	// of failing, so unregistered ext payloads can still be decoded into
+	// interface{}.
+	return ext.Raw{Type: extType, Data: extData}, extOffset, nil
 }
 
 func (d *decoder) canSetAsMapKey(index int) error {

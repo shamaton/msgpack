@@ -93,6 +93,7 @@ func TestDecodeExtIntoPointerAndInterface(t *testing.T) {
 	t.Cleanup(func() { _ = msgpack.RemoveExtStreamCoder(senc, sdec) })
 
 	custom := []byte{def.Fixext1, byte(extDestCode), 0x07}
+	unregistered := []byte{def.Fixext1, 5, 0x7b}
 	tm, err := msgpack.Marshal(time.Unix(1700000000, 123).UTC())
 	if err != nil {
 		t.Fatal(err)
@@ -131,6 +132,12 @@ func TestDecodeExtIntoPointerAndInterface(t *testing.T) {
 		{"custom/mapIfaceIface", fixmap1("a", custom), func() interface{} { return new(map[interface{}]interface{}) }},
 		{"custom/sliceIface", fixarray1(custom), func() interface{} { return new([]interface{}) }},
 		{"custom/structPtrField", fixmap1("V", custom), func() interface{} { return new(customPtrHolder) }},
+		{"raw/value", unregistered, func() interface{} { return new(ext.Raw) }},
+		{"raw/pointer", unregistered, func() interface{} { return new(*ext.Raw) }},
+		{"raw/interface", unregistered, func() interface{} { return new(interface{}) }},
+		{"raw/mapStringIface", fixmap1("a", unregistered), func() interface{} { return new(map[string]interface{}) }},
+		{"raw/sliceIface", fixarray1(unregistered), func() interface{} { return new([]interface{}) }},
+		{"raw/structPtrField", fixmap1("R", unregistered), func() interface{} { return new(struct{ R *ext.Raw }) }},
 		{"time/value", tm, func() interface{} { return new(time.Time) }},
 		{"time/pointer", tm, func() interface{} { return new(*time.Time) }},
 		{"time/interface", tm, func() interface{} { return new(interface{}) }},

@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 
 	"github.com/shamaton/msgpack/v3/ext"
+	"github.com/shamaton/msgpack/v3/internal/rawext"
 	"github.com/shamaton/msgpack/v3/internal/time"
 )
 
@@ -20,12 +21,28 @@ var (
 	currentExtEncoderRegistry atomic.Pointer[extEncoderRegistry]
 	builtInTimeEncoder        = time.StreamEncoder
 	builtInTimeType           = builtInTimeEncoder.Type()
+	builtInRawEncoder         = rawext.StreamEncoder
+	builtInRawType            = builtInRawEncoder.Type()
 )
+
+// builtInStreamExtEncoder returns the built-in stream encoder (time.Time or
+// ext.Raw) for typ, if any.
+func builtInStreamExtEncoder(typ reflect.Type) (ext.StreamEncoder, bool) {
+	switch typ {
+	case builtInTimeType:
+		return builtInTimeEncoder, true
+	case builtInRawType:
+		return builtInRawEncoder, true
+	default:
+		return nil, false
+	}
+}
 
 func init() {
 	registry := &extEncoderRegistry{}
 	registry.byKind[reflect.Struct] = map[reflect.Type]ext.StreamEncoder{
 		builtInTimeType: builtInTimeEncoder,
+		builtInRawType:  builtInRawEncoder,
 	}
 	currentExtEncoderRegistry.Store(registry)
 }
@@ -33,7 +50,7 @@ func init() {
 // AddExtEncoder adds an encoder for an exact type without replacing an existing encoder.
 func AddExtEncoder(encoder ext.StreamEncoder) {
 	typ := encoder.Type()
-	if typ == builtInTimeType {
+	if typ == builtInTimeType || typ == builtInRawType {
 		return
 	}
 
@@ -57,7 +74,7 @@ func AddExtEncoder(encoder ext.StreamEncoder) {
 // RemoveExtEncoder removes the encoder registered for the encoder's exact type.
 func RemoveExtEncoder(encoder ext.StreamEncoder) {
 	typ := encoder.Type()
-	if typ == builtInTimeType {
+	if typ == builtInTimeType || typ == builtInRawType {
 		return
 	}
 
@@ -78,7 +95,9 @@ func RemoveExtEncoder(encoder ext.StreamEncoder) {
 	} else {
 		next.byKind[kind] = cloneExtEncoderMap(currentKind, 0)
 		delete(next.byKind[kind], typ)
-		next.hasCustom[kind] = kind != reflect.Struct || len(next.byKind[kind]) > 1
+		// Struct always retains two built-ins (time.Time and ext.Raw), so
+		// more than two entries means a custom struct-kind encoder remains.
+		next.hasCustom[kind] = kind != reflect.Struct || len(next.byKind[kind]) > 2
 	}
 	next.customCount--
 	currentExtEncoderRegistry.Store(&next)
@@ -94,16 +113,13 @@ func cloneExtEncoderMap(source map[reflect.Type]ext.StreamEncoder, extraCapacity
 
 func (e *encoder) extEncoderForValue(kind reflect.Kind, value reflect.Value) (ext.StreamEncoder, bool) {
 	if e.extRegistry.customCount == 0 {
-		if kind == reflect.Struct && value.Type() == builtInTimeType {
-			return builtInTimeEncoder, true
+		if kind == reflect.Struct {
+			return builtInStreamExtEncoder(value.Type())
 		}
 		return nil, false
 	}
 	if kind == reflect.Struct && !e.extRegistry.hasCustom[reflect.Struct] {
-		if value.Type() == builtInTimeType {
-			return builtInTimeEncoder, true
-		}
-		return nil, false
+		return builtInStreamExtEncoder(value.Type())
 	}
 	coders := e.extRegistry.byKind[kind]
 	if coders == nil {
@@ -116,16 +132,13 @@ func (e *encoder) extEncoderForValue(kind reflect.Kind, value reflect.Value) (ex
 func (e *encoder) extEncoderForType(typ reflect.Type) (ext.StreamEncoder, bool) {
 	kind := typ.Kind()
 	if e.extRegistry.customCount == 0 {
-		if kind == reflect.Struct && typ == builtInTimeType {
-			return builtInTimeEncoder, true
+		if kind == reflect.Struct {
+			return builtInStreamExtEncoder(typ)
 		}
 		return nil, false
 	}
 	if kind == reflect.Struct && !e.extRegistry.hasCustom[reflect.Struct] {
-		if typ == builtInTimeType {
-			return builtInTimeEncoder, true
-		}
-		return nil, false
+		return builtInStreamExtEncoder(typ)
 	}
 	coders := e.extRegistry.byKind[kind]
 	if coders == nil {
@@ -161,6 +174,9 @@ func (e *encoder) createBuiltIn(rv reflect.Value) error {
 	case reflect.Struct:
 		if rv.Type() == builtInTimeType {
 			return e.writeExt(builtInTimeEncoder, rv)
+		}
+		if rv.Type() == builtInRawType {
+			return e.writeExt(builtInRawEncoder, rv)
 		}
 		return e.writeStruct(rv)
 	case reflect.Ptr:
@@ -200,6 +216,14 @@ func (e *encoder) createSliceBuiltIn(rv reflect.Value) error {
 		if elementType == builtInTimeType {
 			for i := 0; i < l; i++ {
 				if err := e.writeExt(builtInTimeEncoder, rv.Index(i)); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+		if elementType == builtInRawType {
+			for i := 0; i < l; i++ {
+				if err := e.writeExt(builtInRawEncoder, rv.Index(i)); err != nil {
 					return err
 				}
 			}

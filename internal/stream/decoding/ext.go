@@ -1,6 +1,7 @@
 package decoding
 
 import (
+	"bytes"
 	"encoding/binary"
 	"reflect"
 
@@ -59,6 +60,12 @@ func (d *decoder) tryExtDecode(code byte, rv reflect.Value, k reflect.Kind) (boo
 		if setExtValue(rv, v) {
 			return true, nil
 		}
+	}
+	// No registered decoder claimed the frame: fall back to ext.Raw (any ext
+	// type) for destinations that can hold it. data aliases a reused read
+	// buffer, so it is copied before being retained.
+	if setExtValue(rv, ext.Raw{Type: innerType, Data: bytes.Clone(data)}) {
+		return true, nil
 	}
 	// The frame has already been consumed, so falling back to kind-based
 	// decoding would read past it.
