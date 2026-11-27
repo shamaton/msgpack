@@ -1,5 +1,11 @@
 # Changelog
 
+## [v3.3.0](https://github.com/shamaton/msgpack/compare/v3.2.8...v3.3.0) - 2026-11-27
+
+- fix: decode unregistered ext types into ext.Raw instead of erroring (#124) by @shamaton in https://github.com/shamaton/msgpack/pull/138
+- build(deps): bump actions/setup-go from 7.0.0 to 7.1.0 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/164
+- build(deps): bump github/codeql-action/upload-sarif from 3ea37a44b6e4e6847c46edae209410d258d548d1 to 38112626f97ac1fd7acf3df7ebca51f4677c1b38 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/165
+
 ## [v3.2.8](https://github.com/shamaton/msgpack/compare/v3.2.7...v3.2.8) - 2026-11-17
 
 - build(deps): bump securego/gosec from 14c713478ed40c9bdfa56d35d9c2142b91608106 to 244f1f6f4d1d0d14f89e79a73dab1219eabb5228 by @dependabot[bot] in https://github.com/shamaton/msgpack/pull/160
